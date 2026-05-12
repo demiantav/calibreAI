@@ -10,6 +10,22 @@ export const functionsImplementations = {
     return await fetchYouTubeChannelStats(channelId);
   },
   
+  getPreviousInsights: async ({ creatorName }: { creatorName: string }) => {
+    console.log(`[Tool Executor] Recuperando memoria para ${creatorName}...`);
+    const { data, error } = await supabase
+      .from('agent_logs')
+      .select('content, insights, created_at')
+      .eq('creator_name', creatorName)
+      .order('created_at', { ascending: false })
+      .limit(3); // Traemos los últimos 3 recuerdos
+
+    if (error) {
+      console.error("[Tool Executor] Error recuperando memoria:", error);
+      return [];
+    }
+    return data;
+  },
+  
   updateLiveMediaKit: async (data: any) => {
     console.log(`[Tool Executor] Persistiendo Media Kit en Supabase para ${data.creatorName}...`);
     

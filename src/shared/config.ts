@@ -4,10 +4,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const envSchema = z.object({
-  GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY es requerida"),
-  YOUTUBE_API_KEY: z.string().min(1, "YOUTUBE_API_KEY es requerida"),
-  SUPABASE_URL: z.string().url("SUPABASE_URL debe ser una URL válida"),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "SUPABASE_SERVICE_ROLE_KEY es requerida"),
+  GEMINI_API_KEY: z.string().min(1).transform(v => v.trim()),
+  YOUTUBE_API_KEY: z.string().min(1).transform(v => v.trim()),
+  SUPABASE_URL: z.string().url().transform(v => v.trim()),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).transform(v => v.trim()),
   PORT: z.string().default("8080"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 });

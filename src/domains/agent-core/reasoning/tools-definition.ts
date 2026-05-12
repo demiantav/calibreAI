@@ -39,5 +39,19 @@ export const calibreTools = [
       },
       required: ["creatorName", "metrics", "insights"],
     },
+  },
+  {
+    name: "getPreviousInsights",
+    description: "Recupera los últimos análisis y estados guardados del creador para comparar el progreso.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        creatorName: { 
+          type: "STRING",
+          description: "El nombre del creador (ej: midudev)"
+        },
+      },
+      required: ["creatorName"],
+    },
   }
 ];
