@@ -6,6 +6,8 @@ dotenv.config();
 const envSchema = z.object({
   GEMINI_API_KEY: z.string().min(1).transform(v => v.trim()),
   YOUTUBE_API_KEY: z.string().min(1).transform(v => v.trim()),
+  GMAIL_CLIENT_ID: z.string().min(1).transform(v => v.trim()),
+  GMAIL_CLIENT_SECRET: z.string().min(1).transform(v => v.trim()),
   SUPABASE_URL: z.string().url().transform(v => v.trim()),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).transform(v => v.trim()),
   PORT: z.string().default("8080"),

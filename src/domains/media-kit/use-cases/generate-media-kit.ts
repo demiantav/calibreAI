@@ -1,5 +1,5 @@
 import { model } from "../../agent-core/reasoning/gemini-client.js";
-import { RealYouTubeMetrics } from "../../content-pipeline/tools/youtube.js";
+import { RealYouTubeMetrics } from "../../../infrastructure/youtube/metrics-service.js";
 import { MediaKit } from "../entities/media-kit.js";
 
 export const generateMediaKitUseCase = async (metrics: RealYouTubeMetrics): Promise<MediaKit> => {

@@ -15,40 +15,42 @@ Calibre es un Agente de IA autónomo para la gestión de negocio de creadores de
 
 ---
 
-## 🔵 SPRINT 1: Inteligencia Comparativa y Control (En curso)
+## 🟢 SPRINT 1: Inteligencia Comparativa y Control (Completado)
 **Objetivo:** Convertir al agente en un sistema con memoria y control manual de ejecución.
 - [x] **Memoria Comparativa:** Herramienta `getPreviousInsights` para leer el pasado en Supabase.
 - [x] **Function Calling Autónomo:** El agente decide qué herramientas usar.
 - [x] **Retry Logic:** Manejo automático de errores 429 (Cuota de Google).
 - [x] **Endpoints de Control:** Creación de `/pulse` y `/logs`.
-- [ ] **Sprint Goal:** Finalizar permisos de Supabase y validar el primer informe comparativo guardado.
+- [x] **Sprint Goal:** Permisos de Supabase validados y primer informe comparativo funcional.
 
 ---
 
-## ⚪ SPRINT 2: Visualización y Dashboard (Pendiente)
+## 🔵 SPRINT 2: Motor de Ventas e Ingresos (En curso)
+**Objetivo:** Transformar el agente de analítico a transaccional.
+- [x] **Integración Gmail (MCP):** Servidor MCP con herramientas `list_emails` y `send_email`.
+- [x] **Tool declaradas en Gemini:** `listEmails` y `sendEmail` disponibles para function calling.
+- [ ] Implementación de `Auto-Pitch Engine` (borradores automáticos).
+- [ ] Lógica de `Sponsorship Forecasting` (predicción de valor de mercado).
+- [ ] Botón de contacto en Media Kit (flujo de leads).
+
+---
+
+## ⚪ SPRINT 3: Visualización y Dashboard (Pendiente)
 **Objetivo:** Crear la interfaz para que el creador vea el trabajo del agente.
 - [ ] Inicialización de React + Vite en `apps/web`.
-- [ ] Conexión de Frontend con la API del Agente.
-- [ ] Diseño de la tarjeta de "Live Media Kit".
-- [ ] Pantalla de historial de razonamientos.
-
----
-
-## ⚪ SPRINT 3: Brand Deals & CRM (Pendiente)
-**Objetivo:** Implementar la lógica comercial de acuerdos con marcas.
-- [ ] Entidades y Repositorio de `Brand Deals`.
-- [ ] Skill de detección de acuerdos estancados.
-- [ ] Integración inicial con Gmail (MCP).
+- [ ] Dashboard de ingresos proyectados y gestión de CRM.
 
 ---
 
 ### Última Sesión Summary
-- Se implementó la lógica de reintentos (`sendMessageWithRetry`) para errores 429 de Gemini.
-- Se actualizaron `PROJECT.md` y `CALIBRE_MEMORY.md` para reflejar un modelo de desarrollo SaaS basado en Sprints fuera del entorno de hackathon.
-- El agente ahora tiene un flujo de razonamiento comparativo obligatorio.
+- Corregidos bugs de imports en `tool-executor.ts` (import `config` no usado) y `generate-media-kit.ts` (import `RealYouTubeMetrics` con ruta incorrecta).
+- Agregada declaración faltante de `listEmails` en `tools-definition.ts` para que Gemini pueda invocarla.
+- Implementada herramienta `sendEmail` (MCP server + tool declaration + executor) para envío de correos.
+- Actualizado system prompt de Gemini para reflejar capacidades de Gmail.
+- Build limpio (`tsc` sin errores) y servidor corriendo correctamente.
 
 ### Próximo Paso Inmediato
-Validar que el `GRANT ALL` en Supabase permite al endpoint `/logs` devolver los datos sin error 42501 y observar el primer análisis comparativo real.
+Implementar `Auto-Pitch Engine` para borradores automáticos de correos a marcas, o comenzar con lógica de `Sponsorship Forecasting`.
 
 ---
 

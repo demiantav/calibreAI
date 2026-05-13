@@ -1,5 +1,6 @@
 import { fetchYouTubeChannelStats } from "../../content-pipeline/tools/youtube.js";
 import { supabase } from "../../../infrastructure/supabase/supabase-client.js";
+import { mcpManager } from "../../../infrastructure/mcp/mcp-manager.js";
 
 /**
  * Mapeo de nombres de funciones a implementaciones reales.
@@ -46,6 +47,23 @@ export const functionsImplementations = {
     }
 
     return { status: "success", message: "Media Kit persistido en Supabase" };
+  },
+
+  // Herramientas MCP de Gmail
+  listEmails: async (args: { maxResults?: number }) => {
+    const isHealthy = await mcpManager.healthCheck();
+    if (!isHealthy) {
+      throw new Error("MCP Server is unhealthy. Cannot list emails.");
+    }
+    return await mcpManager.callTool('list_emails', args);
+  },
+
+  sendEmail: async (args: { to: string; subject: string; body: string }) => {
+    const isHealthy = await mcpManager.healthCheck();
+    if (!isHealthy) {
+      throw new Error("MCP Server is unhealthy. Cannot send email.");
+    }
+    return await mcpManager.callTool('send_email', args);
   }
 };
 
