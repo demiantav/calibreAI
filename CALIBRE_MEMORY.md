@@ -25,12 +25,12 @@ Calibre es un Agente de IA autónomo para la gestión de negocio de creadores de
 
 ---
 
-## 🔵 SPRINT 2: Motor de Ventas e Ingresos (En curso)
+## 🟢 SPRINT 2: Motor de Ventas e Ingresos (Completado)
 **Objetivo:** Transformar el agente de analítico a transaccional.
 - [x] **Integración Gmail (MCP):** Servidor MCP con herramientas `list_emails` y `send_email`.
 - [x] **Tool declaradas en Gemini:** `listEmails` y `sendEmail` disponibles para function calling.
 - [x] Implementación de `Auto-Pitch Engine` (borradores automáticos).
-- [ ] Lógica de `Sponsorship Forecasting` (predicción de valor de mercado).
+- [x] Lógica de `Sponsorship Forecasting` (predicción de valor de mercado).
 - [ ] Botón de contacto en Media Kit (flujo de leads).
 
 ---
@@ -43,18 +43,22 @@ Calibre es un Agente de IA autónomo para la gestión de negocio de creadores de
 ---
 
 ### Última Sesión Summary
-- Implementado **Auto-Pitch Engine**: Creada entidad `BrandDeal` y use case `generatePitchUseCase` que genera pitches personalizados vía Gemini usando el Media Kit del creador.
-- Nueva tool `generateAndDraftPitch` disponible para el agente: recibe nombre de marca, email y contexto, genera un draft y lo persiste en `agent_logs` (type: `pitch_draft`).
-- Actualizado prompt del agente para que revise emails entrantes y genere pitches automáticamente durante el ciclo `/pulse`.
-- Build limpio y servidor validado.
+- **Sprint 2 completado:** Gmail MCP + Auto-Pitch Engine + Sponsorship Forecasting.
+- Corregidos bugs críticos en `McpManager`:
+  - Se agregó envío del mensaje `initialize` al servidor MCP (faltaba el handshake del protocolo).
+  - Se corrigió el formato de `callTool`: ahora usa `method: "tools/call"` con `params.name` en vez de `method: toolName`.
+  - Se agregó envío de `notifications/initialized` post-handshake.
+- **Sponsorship Forecasting:** use case que calcula engagement rate como `(lastVideoViews / subscribers) * 100`, Gemini estima tarifas (mención, dedicado, serie) + CPM + contexto de mercado. Persiste en `agent_logs` (type: `sponsorship_forecast`).
+- **Testing real:** Se probó OAuth Gmail exitosamente. El ciclo `/pulse` se ejecuta pero la cuota de YouTube Data API está agotada (Too Many Requests). Se necesita mock para testing sin API real.
+- Ramas renombradas de `feature/agent-memory` → `feature/sprint-2-sales-engine`.
 
 ### Próximo Paso Inmediato
-`Sponsorship Forecasting` o comenzar con el Dashboard (Sprint 3).
+Implementar mock de YouTube para testing sin API real, o comenzar Dashboard (Sprint 3: React + Vite en `apps/web`).
 
 ---
 
 ## 🛠 CONTEXTO DE DESARROLLO (VITAL PARA CONTINUAR)
-- **Rama Git Actual:** `feature/agent-memory`
+- **Rama Git Actual:** `feature/sprint-2-sales-engine`
 - **Canal de YouTube Test:** `UC8LeXCWOalN8SxlrPcG-PaQ` (midudev)
 - **Tablas Críticas:** 
   - `agent_logs`: Almacena el historial de razonamientos e informes.

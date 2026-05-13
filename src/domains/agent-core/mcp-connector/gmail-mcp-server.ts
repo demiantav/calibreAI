@@ -4,6 +4,17 @@ import { z } from "zod";
 import { gmail, oAuth2Client } from "../../../infrastructure/gmail/gmail-client.js";
 import { supabase } from "../../../infrastructure/supabase/supabase-client.js";
 
+// Intercept stdout to prevent non-JSON output from contaminating MCP JSON-RPC protocol
+const originalStdoutWrite = process.stdout.write.bind(process.stdout);
+process.stdout.write = ((chunk: any, ...args: any[]) => {
+  const str = typeof chunk === 'string' ? chunk : chunk.toString();
+  if (str.trim().startsWith('{') || str.trim().startsWith('"')) {
+    return originalStdoutWrite(str, ...args);
+  }
+  process.stderr.write('[MCP] ' + str);
+  return true;
+}) as typeof process.stdout.write;
+
 const server = new McpServer({
   name: "gmail-mcp-server",
   version: "1.0.0",

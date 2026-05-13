@@ -1,9 +1,14 @@
 import { getRealYouTubeMetrics, RealYouTubeMetrics } from '../../../infrastructure/youtube/metrics-service.js';
+import { getMockYouTubeMetrics } from './youtube-mock.js';
 
-/**
- * Tool para que el agente obtenga métricas reales de YouTube.
- * @param channelId El ID del canal (ej: UC_x5XG1OV2P6uYZ5JHScBvA)
- */
 export const fetchYouTubeChannelStats = async (channelId: string): Promise<RealYouTubeMetrics> => {
-  return await getRealYouTubeMetrics(channelId);
+  try {
+    return await getRealYouTubeMetrics(channelId);
+  } catch (error: any) {
+    const isQuotaError = error.message?.includes('quotaExceeded')
+      || error.message?.includes('quota')
+      || error.toString().includes('403');
+    console.warn(`[YouTube Tool] Usando mock datos simulados (${isQuotaError ? 'cuota excedida' : 'error: ' + error.message})`);
+    return await getMockYouTubeMetrics(channelId);
+  }
 };

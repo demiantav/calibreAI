@@ -50,17 +50,14 @@ class McpManager {
   private spawnServer(): void {
     console.log('[McpManager] Spawning MCP server process...');
     this.mcpProcess = spawn('npx', ['tsx', MCP_SERVER_SCRIPT], {
-      stdio: ['pipe', 'pipe', 'pipe'], // stdin, stdout, stderr
+      stdio: ['pipe', 'pipe', 'pipe'],
       env: {
         ...process.env,
         NODE_OPTIONS,
-        // Pass necessary env vars for MCP server authentication/connection
         SUPABASE_URL: config.SUPABASE_URL,
         SUPABASE_SERVICE_ROLE_KEY: config.SUPABASE_SERVICE_ROLE_KEY,
         GMAIL_CLIENT_ID: config.GMAIL_CLIENT_ID,
         GMAIL_CLIENT_SECRET: config.GMAIL_CLIENT_SECRET,
-        // Ensure the user email used in ensureAuthenticated is available if needed, or hardcode/load it.
-        // For now, hardcoded in gmail-mcp-server.ts, but could be passed here too.
       },
     });
 
@@ -68,50 +65,80 @@ class McpManager {
     this.mcpProcess.stderr.on('data', this.handleStdErr.bind(this));
     this.mcpProcess.on('close', this.handleClose.bind(this));
     this.mcpProcess.on('error', this.handleError.bind(this));
+
+    // Send MCP initialize request after a short delay to let the process start
+    setTimeout(() => {
+      if (this.mcpProcess?.stdin.writable) {
+        const initRequest = JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2024-11-05',
+            capabilities: {},
+            clientInfo: { name: 'calibre-mcp-client', version: '1.0.0' },
+          },
+        }) + '\n';
+        this.mcpProcess.stdin.write(initRequest);
+      }
+    }, 1000);
   }
 
   private handleStdOut(data: Buffer): void {
     this.responseBuffer += data.toString();
-    const messages = this.responseBuffer
-      .split(
-        `
-`,
-      )
-      .filter(Boolean); // Corregido el literal de cadena usando template literal
-    this.responseBuffer = messages.pop() || '';
+    const lines = this.responseBuffer.split('\n');
+    this.responseBuffer = lines.pop() || '';
 
-    for (const message of messages) {
+    for (let message of lines) {
+      if (!message.trim()) continue;
+
+      let parsed: McpResponse | null = null;
       try {
-        const parsed: McpResponse = JSON.parse(message);
-        if (parsed.id && this.responseCallbacks.has(parsed.id)) {
-          const { resolve, reject } = this.responseCallbacks.get(parsed.id)!;
-          if (parsed.error) {
-            console.error(`[McpManager] MCP tool error for ID ${parsed.id}:`, parsed.error);
-            reject(
-              new Error(`MCP Error: ${parsed.error.message || JSON.stringify(parsed.error)}`),
-            );
-          } else {
-            resolve(parsed.result);
+        parsed = JSON.parse(message);
+      } catch {
+        const start = message.indexOf('{');
+        if (start >= 0) {
+          let end = message.lastIndexOf('}');
+          while (end >= start) {
+            try {
+              parsed = JSON.parse(message.substring(start, end + 1));
+              break;
+            } catch {
+              end = message.lastIndexOf('}', end - 1);
+            }
           }
-          this.responseCallbacks.delete(parsed.id);
-        } else if (parsed.id === 1 && parsed.result && this.resolveInitialized) {
-          // Initialization successful
-          console.log('[McpManager] MCP server initialized successfully.');
-          this.resolveInitialized();
-          this.resolveInitialized = null;
-          this.rejectInitialized = null;
-        } else if (parsed.error && this.rejectInitialized) {
-          // Initialization failed
-          console.error('[McpManager] MCP server initialization failed:', parsed.error);
-          this.rejectInitialized(
-            new Error(`MCP Init Error: ${parsed.error.message || JSON.stringify(parsed.error)}`),
-          );
-          this.resolveInitialized = null;
-          this.rejectInitialized = null;
         }
-      } catch (e) {
-        // Not a valid JSON message, likely console logs from the server itself.
-        // console.log('[McpManager] Non-JSON stdout:', message);
+      }
+      if (!parsed) continue;
+
+      if (parsed.id && this.responseCallbacks.has(parsed.id)) {
+        const { resolve, reject } = this.responseCallbacks.get(parsed.id)!;
+        if (parsed.error) {
+          console.error(`[McpManager] MCP tool error for ID ${parsed.id}:`, parsed.error);
+          reject(new Error(`MCP Error: ${parsed.error.message || JSON.stringify(parsed.error)}`));
+        } else {
+          resolve(parsed.result);
+        }
+        this.responseCallbacks.delete(parsed.id);
+      } else if (parsed.id === 1 && parsed.result && this.resolveInitialized) {
+        console.log('[McpManager] MCP server initialized successfully.');
+        this.resolveInitialized();
+        this.resolveInitialized = null;
+        this.rejectInitialized = null;
+        if (this.mcpProcess?.stdin.writable) {
+          const notif = JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'notifications/initialized',
+          }) + '\n';
+          this.mcpProcess.stdin.write(notif);
+        }
+      } else if (parsed.error && this.rejectInitialized) {
+        console.error('[McpManager] MCP server initialization failed:', parsed.error);
+        this.rejectInitialized(
+          new Error(`MCP Init Error: ${parsed.error.message || JSON.stringify(parsed.error)}`),
+        );
+        this.resolveInitialized = null;
+        this.rejectInitialized = null;
       }
     }
   }
@@ -124,11 +151,6 @@ class McpManager {
       this.rejectInitialized = null;
       this.resolveInitialized = null;
     }
-    // If we get a critical error, reject any pending calls
-    this.responseCallbacks.forEach(({ reject }) =>
-      reject(new Error(`MCP process error: ${errorMsg}`)),
-    );
-    this.responseCallbacks.clear();
   }
 
   private handleError(error: Error): void {
@@ -178,11 +200,9 @@ class McpManager {
       JSON.stringify({
         jsonrpc: '2.0',
         id: callId,
-        method: toolName,
-        params: args,
-      }) +
-      `
-`;
+        method: 'tools/call',
+        params: { name: toolName, arguments: args },
+      }) + '\n';
 
     return new Promise((resolve, reject) => {
       this.responseCallbacks.set(callId, { resolve, reject });

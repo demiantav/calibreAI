@@ -92,5 +92,20 @@ export const calibreTools: FunctionDeclaration[] = [
       },
       required: ["creatorName", "brandName", "brandEmail", "brandContext"],
     },
+  },
+  {
+    name: "calculateSponsorshipValue",
+    description: "Calcula las tarifas estimadas de patrocinio del creador basado en sus métricas actuales (suscriptores, vistas, engagement).",
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        creatorName: { type: SchemaType.STRING, description: "Nombre del creador" },
+        subscribers: { type: SchemaType.NUMBER, description: "Número de suscriptores" },
+        totalViews: { type: SchemaType.NUMBER, description: "Vistas totales del canal" },
+        lastVideoViews: { type: SchemaType.NUMBER, description: "Vistas del último video" },
+        niche: { type: SchemaType.STRING, description: "Nicho del creador (ej: desarrollo web, gaming, cocina)" },
+      },
+      required: ["creatorName", "subscribers", "totalViews", "lastVideoViews", "niche"],
+    },
   }
 ];

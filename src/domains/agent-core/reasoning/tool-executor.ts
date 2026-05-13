@@ -2,6 +2,8 @@ import { fetchYouTubeChannelStats } from "../../content-pipeline/tools/youtube.j
 import { supabase } from "../../../infrastructure/supabase/supabase-client.js";
 import { mcpManager } from "../../../infrastructure/mcp/mcp-manager.js";
 import { generatePitchUseCase } from "../../brand-deals/use-cases/generate-pitch.js";
+import { calculateSponsorshipUseCase } from "../../brand-deals/use-cases/calculate-sponsorship.js";
+import { gmail, oAuth2Client } from "../../../infrastructure/gmail/gmail-client.js";
 
 /**
  * Mapeo de nombres de funciones a implementaciones reales.
@@ -50,13 +52,39 @@ export const functionsImplementations = {
     return { status: "success", message: "Media Kit persistido en Supabase" };
   },
 
-  // Herramientas MCP de Gmail
+  // Herramientas de Gmail (usando Gmail API directa para evitar stdout contaminado del MCP)
   listEmails: async (args: { maxResults?: number }) => {
-    const isHealthy = await mcpManager.healthCheck();
-    if (!isHealthy) {
-      throw new Error("MCP Server is unhealthy. Cannot list emails.");
+    console.warn('[Tool Executor] Usando Gmail API directa...');
+    const { data } = await supabase
+      .from('user_auth')
+      .select('*')
+      .eq('user_email', 'tavolarodemian06@gmail.com')
+      .single();
+    if (!data) throw new Error('No autenticado. Ejecuta /auth/login');
+    oAuth2Client.setCredentials({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+    });
+    try {
+      const response = await gmail.users.messages.list({ userId: 'me', maxResults: args.maxResults || 5 });
+      const messages = response.data.messages || [];
+      const details = await Promise.all(
+        messages.map(async (msg: any) => {
+          const detail = await gmail.users.messages.get({ userId: 'me', id: msg.id! });
+          return {
+            id: msg.id,
+            snippet: detail.data.snippet,
+            subject: detail.data.payload?.headers?.find((h: any) => h.name === 'Subject')?.value,
+          };
+        })
+      );
+      return { content: [{ type: "text", text: JSON.stringify(details, null, 2) }] };
+    } catch (gmailError: any) {
+      if (gmailError.message?.includes('not been used') || gmailError.message?.includes('disabled')) {
+        console.error('[Tool Executor] Gmail API no habilitada. Activá la API en: https://console.cloud.google.com/apis/library/gmail.googleapis.com');
+      }
+      throw gmailError;
     }
-    return await mcpManager.callTool('list_emails', args);
   },
 
   sendEmail: async (args: { to: string; subject: string; body: string }) => {
@@ -65,6 +93,20 @@ export const functionsImplementations = {
       throw new Error("MCP Server is unhealthy. Cannot send email.");
     }
     return await mcpManager.callTool('send_email', args);
+  },
+
+  // Sponsorship Forecasting
+  calculateSponsorshipValue: async (args: { creatorName: string; subscribers: number; totalViews: number; lastVideoViews: number; niche: string }) => {
+    console.log(`[Tool Executor] Calculando sponsorship value para ${args.creatorName}...`);
+    const forecast = await calculateSponsorshipUseCase({
+      creatorName: args.creatorName,
+      subscribers: args.subscribers,
+      totalViews: args.totalViews,
+      lastVideoViews: args.lastVideoViews,
+      niche: args.niche,
+    });
+    console.log(`[Tool Executor] Forecast: mención $${forecast.mention.min}-$${forecast.mention.max}`);
+    return forecast;
   },
 
   // Auto-Pitch Engine

@@ -1,19 +1,14 @@
-export interface YouTubeMetrics {
-  subscriberCount: number;
-  lastVideoViews: number;
-  engagementRate: string;
-  channelName: string;
-}
+import { RealYouTubeMetrics } from '../../../infrastructure/youtube/metrics-service.js';
 
-export const getMockYouTubeMetrics = async (): Promise<YouTubeMetrics> => {
-  // Simulamos una llamada a la API que tarda 500ms
+export const getMockYouTubeMetrics = async (channelId?: string): Promise<RealYouTubeMetrics> => {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({
-        subscriberCount: 154200,
+        subscriberCount: 738000,
+        totalViews: 67614138,
+        lastVideoTitle: 'Nuevo video de prueba - review de herramienta',
         lastVideoViews: 45000,
-        engagementRate: "8.5%",
-        channelName: "Tech Latino"
+        channelName: channelId?.includes('UC') ? 'midudev' : 'Tech Latino',
       });
     }, 500);
   });

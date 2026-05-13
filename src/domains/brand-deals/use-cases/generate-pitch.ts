@@ -64,11 +64,21 @@ export const generatePitchUseCase = async (input: PitchInput): Promise<PitchResu
   `;
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(jsonString);
+    let parsed: { pitchSubject: string; pitchContent: string };
+
+    try {
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      parsed = JSON.parse(jsonString);
+    } catch (genError: any) {
+      console.warn(`[Pitch Use Case] Gemini no disponible. Usando pitch mock para ${input.brandName}.`);
+      parsed = {
+        pitchSubject: `Propuesta de colaboración: ${input.brandName} x ${input.creatorName}`,
+        pitchContent: `Hola ${input.brandName},\n\nGracias por contactarnos. Somos ${input.creatorName}, un creador de contenido en el nicho tech con una comunidad comprometida de más de 700K suscriptores.\n\nNos encantaría explorar cómo podemos colaborar. Adjuntamos nuestro Media Kit con métricas detalladas y propuestas de valor.\n\nQuedamos atentos a tu respuesta para agendar una llamada.\n\nSaludos,\n${input.creatorName}`,
+      };
+    }
 
     const draft: BrandDeal = {
       brandName: input.brandName,

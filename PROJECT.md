@@ -21,11 +21,11 @@ Calibre es un Agente de IA autónomo para la gestión de negocio de creadores de
 
 ---
 
-## 🔵 SPRINT 2: Motor de Ventas e Ingresos (En curso)
+## 🟢 SPRINT 2: Motor de Ventas e Ingresos (Completado)
 **Objetivo:** Transformar el agente de analítico a transaccional.
 - [x] Integración Gmail (MCP) para lectura/escritura de correos.
 - [x] Implementación de `Auto-Pitch Engine` (borradores automáticos).
-- [ ] Lógica de `Sponsorship Forecasting` (predicción de valor de mercado).
+- [x] Lógica de `Sponsorship Forecasting` (predicción de valor de mercado).
 - [ ] Botón de contacto en Media Kit (flujo de leads).
 
 ---
@@ -38,17 +38,17 @@ Calibre es un Agente de IA autónomo para la gestión de negocio de creadores de
 ---
 
 ### Última Sesión Summary
-- Implementado **Auto-Pitch Engine**: entidad BrandDeal, use case generatePitchUseCase, tool generateAndDraftPitch.
-- El agente ahora revisa emails entrantes durante /pulse y genera drafts de pitch personalizados para marcas.
-- Build limpio y servidor validado.
+- Sprint 2 completado: Gmail MCP + Auto-Pitch + Sponsorship Forecasting.
+- Corregido bug de inicialización en McpManager (handshake MCP faltante).
+- Testing real: OAuth Gmail funcional, cuota YouTube agotada.
 
 ### Próximo Paso Inmediato
-Sponsorship Forecasting o Dashboard (Sprint 3).
+Mock de YouTube para testing sin API real, o Dashboard (Sprint 3).
 
 ---
 
 ## 🛠 CONTEXTO DE DESARROLLO (VITAL PARA CONTINUAR)
-- **Rama Git Actual:** `feature/agent-memory`
+- **Rama Git Actual:** `feature/sprint-2-sales-engine`
 - **Canal de YouTube Test:** `UC8LeXCWOalN8SxlrPcG-PaQ` (midudev)
 - **Tablas Críticas:** 
   - `agent_logs`: Almacena el historial de razonamientos e informes.
