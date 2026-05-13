@@ -77,5 +77,20 @@ export const calibreTools: FunctionDeclaration[] = [
       },
       required: ["to", "subject", "body"],
     },
+  },
+  {
+    name: "generateAndDraftPitch",
+    description: "Genera un borrador de pitch personalizado para una marca usando el Media Kit del creador. NO envía el email, solo crea y guarda el draft en Supabase.",
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        creatorName: { type: SchemaType.STRING, description: "Nombre del creador" },
+        brandName: { type: SchemaType.STRING, description: "Nombre de la marca" },
+        brandEmail: { type: SchemaType.STRING, description: "Email de contacto de la marca" },
+        brandContext: { type: SchemaType.STRING, description: "Contexto del email recibido de la marca (subject o snippet)" },
+        pitchStyle: { type: SchemaType.STRING, description: "Estilo del pitch: 'professional' o 'casual' (default: professional)" },
+      },
+      required: ["creatorName", "brandName", "brandEmail", "brandContext"],
+    },
   }
 ];

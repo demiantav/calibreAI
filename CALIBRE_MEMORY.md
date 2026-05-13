@@ -29,7 +29,7 @@ Calibre es un Agente de IA autónomo para la gestión de negocio de creadores de
 **Objetivo:** Transformar el agente de analítico a transaccional.
 - [x] **Integración Gmail (MCP):** Servidor MCP con herramientas `list_emails` y `send_email`.
 - [x] **Tool declaradas en Gemini:** `listEmails` y `sendEmail` disponibles para function calling.
-- [ ] Implementación de `Auto-Pitch Engine` (borradores automáticos).
+- [x] Implementación de `Auto-Pitch Engine` (borradores automáticos).
 - [ ] Lógica de `Sponsorship Forecasting` (predicción de valor de mercado).
 - [ ] Botón de contacto en Media Kit (flujo de leads).
 
@@ -43,14 +43,13 @@ Calibre es un Agente de IA autónomo para la gestión de negocio de creadores de
 ---
 
 ### Última Sesión Summary
-- Corregidos bugs de imports en `tool-executor.ts` (import `config` no usado) y `generate-media-kit.ts` (import `RealYouTubeMetrics` con ruta incorrecta).
-- Agregada declaración faltante de `listEmails` en `tools-definition.ts` para que Gemini pueda invocarla.
-- Implementada herramienta `sendEmail` (MCP server + tool declaration + executor) para envío de correos.
-- Actualizado system prompt de Gemini para reflejar capacidades de Gmail.
-- Build limpio (`tsc` sin errores) y servidor corriendo correctamente.
+- Implementado **Auto-Pitch Engine**: Creada entidad `BrandDeal` y use case `generatePitchUseCase` que genera pitches personalizados vía Gemini usando el Media Kit del creador.
+- Nueva tool `generateAndDraftPitch` disponible para el agente: recibe nombre de marca, email y contexto, genera un draft y lo persiste en `agent_logs` (type: `pitch_draft`).
+- Actualizado prompt del agente para que revise emails entrantes y genere pitches automáticamente durante el ciclo `/pulse`.
+- Build limpio y servidor validado.
 
 ### Próximo Paso Inmediato
-Implementar `Auto-Pitch Engine` para borradores automáticos de correos a marcas, o comenzar con lógica de `Sponsorship Forecasting`.
+`Sponsorship Forecasting` o comenzar con el Dashboard (Sprint 3).
 
 ---
 

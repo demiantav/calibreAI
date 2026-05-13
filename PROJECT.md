@@ -24,7 +24,7 @@ Calibre es un Agente de IA autónomo para la gestión de negocio de creadores de
 ## 🔵 SPRINT 2: Motor de Ventas e Ingresos (En curso)
 **Objetivo:** Transformar el agente de analítico a transaccional.
 - [x] Integración Gmail (MCP) para lectura/escritura de correos.
-- [ ] Implementación de `Auto-Pitch Engine` (borradores automáticos).
+- [x] Implementación de `Auto-Pitch Engine` (borradores automáticos).
 - [ ] Lógica de `Sponsorship Forecasting` (predicción de valor de mercado).
 - [ ] Botón de contacto en Media Kit (flujo de leads).
 
@@ -38,13 +38,12 @@ Calibre es un Agente de IA autónomo para la gestión de negocio de creadores de
 ---
 
 ### Última Sesión Summary
-- Corregidos bugs de imports en `tool-executor.ts` y `generate-media-kit.ts`.
-- Agregada declaración de `listEmails` en `tools-definition.ts` y nueva herramienta `sendEmail`.
-- Build TypeScript limpio y servidor validado.
-- Sprint 1 marcado como completado (validación de logs OK).
+- Implementado **Auto-Pitch Engine**: entidad BrandDeal, use case generatePitchUseCase, tool generateAndDraftPitch.
+- El agente ahora revisa emails entrantes durante /pulse y genera drafts de pitch personalizados para marcas.
+- Build limpio y servidor validado.
 
 ### Próximo Paso Inmediato
-Implementar `Auto-Pitch Engine` para borradores automáticos o `Sponsorship Forecasting`.
+Sponsorship Forecasting o Dashboard (Sprint 3).
 
 ---
 

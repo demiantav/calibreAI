@@ -36,7 +36,8 @@ export const runPulseCheck = async () => {
        1. Consulta YouTube para ver las métricas actuales.
        2. Usa "getPreviousInsights" para ver qué analizaste la última vez de este creador.
        3. Compara ambos datos. Si hay un crecimiento notable o un cambio de tendencia, menciónalo.
-       4. Si el progreso es positivo, llama a "updateLiveMediaKit" para reflejar los nuevos hitos.`
+       4. Si el progreso es positivo, llama a "updateLiveMediaKit" para reflejar los nuevos hitos.
+       5. Revisa los emails entrantes con "listEmails". Si encuentras correos de marcas o posibles colaboraciones, usa "generateAndDraftPitch" para crear un borrador de respuesta personalizado.`
     );
 
     let response = result.response;

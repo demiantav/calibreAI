@@ -1,6 +1,7 @@
 import { fetchYouTubeChannelStats } from "../../content-pipeline/tools/youtube.js";
 import { supabase } from "../../../infrastructure/supabase/supabase-client.js";
 import { mcpManager } from "../../../infrastructure/mcp/mcp-manager.js";
+import { generatePitchUseCase } from "../../brand-deals/use-cases/generate-pitch.js";
 
 /**
  * Mapeo de nombres de funciones a implementaciones reales.
@@ -64,6 +65,26 @@ export const functionsImplementations = {
       throw new Error("MCP Server is unhealthy. Cannot send email.");
     }
     return await mcpManager.callTool('send_email', args);
+  },
+
+  // Auto-Pitch Engine
+  generateAndDraftPitch: async (args: { creatorName: string; brandName: string; brandEmail: string; brandContext: string; pitchStyle?: string }) => {
+    console.log(`[Tool Executor] Generando pitch para ${args.brandName}...`);
+    const result = await generatePitchUseCase({
+      creatorName: args.creatorName,
+      brandName: args.brandName,
+      brandEmail: args.brandEmail,
+      brandContext: args.brandContext,
+      pitchStyle: args.pitchStyle,
+    });
+    console.log(`[Tool Executor] Pitch generado: "${result.pitchSubject}"`);
+    return {
+      status: "draft_created",
+      brandName: result.draft.brandName,
+      pitchSubject: result.pitchSubject,
+      pitchContent: result.pitchContent,
+      message: `Borrador de pitch para ${result.draft.brandName} generado y guardado. Revisa los logs para ver el contenido completo.`,
+    };
   }
 };
 
