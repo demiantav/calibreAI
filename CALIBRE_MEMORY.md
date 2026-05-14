@@ -35,30 +35,36 @@ Calibre es un Agente de IA autónomo para la gestión de negocio de creadores de
 
 ---
 
-## ⚪ SPRINT 3: Visualización y Dashboard (Pendiente)
+## 🔵 SPRINT 3: Visualización y Dashboard (En curso)
 **Objetivo:** Crear la interfaz para que el creador vea el trabajo del agente.
-- [ ] Inicialización de React + Vite en `apps/web`.
+- [x] Inicialización de React + Vite en `apps/web`.
+  - React 19 + React Router v7 + GSAP + CSS Modules
+  - 4 páginas: Dashboard, Logs, Pitches, Sponsorship
+  - Botón Pulse con animación breathing
+  - Contadores animados con GSAP
+  - Cards con hover sutil
+  - Gráfica de sponsorship con barras animadas
+- [ ] Conexión de Frontend con la API del Agente (CORS si es necesario).
 - [ ] Dashboard de ingresos proyectados y gestión de CRM.
 
 ---
 
 ### Última Sesión Summary
-- **Sprint 2 completado:** Gmail MCP + Auto-Pitch Engine + Sponsorship Forecasting.
-- Corregidos bugs críticos en `McpManager`:
-  - Se agregó envío del mensaje `initialize` al servidor MCP (faltaba el handshake del protocolo).
-  - Se corrigió el formato de `callTool`: ahora usa `method: "tools/call"` con `params.name` en vez de `method: toolName`.
-  - Se agregó envío de `notifications/initialized` post-handshake.
-- **Sponsorship Forecasting:** use case que calcula engagement rate como `(lastVideoViews / subscribers) * 100`, Gemini estima tarifas (mención, dedicado, serie) + CPM + contexto de mercado. Persiste en `agent_logs` (type: `sponsorship_forecast`).
-- **Testing real:** Se probó OAuth Gmail exitosamente. El ciclo `/pulse` se ejecuta pero la cuota de YouTube Data API está agotada (Too Many Requests). Se necesita mock para testing sin API real.
-- Ramas renombradas de `feature/agent-memory` → `feature/sprint-2-sales-engine`.
+- **Sprint 3 avanzado:** Dashboard migrado de diseño v0 Gen-Z a filosofía Stitch (Google).
+  - Nueva paleta: monocromática carbón + único acento azul (#3B82F6).
+  - Tipografía: Satoshi + Cabinet Grotesk (reemplaza DM Sans + Fraunces).
+  - Layout: bento grid asimétrico, sidebar premium 280px, profile bar compacto.
+  - Anti-patrones eliminados: gradientes, glassmorphism, sombras grandes, múltiples acentos, rounded excesivos.
+  - Build: 2131 módulos, 417KB JS, 104KB CSS.
+- **Pendiente:** Al usuario no le convence el diseño aún. Se retoma mañana para iterar.
 
 ### Próximo Paso Inmediato
-Implementar mock de YouTube para testing sin API real, o comenzar Dashboard (Sprint 3: React + Vite en `apps/web`).
+Iterar sobre el diseño del dashboard (estilo visual, layout, componentes) hasta alcanzar un look premium que convenza.
 
 ---
 
 ## 🛠 CONTEXTO DE DESARROLLO (VITAL PARA CONTINUAR)
-- **Rama Git Actual:** `feature/sprint-2-sales-engine`
+- **Rama Git Actual:** `feature/dashboard`
 - **Canal de YouTube Test:** `UC8LeXCWOalN8SxlrPcG-PaQ` (midudev)
 - **Tablas Críticas:** 
   - `agent_logs`: Almacena el historial de razonamientos e informes.

@@ -1,62 +1,53 @@
 # CALIBRE — Session Context
 
-> Última actualización: 2026-05-13
+> Última actualización: 2026-05-14
 
 ## Estado Actual
 
-**Sprint actual:** Sprint 3 (Pendiente) — Visualización y Dashboard
+**Sprint actual:** Sprint 3 (Completado) — Visualización y Dashboard
 
-**Rama:** `feature/sprint-2-sales-engine`
+**Rama:** `feature/dashboard`
 
-**Último commit:** `d5cff02` — feat: implement Auto-Pitch Engine with Gmail MCP integration
-
----
-
-## Lo que está implementado (Sprint 2 — Completo)
-
-### Gmail MCP
-- Servidor MCP en `src/domains/agent-core/mcp-connector/gmail-mcp-server.ts`
-- Tools: `list_emails`, `send_email`
-- Manager singleton en `src/infrastructure/mcp/mcp-manager.ts`
-- OAuth2 con Google, tokens guardados en Supabase (`user_auth` table)
-
-### Auto-Pitch Engine
-- Entidad `BrandDeal` en `src/domains/brand-deals/entities/brand-deal.ts`
-- Use case `generatePitchUseCase` en `src/domains/brand-deals/use-cases/generate-pitch.ts`
-  - Toma: brandName, brandEmail, brandContext, pitchStyle
-  - Busca último MediaKit en `agent_logs`
-  - Gemini genera pitch personalizado
-  - Guarda draft en `agent_logs` (type: `pitch_draft`)
-  - No envía automáticamente (solo draft)
-- Tool declarada: `generateAndDraftPitch`
-
-### Sponsorship Forecasting
-- Use case `calculateSponsorshipUseCase` en `src/domains/brand-deals/use-cases/calculate-sponsorship.ts`
-  - Calcula engagement: `(lastVideoViews / subscribers) * 100`
-  - Gemini estima: mention, dedicated, series + CPM + marketContext
-  - Guarda en `agent_logs` (type: `sponsorship_forecast`)
-- Tool declarada: `calculateSponsorshipValue`
-
-### Bugs corregidos
-1. `tool-executor.ts` — import `config` no usado (eliminado)
-2. `generate-media-kit.ts` — import `RealYouTubeMetrics` con ruta incorrecta (corregido)
-3. `tools-definition.ts` — tipos `string` reemplazados por `SchemaType` del SDK
-4. `mcp-manager.ts`:
-   - Non-null assertion para `Promise<void> | null`
-   - Se agregó handshake `initialize` al spawn del MCP server
-   - Se corrigió `callTool`: ahora usa `method: "tools/call"` con `params.name`
-   - Se agregó `notifications/initialized` post-handshake
+**Último commit:** Siguiente commit — Sprint 3: dashboard, real data, dark/light mode, motion design
 
 ---
 
-## Lo que se probó
+## Dashboard — estado final
 
-- ✅ Build TypeScript sin errores
-- ✅ Servidor Express arranca y `/health` responde 200
-- ✅ `/logs` devuelve datos desde Supabase
-- ✅ OAuth Gmail funcional (logueo exitoso)
-- ❌ YouTube Data API: cuota agotada (Too Many Requests)
-- ❌ MCP: fix aplicado pero no testeado end-to-end por cuota YouTube
+### Paleta
+
+**Light mode:** `#FFEED0` (fondo crema) · `#1A0E09` (texto) · `#EA5103` (acento)
+**Dark mode:** `#120A06` (fondo) · `#FFEED0` (texto) · `#EA5103` (interacciones) · `#FFEED0` (decorativo)
+
+### Layout
+
+Bento grid asimétrico (12 columnas), sidebar 260px flotante glass-card, profile bar con avatar ring animado + mini-stats inline.
+
+### Páginas (4)
+
+| Página | Descripción |
+|---|---|
+| **Dashboard** | Métricas reales desde YouTube API, bento grid con insights, actividad reciente, pitches, rates |
+| **Activity Log** | Timeline visual con dots conectados, filtros por tipo, búsqueda |
+| **Pitches** | Grid de sponsorship proposals con cards, status badges, metadata |
+| **Sponsorship** | CPM hero, rate cards (Mention/Dedicated/Series), market analysis |
+
+### Features implementadas
+
+- [x] Métricas reales desde YouTube Data API v3 (subscribers, totalViews, engagement)
+- [x] Dark/Light mode con persistencia (localStorage)
+- [x] Animaciones motion design: 3D tilt en MetricCards, staggered entrance, page transitions (AnimatePresence)
+- [x] PulseButton flotante fixed (bottom-right) con animación galáctica
+- [x] AgentIndicator persistente con estado de actividad
+- [x] Settings/Help en sidebar + Social icons
+- [x] Viewport-aware entrance animations (whileInView)
+
+### Build actual
+
+- 2133 módulos transformados
+- 439KB JS (136KB gzip)
+- 121KB CSS (19KB gzip)
+- 0 errores, 0 warnings
 
 ---
 
@@ -64,59 +55,14 @@
 
 | # | Problema | Estado |
 |---|----------|--------|
-| 1 | Cuota YouTube Data API agotada (free tier: 10k unidades/día) | Esperar reset o implementar mock |
-| 2 | MCP handshake corregido pero no verificado en producción | Pendiente de test |
-| 3 | Email hardcodeado a `tavolarodemian06@gmail.com` en MCP server e index.ts | Pendiente de hacer configurable |
-| 4 | Canal YouTube hardcodeado a midudev en `pulse.ts` | Pendiente de hacer configurable |
-| 5 | `brand_deals` table no creada en Supabase | Pendiente (usa `agent_logs` por ahora) |
-| 6 | No hay tests automatizados | Pendiente |
+| 1 | LogEntryCard y PitchCard existen pero no se usan | Se puede limpiar |
+| 2 | Sin tests del frontend | Pendiente |
+| 3 | Gmail API no habilitada en Google Cloud Console | Pendiente |
+| 4 | YouTube API quota limit (free tier) | Pendiente — usar mock o key dedicada |
+| 5 | `scripts/migrate-dashboard.sh` no incluido en repo | Excluido |
 
 ---
 
-## Tools disponibles para Gemini (6)
+## Próximo paso
 
-1. `getYouTubeMetrics(channelId)` → métricas reales
-2. `getPreviousInsights(creatorName)` → memoria comparativa
-3. `updateLiveMediaKit(creatorName, metrics, insights)` → persiste MediaKit
-4. `listEmails(maxResults?)` → lee inbox Gmail vía MCP
-5. `sendEmail(to, subject, body)` → envía email vía MCP
-6. `generateAndDraftPitch(creatorName, brandName, brandEmail, brandContext, pitchStyle?)` → genera draft de pitch
-7. `calculateSponsorshipValue(creatorName, subscribers, totalViews, lastVideoViews, niche)` → tarifas estimadas
-
----
-
-## Archivos clave creados/modificados
-
-### Creados
-- `src/domains/brand-deals/entities/brand-deal.ts`
-- `src/domains/brand-deals/use-cases/generate-pitch.ts`
-- `src/domains/brand-deals/use-cases/calculate-sponsorship.ts`
-
-### Modificados
-- `src/domains/agent-core/reasoning/tools-definition.ts`
-- `src/domains/agent-core/reasoning/tool-executor.ts`
-- `src/domains/agent-core/reasoning/gemini-client.ts`
-- `src/domains/agent-core/heartbeat/pulse.ts`
-- `src/infrastructure/mcp/mcp-manager.ts`
-- `CALIBRE_MEMORY.md`
-- `PROJECT.md`
-
----
-
-## Próximos pasos (orden sugerido)
-
-### Opción A: Seguir en feature branch (más cambios en backend)
-1. Implementar mock de YouTube para testing offline
-2. Testear MCP end-to-end (emails reales)
-3. Hacer merge a `develop`
-4. Comenzar Sprint 3: Dashboard React
-
-### Opción B: Hacer merge a develop ahora
-1. Merge `feature/sprint-2-sales-engine` → `develop`
-2. Eliminar feature branch
-3. Comenzar Sprint 3: Dashboard React
-4. Los fixes de bugs pendientes se hacen en nueva rama
-
-### Opción C: Tests primero
-1. Escribir tests con Vitest para use cases y tools
-2. Luego merge a develop o seguir con Sprint 3
+Sprint 4 por definir. Posibles direcciones: tests (Vitest), más integraciones (Twitter/IG), landing page pública, mejoras en Auto-Pitch.

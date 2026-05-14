@@ -30,25 +30,27 @@ Calibre es un Agente de IA autónomo para la gestión de negocio de creadores de
 
 ---
 
-## ⚪ SPRINT 3: Visualización y Dashboard (Pendiente)
+## 🔵 SPRINT 3: Visualización y Dashboard (En curso)
 **Objetivo:** Crear la interfaz para que el creador vea el trabajo del agente.
-- [ ] Inicialización de React + Vite en `apps/web`.
+- [x] Inicialización de React + Vite en `apps/web`.
 - [ ] Dashboard de ingresos proyectados y gestión de CRM.
 
 ---
 
 ### Última Sesión Summary
-- Sprint 2 completado: Gmail MCP + Auto-Pitch + Sponsorship Forecasting.
-- Corregido bug de inicialización en McpManager (handshake MCP faltante).
-- Testing real: OAuth Gmail funcional, cuota YouTube agotada.
+- Sprint 2 mergeado a develop.
+- Sprint 3 iniciado: Dashboard con React 19 + Vite + GSAP + CSS Modules.
+  - 4 páginas: Dashboard, Logs, Pitches, Sponsorship.
+  - Animaciones sutiles: contadores, breathing pulse, hover cards, stagger logs.
+  - Build: 311KB JS, 6KB CSS.
 
 ### Próximo Paso Inmediato
-Mock de YouTube para testing sin API real, o Dashboard (Sprint 3).
+Probar frontend + backend juntos (verificar CORS).
 
 ---
 
 ## 🛠 CONTEXTO DE DESARROLLO (VITAL PARA CONTINUAR)
-- **Rama Git Actual:** `feature/sprint-2-sales-engine`
+- **Rama Git Actual:** `feature/dashboard`
 - **Canal de YouTube Test:** `UC8LeXCWOalN8SxlrPcG-PaQ` (midudev)
 - **Tablas Críticas:** 
   - `agent_logs`: Almacena el historial de razonamientos e informes.
