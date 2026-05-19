@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+
+onlyBuiltDependencies:
+  - esbuild
+  - protobufjs
+
+shamefullyHoist: true
