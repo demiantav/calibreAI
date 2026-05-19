@@ -1,25 +1,33 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
+export type PulseStatus = 'idle' | 'pulsing' | 'success' | 'error';
+
 interface PulseContextType {
   lastPulseAt: number | null;
+  pulseStatus: PulseStatus;
+  setPulseStatus: (status: PulseStatus) => void;
   triggerPulse: () => Promise<void>;
 }
 
 const PulseCtx = createContext<PulseContextType>({
   lastPulseAt: null,
+  pulseStatus: 'idle',
+  setPulseStatus: () => {},
   triggerPulse: async () => {},
 });
 
 export function PulseProvider({ children }: { children: ReactNode }) {
   const [lastPulseAt, setLastPulseAt] = useState<number | null>(null);
+  const [pulseStatus, setPulseStatus] = useState<PulseStatus>('idle');
 
   const triggerPulse = useCallback(async () => {
+    setPulseStatus('pulsing');
     setLastPulseAt(Date.now());
     await fetch('http://localhost:8080/pulse').catch(() => {});
   }, []);
 
   return (
-    <PulseCtx.Provider value={{ lastPulseAt, triggerPulse }}>
+    <PulseCtx.Provider value={{ lastPulseAt, pulseStatus, setPulseStatus, triggerPulse }}>
       {children}
     </PulseCtx.Provider>
   );

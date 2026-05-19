@@ -1,11 +1,18 @@
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { AgentIndicator } from './AgentIndicator';
 import { PulseButton } from './PulseButton';
 import { usePulse } from '@/lib/pulse-context';
 
 export default function Layout({ children }: { children: ReactNode }) {
-  const { triggerPulse } = usePulse();
+  const { pulseStatus, setPulseStatus, triggerPulse } = usePulse();
+
+  useEffect(() => {
+    if (pulseStatus === 'success' || pulseStatus === 'error') {
+      const timer = setTimeout(() => setPulseStatus('idle'), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [pulseStatus, setPulseStatus]);
 
   return (
     <div className="flex min-h-screen bg-bg selection:bg-accent/20 selection:text-accent">
@@ -16,7 +23,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       </main>
 
       <div className="fixed bottom-8 right-8 z-50">
-        <PulseButton onPulse={triggerPulse} />
+        <PulseButton onPulse={triggerPulse} status={pulseStatus} />
       </div>
     </div>
   );

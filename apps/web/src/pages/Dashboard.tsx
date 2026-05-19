@@ -15,7 +15,7 @@ export default function Dashboard() {
   const [isPulsing, setIsPulsing] = useState(false);
   const pollingRef = useRef<{ stopped: boolean }>({ stopped: false });
 
-  const { lastPulseAt } = usePulse();
+  const { lastPulseAt, setPulseStatus } = usePulse();
 
   const fetchLogs = useCallback(async () => {
     setIsLoading(true);
@@ -57,6 +57,7 @@ export default function Dashboard() {
           if (hasNewSummary) {
             guard.stopped = true;
             setIsPulsing(false);
+            setPulseStatus('success');
             return;
           }
         }
@@ -69,6 +70,7 @@ export default function Dashboard() {
     const safety = setTimeout(() => {
       guard.stopped = true;
       setIsPulsing(false);
+      setPulseStatus('error');
     }, 60000);
 
     return () => {
