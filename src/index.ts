@@ -73,7 +73,7 @@ app.get('/logs', async (req, res) => {
 
   const { data, error } = await query
     .order('created_at', { ascending: false })
-    .limit(50);
+    .limit(200);
 
   if (error) return res.status(500).json(error);
   res.json(data);
