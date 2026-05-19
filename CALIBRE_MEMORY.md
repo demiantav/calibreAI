@@ -1,75 +1,94 @@
-# CALIBRE — PROYECTO DE DESARROLLO (SPRINT TRACKING)
+# CALIBRE — MEMORIA DEL PROYECTO
 
 ## Visión General
-Calibre es un Agente de IA autónomo para la gestión de negocio de creadores de contenido. Este documento rastrea el progreso técnico mediante Sprints.
+Calibre es un Agente de IA autónomo para la gestión de negocio de creadores de contenido.
 
 ---
-
 ## 🟢 SPRINT 0: Cimentación e Infraestructura (Completado)
-**Objetivo:** Establecer la arquitectura base y la comunicación con el "cerebro".
-- [x] Configuración de Screaming Architecture.
-- [x] Conexión con Gemini 2.0 Flash.
-- [x] Integración real con YouTube Data API v3.
-- [x] Implementación de Capa de Persistencia (Supabase).
-- [x] Inicialización de Git Flow.
+- [x] Screaming Architecture, Gemini 2.0 Flash, YouTube API, Supabase, Git Flow.
 
 ---
-
 ## 🟢 SPRINT 1: Inteligencia Comparativa y Control (Completado)
-**Objetivo:** Convertir al agente en un sistema con memoria y control manual de ejecución.
-- [x] **Memoria Comparativa:** Herramienta `getPreviousInsights` para leer el pasado en Supabase.
-- [x] **Function Calling Autónomo:** El agente decide qué herramientas usar.
-- [x] **Retry Logic:** Manejo automático de errores 429 (Cuota de Google).
-- [x] **Endpoints de Control:** Creación de `/pulse` y `/logs`.
-- [x] **Sprint Goal:** Permisos de Supabase validados y primer informe comparativo funcional.
+- [x] Memoria Comparativa, Function Calling, Retry Logic, Endpoints `/pulse` y `/logs`.
 
 ---
-
 ## 🟢 SPRINT 2: Motor de Ventas e Ingresos (Completado)
-**Objetivo:** Transformar el agente de analítico a transaccional.
-- [x] **Integración Gmail (MCP):** Servidor MCP con herramientas `list_emails` y `send_email`.
-- [x] **Tool declaradas en Gemini:** `listEmails` y `sendEmail` disponibles para function calling.
-- [x] Implementación de `Auto-Pitch Engine` (borradores automáticos).
-- [x] Lógica de `Sponsorship Forecasting` (predicción de valor de mercado).
-- [ ] Botón de contacto en Media Kit (flujo de leads).
+- [x] Gmail MCP (list_emails, send_email), Auto-Pitch Engine, Sponsorship Forecasting.
 
 ---
-
-## 🔵 SPRINT 3: Visualización y Dashboard (En curso)
-**Objetivo:** Crear la interfaz para que el creador vea el trabajo del agente.
-- [x] Inicialización de React + Vite en `apps/web`.
-  - React 19 + React Router v7 + GSAP + CSS Modules
-  - 4 páginas: Dashboard, Logs, Pitches, Sponsorship
-  - Botón Pulse con animación breathing
-  - Contadores animados con GSAP
-  - Cards con hover sutil
-  - Gráfica de sponsorship con barras animadas
-- [ ] Conexión de Frontend con la API del Agente (CORS si es necesario).
-- [ ] Dashboard de ingresos proyectados y gestión de CRM.
+## 🟢 SPRINT 3: Visualización y Dashboard (Completado)
+- [x] Dashboard React + Framer Motion. Dark/Light mode. Métricas reales desde YouTube.
+- [x] Build: 446KB JS, 122KB CSS, 0 errores.
 
 ---
+## 🔵 SPRINT 4: Draft Review Flow (En curso)
 
-### Última Sesión Summary
-- **Sprint 3 avanzado:** Dashboard migrado de diseño v0 Gen-Z a filosofía Stitch (Google).
-  - Nueva paleta: monocromática carbón + único acento azul (#3B82F6).
-  - Tipografía: Satoshi + Cabinet Grotesk (reemplaza DM Sans + Fraunces).
-  - Layout: bento grid asimétrico, sidebar premium 280px, profile bar compacto.
-  - Anti-patrones eliminados: gradientes, glassmorphism, sombras grandes, múltiples acentos, rounded excesivos.
-  - Build: 2131 módulos, 417KB JS, 104KB CSS.
-- **Pendiente:** Al usuario no le convence el diseño aún. Se retoma mañana para iterar.
+### Implementado
+- Status `draft_ready` → `sent` → `responded`
+- `POST /api/pitches/:id/send` — valida, envía por MCP, actualiza BD
+- SendPitchModal — preview + edit + confirmación
+- Badge "Draft Ready" + "Review & Send" en Pitches
+- Card "Pending Pitches" en Dashboard
+- Auto-pulse al iniciar servidor
+- Decodificación RFC 2047 de subjects
+- From header extraction (corrige `unknown@email.com`)
+- Brand name desde From header
+- Dedup persistente vía `processed_emails`
+- Manejo no-fatal de error UPDATE
 
-### Próximo Paso Inmediato
-Iterar sobre el diseño del dashboard (estilo visual, layout, componentes) hasta alcanzar un look premium que convenza.
+### Bugs detectados en testing
+1. **"Just now"** no se actualiza — el timestamp se calcula una vez al renderizar
+2. **Pulse sin feedback** — la UI no muestra que el agente está trabajando
+3. **Auto-pulse regeneraba pitches** — resuelto con GRANT INSERT en processed_emails
+
+### Pendiente
+- [ ] Fix de bugs detectados
+- [ ] Test de flujo completo
+- [ ] Integraciones sociales (post-MVP)
 
 ---
+---
+## 🟡 SPRINT 5: Production Readiness & Infrastructure (Planificado)
 
-## 🛠 CONTEXTO DE DESARROLLO (VITAL PARA CONTINUAR)
-- **Rama Git Actual:** `feature/dashboard`
+**Objetivo:** Preparar Calibre para clientes reales.
+
+### Límites Free Tier (Verificado 18/05/2026)
+
+| API | Free Tier | Cuello de botella |
+|---|---|---|
+| Gemini Flash | 60 RPM / 1,000 RPD | 429 Rate Limit al usar varias funciones |
+| YouTube Data API | 10,000 Q/día | Search endpoint cuesta 100Q por ciclo (~96 ciclos/día) |
+| Gmail API | 1B Q/día | Sin límite práctico |
+| Supabase | 500 MB DB / 2 GB BW | OK para pocos creadores |
+
+### Plan de Producción
+
+1. **Gemini:** Activar facturación → 2,000 RPM / 10,000 RPD (~$2-5/mes)
+2. **YouTube:** Cache metrics en Supabase con TTL 1h + API key con cuota paga (~$1-3/mes)
+3. **Rate limiter:** Cola de requests Gemini + throttle 1 pulso/5min por creator
+4. **Supabase:** Pro ($25/mes) al tener >3 clientes
+5. **Multi-tenant:** YouTube/Gemini keys compartidas, Gmail OAuth por creator (ya implementado)
+
+### Pendiente Sprint 5
+- [ ] Cache YouTube metrics en Supabase (TTL 1h)
+- [ ] Rate limiter interno (cola Gemini, throttle pulsos)
+- [ ] API keys producción en .env
+- [ ] Evaluar Supabase Pro
+
+---
+### Última Sesión Summary (18/05)
+- Migración de npm a pnpm con workspace configurado (`pnpm-workspace.yaml`)
+- Análisis completo de límites free tier de Gemini, YouTube, Gmail y Supabase
+- Sprint 5 definido con plan de migración a producción
+- Se detectó que YouTube search endpoint (100Q/call) es el principal cuello de botella
+- Gemini 429 manejado con retry 3x + modo degradado; sponsorship y pitch tienen fallback mock
+
+---
+## 🛠 CONTEXTO DE DESARROLLO
+- **Rama:** `feature/sprint-4-draft-review`
 - **Canal de YouTube Test:** `UC8LeXCWOalN8SxlrPcG-PaQ` (midudev)
-- **Tablas Críticas:** 
-  - `agent_logs`: Almacena el historial de razonamientos e informes.
-  - `brand_deals`: (Pendiente de uso real) Almacenará negociaciones.
-- **Endpoints Locales:**
-  - `GET /pulse`: Dispara el razonamiento del agente.
-  - `GET /logs`: Muestra la memoria persistida.
-- **Modelo IA:** `gemini-flash-latest` (con lógica de reintento para errores 429).
+- **Tablas:** `agent_logs`, `processed_emails`, `user_auth`, `brand_deals`
+- **Endpoints:** `GET /pulse`, `GET /logs`, `POST /api/pitches/:id/send`, `GET /auth/login`, `GET /auth/callback`
+- **Modelo IA:** `gemini-flash-latest`
+- **Dashboard:** `apps/web` — React 19 + Vite + Tailwind v4 + Framer Motion
+- **Package manager:** pnpm (workspace: raíz + apps/web)
