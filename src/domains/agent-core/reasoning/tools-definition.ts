@@ -28,6 +28,9 @@ export const calibreTools: FunctionDeclaration[] = [
             subscribers: { type: SchemaType.NUMBER },
             totalViews: { type: SchemaType.NUMBER },
             lastVideoViews: { type: SchemaType.NUMBER },
+            lastVideoLikes: { type: SchemaType.NUMBER },
+            lastVideoComments: { type: SchemaType.NUMBER },
+            engagementRate: { type: SchemaType.NUMBER },
           }
         },
         insights: {
@@ -80,17 +83,15 @@ export const calibreTools: FunctionDeclaration[] = [
   },
   {
     name: "generateAndDraftPitch",
-    description: "Genera un borrador de pitch personalizado para una marca usando el Media Kit del creador. NO envía el email, solo crea y guarda el draft en Supabase.",
+    description: "Genera un borrador de pitch para una marca a partir de un email de Gmail. El backend obtiene automáticamente los datos del email usando el gmailId (From, Subject, Snippet). NO necesita que le pases esos datos.",
     parameters: {
       type: SchemaType.OBJECT,
       properties: {
         creatorName: { type: SchemaType.STRING, description: "Nombre del creador" },
-        brandName: { type: SchemaType.STRING, description: "Nombre de la marca" },
-        brandEmail: { type: SchemaType.STRING, description: "Email de contacto de la marca" },
-        brandContext: { type: SchemaType.STRING, description: "Contexto del email recibido de la marca (subject o snippet)" },
         pitchStyle: { type: SchemaType.STRING, description: "Estilo del pitch: 'professional' o 'casual' (default: professional)" },
+        gmailId: { type: SchemaType.STRING, description: "ID único del email en Gmail (obtenido del listado de emails). El backend usará este ID para obtener el contenido real del email." },
       },
-      required: ["creatorName", "brandName", "brandEmail", "brandContext"],
+      required: ["creatorName", "gmailId"],
     },
   },
   {
@@ -103,6 +104,9 @@ export const calibreTools: FunctionDeclaration[] = [
         subscribers: { type: SchemaType.NUMBER, description: "Número de suscriptores" },
         totalViews: { type: SchemaType.NUMBER, description: "Vistas totales del canal" },
         lastVideoViews: { type: SchemaType.NUMBER, description: "Vistas del último video" },
+        lastVideoLikes: { type: SchemaType.NUMBER, description: "Likes del último video" },
+        lastVideoComments: { type: SchemaType.NUMBER, description: "Comentarios del último video" },
+        engagementRate: { type: SchemaType.NUMBER, description: "Tasa de engagement pre-calculada (likes+comments)/subs*100" },
         niche: { type: SchemaType.STRING, description: "Nicho del creador (ej: desarrollo web, gaming, cocina)" },
       },
       required: ["creatorName", "subscribers", "totalViews", "lastVideoViews", "niche"],

@@ -192,6 +192,20 @@ class McpManager {
     return this.isInitializedPromise!;
   }
 
+  private recoverProcess(): void {
+    console.warn('[McpManager] Recuperando proceso MCP...');
+    if (this.mcpProcess) {
+      this.mcpProcess.kill();
+      this.mcpProcess = null;
+    }
+    this.isInitializedPromise = new Promise((resolve, reject) => {
+      this.resolveInitialized = resolve;
+      this.rejectInitialized = reject;
+    });
+    this.responseCallbacks.clear();
+    this.spawnServer();
+  }
+
   public async callTool(toolName: string, args: any, timeoutMs = 30000): Promise<any> {
     await this.ensureInitialized();
 
@@ -205,34 +219,34 @@ class McpManager {
       }) + '\n';
 
     return new Promise((resolve, reject) => {
-      this.responseCallbacks.set(callId, { resolve, reject });
+      const wrappedReject = (reason: any) => {
+        clearTimeout(timeoutId);
+        console.error(`[McpManager] callTool error en ${toolName}:`, reason);
+        this.recoverProcess();
+        reject(reason);
+      };
 
-      if (this.mcpProcess && this.mcpProcess.stdin) {
-        this.mcpProcess.stdin.write(payload);
-      } else {
-        const error = new Error('MCP process not available or stdin not writable.');
-        reject(error);
+      const resolveCleanup = (value: any) => {
+        clearTimeout(timeoutId);
+        resolve(value);
+      };
+
+      this.responseCallbacks.set(callId, { resolve: resolveCleanup, reject: wrappedReject });
+
+      if (!this.mcpProcess || !this.mcpProcess.stdin) {
         this.responseCallbacks.delete(callId);
+        this.recoverProcess();
+        reject(new Error('MCP process not available or stdin not writable.'));
+        return;
       }
 
-      const timeoutId = setTimeout(() => {
-        const err = new Error(`MCP tool call '${toolName}' timed out after ${timeoutMs}ms`);
-        reject(err);
-        this.responseCallbacks.delete(callId);
-        // Potentially kill the process if it's consistently timing out
-      }, timeoutMs);
+      this.mcpProcess.stdin.write(payload);
 
-      // Clean up timeout when promise settles
-      const originalResolve = resolve;
-      const originalReject = reject;
-      resolve = (value) => {
-        clearTimeout(timeoutId);
-        originalResolve(value);
-      };
-      reject = (reason) => {
-        clearTimeout(timeoutId);
-        originalReject(reason);
-      };
+      const timeoutId = setTimeout(() => {
+        this.responseCallbacks.delete(callId);
+        this.recoverProcess();
+        reject(new Error(`MCP tool call '${toolName}' timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
     });
   }
 

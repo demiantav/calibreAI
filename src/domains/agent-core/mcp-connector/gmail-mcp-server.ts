@@ -20,7 +20,7 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
-// Función para cargar tokens desde Supabase y autorizar el cliente
+// Función para cargar tokens desde Supabase, autorizar el cliente y refrescar si expiró
 async function ensureAuthenticated() {
   const { data, error } = await supabase
     .from('user_auth')
@@ -34,6 +34,22 @@ async function ensureAuthenticated() {
     access_token: data.access_token,
     refresh_token: data.refresh_token,
   });
+
+  // Refrescar token si está expirado o próximo a expirar
+  const expiresAt = data.expires_at ? new Date(data.expires_at).getTime() : 0;
+  if (Date.now() >= expiresAt - 60000) {
+    console.log('[MCP] Token expirado, refrescando...');
+    const { credentials } = await oAuth2Client.refreshAccessToken();
+    oAuth2Client.setCredentials(credentials);
+
+    await supabase.from('user_auth').upsert({
+      user_email: 'tavolarodemian06@gmail.com',
+      access_token: credentials.access_token,
+      refresh_token: credentials.refresh_token || data.refresh_token,
+      expires_at: new Date(Date.now() + (credentials.expiry_date || 3600 * 1000)).toISOString(),
+    });
+    console.log('[MCP] Token refrescado y persistido en Supabase.');
+  }
 }
 
 server.tool(
@@ -77,8 +93,14 @@ server.tool(
   async ({ to, subject, body }) => {
     await ensureAuthenticated();
 
+    function encodeHeader(text: string): string {
+      if (/^[\x00-\x7F]*$/.test(text)) return text;
+      const bytes = Buffer.from(text, 'utf-8');
+      return `=?UTF-8?B?${bytes.toString('base64')}?=`;
+    }
+
     const utf8Bytes = Buffer.from(
-      `To: ${to}\r\nSubject: ${subject}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${body}`,
+      `To: ${to}\r\nSubject: ${encodeHeader(subject)}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${body}`,
       'utf-8'
     );
     const encodedMessage = utf8Bytes.toString('base64url');

@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ThemeProvider } from '@/lib/theme';
+import { PulseProvider } from '@/lib/pulse-context';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Logs from './pages/Logs';
@@ -31,6 +32,7 @@ export default function App() {
 
   return (
     <ThemeProvider>
+      <PulseProvider>
       <Layout>
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
@@ -41,6 +43,7 @@ export default function App() {
           </Routes>
         </AnimatePresence>
       </Layout>
+      </PulseProvider>
     </ThemeProvider>
   );
 }

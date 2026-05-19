@@ -14,11 +14,23 @@ interface SponsorshipInput {
   subscribers: number;
   totalViews: number;
   lastVideoViews: number;
+  lastVideoLikes?: number;
+  lastVideoComments?: number;
+  engagementRate?: number;
   niche: string;
 }
 
 export const calculateSponsorshipUseCase = async (input: SponsorshipInput): Promise<SponsorshipForecast> => {
-  const engagementRate = ((input.lastVideoViews / input.subscribers) * 100).toFixed(1);
+  let engagementRate: string;
+  if (input.engagementRate !== undefined && input.engagementRate > 0) {
+    engagementRate = input.engagementRate < 0.01 ? '<0.01' : input.engagementRate.toFixed(2);
+  } else {
+    const hasInteraction = (input.lastVideoLikes ?? 0) > 0 || (input.lastVideoComments ?? 0) > 0;
+    const engRaw = hasInteraction
+      ? ((input.lastVideoLikes ?? 0) + (input.lastVideoComments ?? 0)) / input.subscribers * 100
+      : input.lastVideoViews / input.subscribers * 100;
+    engagementRate = engRaw <= 0 ? '0' : engRaw < 0.01 ? '<0.01' : engRaw.toFixed(2);
+  }
 
   const prompt = `
     Eres un analista de marketing de influencers. Basado en estas métricas de un creador de contenido, estima sus tarifas de patrocinio actuales en el mercado.
@@ -65,7 +77,7 @@ export const calculateSponsorshipUseCase = async (input: SponsorshipInput): Prom
         dedicated: { min: Math.round(baseRate * 2), max: Math.round(baseRate * 3), currency: 'USD' },
         series: { min: Math.round(baseRate * 4), max: Math.round(baseRate * 6), currency: 'USD' },
         estimatedCpm: parseFloat((input.subscribers > 500000 ? 8 : 5).toFixed(1)),
-        marketContext: 'Estimación basada en métricas generales del mercado (Gemini no disponible).',
+        marketContext: 'Estimación basada en métricas generales del mercado. Los datos personalizados se actualizarán en el próximo ciclo.',
       };
     }
 

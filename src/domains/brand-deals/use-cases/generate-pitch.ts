@@ -9,6 +9,10 @@ interface PitchInput {
   brandEmail: string;
   brandContext: string;
   pitchStyle?: string;
+  gmailId?: string;
+  originalEmailFrom?: string;
+  originalEmailSubject?: string;
+  originalEmailSnippet?: string;
 }
 
 interface PitchResult {
@@ -25,10 +29,11 @@ export const generatePitchUseCase = async (input: PitchInput): Promise<PitchResu
     .eq('type', 'media_kit_update')
     .order('created_at', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   const mediaKit: MediaKit | null = mediaKitData?.content || null;
   const insights = mediaKitData?.insights || '';
+  const hasMediaKit = !!mediaKitData;
 
   const styleGuide = input.pitchStyle || 'professional';
 
@@ -83,8 +88,12 @@ export const generatePitchUseCase = async (input: PitchInput): Promise<PitchResu
     const draft: BrandDeal = {
       brandName: input.brandName,
       brandEmail: input.brandEmail,
-      status: 'lead',
-      sourceEmailSubject: input.brandContext,
+      status: 'draft_ready',
+      sourceEmailSubject: input.originalEmailSubject || input.brandContext,
+      originalEmailFrom: input.originalEmailFrom,
+      originalEmailSubject: input.originalEmailSubject,
+      originalEmailSnippet: input.originalEmailSnippet,
+      gmailId: input.gmailId,
       pitchContent: parsed.pitchContent,
       pitchSubject: parsed.pitchSubject,
       detectedAt: new Date().toISOString(),
@@ -101,6 +110,7 @@ export const generatePitchUseCase = async (input: PitchInput): Promise<PitchResu
 
     if (error) {
       console.error("[Pitch Use Case] Error guardando draft:", error);
+      throw new Error(`No se pudo guardar el draft para ${input.brandName}: ${error.message}`);
     }
 
     return {

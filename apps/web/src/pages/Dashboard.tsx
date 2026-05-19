@@ -1,16 +1,21 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { MetricCard } from '@/components/MetricCard';
 import {
   Users, Eye, DollarSign, ArrowRight, Activity,
-  MessageSquare, TrendingUp, BarChart3, Target
+  MessageSquare, TrendingUp, BarChart3, Target, Sparkles
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import type { LogEntry, SponsorshipForecast } from '@/lib/types';
+import { usePulse } from '@/lib/pulse-context';
+import type { LogEntry, SponsorshipForecast, PitchDraft } from '@/lib/types';
 
 export default function Dashboard() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPulsing, setIsPulsing] = useState(false);
+  const pollingRef = useRef<{ stopped: boolean }>({ stopped: false });
+
+  const { lastPulseAt } = usePulse();
 
   const fetchLogs = useCallback(async () => {
     setIsLoading(true);
@@ -29,22 +34,71 @@ export default function Dashboard() {
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
+  useEffect(() => {
+    if (!lastPulseAt) return;
+
+    setIsPulsing(true);
+    const guard = pollingRef.current;
+    guard.stopped = false;
+
+    const poll = async () => {
+      if (guard.stopped) return;
+      try {
+        const res = await fetch('http://localhost:8080/logs');
+        if (res.ok) {
+          const data = await res.json();
+          setLogs(data);
+
+          const hasNewSummary = data.some(
+            (log: LogEntry) =>
+              log.type === 'agent_summary' &&
+              new Date(log.created_at).getTime() > lastPulseAt
+          );
+          if (hasNewSummary) {
+            guard.stopped = true;
+            setIsPulsing(false);
+            return;
+          }
+        }
+      } catch { /* silent */ }
+
+      if (!guard.stopped) setTimeout(poll, 3000);
+    };
+
+    const initialDelay = setTimeout(poll, 2000);
+    const safety = setTimeout(() => {
+      guard.stopped = true;
+      setIsPulsing(false);
+    }, 60000);
+
+    return () => {
+      guard.stopped = true;
+      clearTimeout(initialDelay);
+      clearTimeout(safety);
+    };
+  }, [lastPulseAt]);
+
   const latestAnalysis = logs.find((log) => log.type === 'media_kit_update');
   const latestPitch = logs.find((log) => log.type === 'pitch_draft');
   const forecastContent = logs.find((log) => log.type === 'sponsorship_forecast')?.content as SponsorshipForecast | undefined;
-  const recentLogs = logs.slice(0, 4);
+  const latestSummary = logs.find((log) => log.type === 'agent_summary');
+  const activityLogs = logs.slice(0, 4);
 
-  const analysisContent = latestAnalysis?.content as { subscribers?: number; totalViews?: number; lastVideoViews?: number } | undefined;
+  const pendingPitches = logs.filter(
+    (log) => log.type === 'pitch_draft' && (log.content as PitchDraft)?.status === 'draft_ready'
+  );
+  const analysisContent = latestAnalysis?.content as { subscribers?: number; totalViews?: number; engagementRate?: number; lastVideoViews?: number; lastVideoLikes?: number; lastVideoComments?: number } | undefined;
   const creatorName = latestAnalysis?.creator_name ?? 'Sarah Chen';
   const realSubs = analysisContent?.subscribers ?? 127500;
   const realViews = analysisContent?.totalViews ?? 4825000;
-  const lastVideoViews = analysisContent?.lastVideoViews ?? 45000;
-  const realEngagement = realSubs > 0 ? parseFloat(((lastVideoViews / realSubs) * 100).toFixed(1)) : 4.8;
+  const realEngagement = analysisContent?.engagementRate ?? 2.86;
+  const engDisplay = realEngagement <= 0 ? '0' : realEngagement < 0.01 ? '<0.01' : realEngagement.toFixed(2);
 
   const logTypeMeta: Record<string, { icon: typeof Activity; label: string }> = {
     media_kit_update: { icon: BarChart3, label: 'Analysis' },
     pitch_draft: { icon: MessageSquare, label: 'Pitch' },
     sponsorship_forecast: { icon: TrendingUp, label: 'Forecast' },
+    agent_summary: { icon: BarChart3, label: 'Brief' },
   };
 
   return (
@@ -76,13 +130,45 @@ export default function Dashboard() {
             <div className="flex items-center gap-4 mt-1">
               <p className="text-sm font-bold text-text-secondary">{realSubs.toLocaleString()} Followers</p>
               <span className="w-1 h-1 rounded-full bg-text-tertiary" />
-              <p className="text-sm font-bold text-text-secondary">{realEngagement}% Eng. Rate</p>
+              <p className="text-sm font-bold text-text-secondary">{engDisplay}% Eng. Rate</p>
               <span className="w-1 h-1 rounded-full bg-text-tertiary" />
               <p className="text-sm font-bold text-text-secondary">${forecastContent?.mention?.min ?? 850} Min. Rate</p>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Daily Brief — agent summary */}
+      {latestSummary && (
+        <motion.div
+          className="relative mb-8 rounded-[24px] overflow-hidden"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-accent-soft to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent via-accent-muted to-transparent" />
+          <div className="relative glass-card rounded-[24px] p-7 border border-accent/10">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-accent flex items-center justify-center neon-glow shrink-0">
+                <BarChart3 className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-3 mb-2">
+                  <h2 className="text-lg font-display font-black text-text tracking-tight">Daily Brief</h2>
+                  <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-accent-muted-soft text-accent-muted text-[10px] font-black uppercase tracking-wider">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent-muted ai-active-dot" />
+                    AI Report
+                  </span>
+                </div>
+                <p className="text-sm font-medium text-text-secondary leading-relaxed whitespace-pre-line">
+                  {(latestSummary.content as { text: string })?.text || latestSummary.insights}
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Metrics row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -132,23 +218,15 @@ export default function Dashboard() {
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent-muted/60 to-transparent" />
           <div className="absolute top-0 right-0 w-32 h-32 bg-accent-muted/5 rounded-full blur-3xl" />
           <div className="flex items-center gap-2 mb-5">
-            <motion.span
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-muted-soft text-accent-muted text-xs font-black"
-              animate={{ boxShadow: ['0 0 0 0 rgba(234,81,3,0)', '0 0 0 6px rgba(234,81,3,0.1)', '0 0 0 0 rgba(234,81,3,0)'] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <motion.span
-                className="w-2 h-2 rounded-full bg-accent-muted"
-                animate={{ scale: [1, 1.3, 1] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              />
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-muted-soft text-accent-muted text-xs font-black ai-active-glow">
+              <span className="w-2 h-2 rounded-full bg-accent-muted ai-active-dot" />
               AI Active
-            </motion.span>
+            </span>
           </div>
           <h3 className="text-base font-display font-black text-text tracking-tight mb-4">Recent Activity</h3>
           <div className="space-y-3">
-            {recentLogs.length > 0 ? (
-              recentLogs.map((log, i) => {
+            {activityLogs.length > 0 ? (
+              activityLogs.map((log, i) => {
                 const meta = logTypeMeta[log.type] || { icon: Activity, label: 'Event' };
                 const Icon = meta.icon;
                 return (
@@ -157,7 +235,7 @@ export default function Dashboard() {
                       <div className="w-7 h-7 rounded-xl bg-accent-muted-soft flex items-center justify-center">
                         <Icon className="w-3.5 h-3.5 text-accent-muted" />
                       </div>
-                      {i < recentLogs.length - 1 && <div className="w-px flex-1 bg-border" />}
+                      {i < activityLogs.length - 1 && <div className="w-px flex-1 bg-border" />}
                     </div>
                     <div className="flex-1 min-w-0 pb-1.5">
                       <p className="text-sm font-black text-text truncate">{meta.label}</p>
@@ -166,7 +244,7 @@ export default function Dashboard() {
                   </div>
                 );
               })
-            ) : (
+            ) : activityLogs.length === 0 && (
               <p className="text-sm text-text-tertiary font-bold">Run a pulse to see activity</p>
             )}
           </div>
@@ -255,16 +333,53 @@ export default function Dashboard() {
             ))}
           </div>
         </motion.section>
+
+        {/* Pending Pitches — solid orange card */}
+        {pendingPitches.length > 0 && (
+          <motion.section
+            className="lg:col-span-4 rounded-[24px] p-7 relative overflow-hidden bg-accent/15 border border-accent/25"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent/60 to-accent/10" />
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-6xl font-display font-black text-accent">
+                  {pendingPitches.length}
+                </span>
+                <span className="text-sm font-black text-accent/70 self-end mb-2">
+                  pending
+                </span>
+              </div>
+              <div>
+                <p className="text-sm font-display font-black text-text tracking-tight">Pending Pitches</p>
+                <p className="text-xs font-bold text-text-tertiary">Drafts ready to send</p>
+              </div>
+              <Link
+                to="/pitches"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-accent/20 hover:bg-accent/30 text-accent rounded-2xl text-xs font-black transition-all"
+              >
+                Review All
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </motion.section>
+        )}
       </div>
 
-      {isLoading && (
+      {(isLoading || isPulsing) && (
         <motion.div
           className="fixed bottom-6 right-6 glass-card rounded-2xl px-5 py-3 text-xs font-bold text-text-secondary flex items-center gap-3"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-          Loading data…
+          {isPulsing ? (
+            <><Sparkles className="w-3.5 h-3.5 text-accent" /> Pulse en progreso…</>
+          ) : (
+            'Loading data…'
+          )}
         </motion.div>
       )}
     </motion.div>

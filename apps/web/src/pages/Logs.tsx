@@ -3,25 +3,28 @@ import { motion } from 'framer-motion';
 import { Search, Layers, BarChart3, FileText, DollarSign, Sparkles } from 'lucide-react';
 import type { LogEntry } from '@/lib/types';
 
-type FilterType = 'all' | 'media_kit_update' | 'pitch_draft' | 'sponsorship_forecast';
+type FilterType = 'all' | 'media_kit_update' | 'pitch_draft' | 'sponsorship_forecast' | 'agent_summary';
 
 const filterConfig = [
   { value: 'all' as FilterType, label: 'All', icon: Layers },
   { value: 'media_kit_update' as FilterType, label: 'Analytics', icon: BarChart3 },
   { value: 'pitch_draft' as FilterType, label: 'Pitches', icon: FileText },
   { value: 'sponsorship_forecast' as FilterType, label: 'Forecasts', icon: DollarSign },
+  { value: 'agent_summary' as FilterType, label: 'Brief', icon: Sparkles },
 ];
 
 const typeLabels: Record<string, { label: string }> = {
   media_kit_update: { label: 'Analytics' },
   pitch_draft: { label: 'Pitch' },
   sponsorship_forecast: { label: 'Forecast' },
+  agent_summary: { label: 'Brief' },
 };
 
 const typeIcons: Record<string, typeof BarChart3> = {
   media_kit_update: BarChart3,
   pitch_draft: FileText,
   sponsorship_forecast: DollarSign,
+  agent_summary: Sparkles,
 };
 
 function formatDate(dateString: string) {

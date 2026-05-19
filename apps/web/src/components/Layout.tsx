@@ -1,19 +1,11 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { AgentIndicator } from './AgentIndicator';
 import { PulseButton } from './PulseButton';
+import { usePulse } from '@/lib/pulse-context';
 
 export default function Layout({ children }: { children: ReactNode }) {
-  const [pulseCount, setPulseCount] = useState(0);
-
-  const handlePulse = async () => {
-    try {
-      await fetch('http://localhost:8080/pulse');
-      setPulseCount((c) => c + 1);
-    } catch {
-      // silent
-    }
-  };
+  const { triggerPulse } = usePulse();
 
   return (
     <div className="flex min-h-screen bg-bg selection:bg-accent/20 selection:text-accent">
@@ -24,7 +16,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       </main>
 
       <div className="fixed bottom-8 right-8 z-50">
-        <PulseButton onPulse={handlePulse} />
+        <PulseButton onPulse={triggerPulse} />
       </div>
     </div>
   );
