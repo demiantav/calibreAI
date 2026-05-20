@@ -41,8 +41,14 @@ Sprint 7 (Testing & Quality): tests unitarios, tests de integración, infraestru
 - **Scripts agregados**: `typecheck`, `typecheck:tests`, `typecheck:all`
 - **Frontend test infra**: vitest + jsdom + @testing-library/react en apps/web
 
-### In Progress
-- *(none)*
+### Completed (Sprint 7)
+- **158 tests total**: 120 backend (8 files) + 38 frontend (6 files), all passing
+- **Frontend tests**: PulseButton (7), pulse-context (5), useRelativeTime (8), Layout (4), SendPitchModal (6), Dashboard (8)
+- **localStorage mocked** in test-setup.tsx via `Object.defineProperty` (vi.stubGlobal no funciona para propiedades de window en jsdom)
+- **SendPitchModal query fix**: `getByText(/TechBrand$/)` en vez de `getByText('TechBrand', { exact: false })` para evitar match con `partner@techbrand.com`
+- **Layout button query fix**: `getAllByRole('button').length >= 2` en vez de `getByRole('button')` (Sidebar tiene ThemeToggle button adicional)
+- **pulse-context lastPulseAt fix**: `vi.useFakeTimers()` + `vi.advanceTimersByTime(100)` para que Date.now() retorne valor distinto en cada llamada
+- **"throws outside provider" test eliminado**: `useContext(createContext(defaultValue))` nunca lanza
 
 ### Blocked
 - **mcp-manager.ts**: spawn de child process + JSON-RPC. Tests requieren mocking pesado de child_process
@@ -59,8 +65,8 @@ Sprint 7 (Testing & Quality): tests unitarios, tests de integración, infraestru
 - Temporal API para relative time (+158KB bundle, trade-off aceptado)
 
 ## Test Stats
-- **Total tests**: 127 (120 backend + 7 frontend)
-- **Test files**: 9 (8 backend + 1 frontend)
+- **Total tests**: 158 (120 backend + 38 frontend)
+- **Test files**: 14 (8 backend + 6 frontend)
 - **Build**: pasa con 0 errores
 - **TypeScript**: `pnpm typecheck` pasa, `pnpm typecheck:all` chequea tests también
 

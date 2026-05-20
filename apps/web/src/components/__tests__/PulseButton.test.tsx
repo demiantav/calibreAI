@@ -1,17 +1,6 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-
-// Mock framer-motion to suppress animation errors in test environment
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-    button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
-    span: ({ children, ...props }: any) => <span {...props}>{children}</span>,
-  },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
-}))
-
 import { PulseButton } from '../PulseButton'
 
 describe('PulseButton', () => {

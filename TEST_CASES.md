@@ -3,7 +3,7 @@
 ## Resumen
 
 | Archivo de Test | Archivo SUT | Tests | Tipo | Prioridad |
-|---|---|---|---|---|
+|---|---|---|---|---|---|
 | `metrics-service.test.ts` | `metrics-service.ts` | 45 | Unit | 🔴 Alta |
 | `metrics-cache.test.ts` | `metrics-cache.ts` | 9 | Unit | 🔴 Alta |
 | `youtube.test.ts` | `content-pipeline/tools/youtube.ts` | 7 | Unit | 🔴 Alta |
@@ -13,7 +13,12 @@
 | `generate-pitch.test.ts` | `brand-deals/use-cases/generate-pitch.ts` | 12 | Unit | 🟡 Media |
 | `api.integration.test.ts` | `app.ts` (Express routes) | 15 | Integración | 🔴 Alta |
 | `PulseButton.test.tsx` | `PulseButton.tsx` | 7 | Frontend | 🟡 Media |
-| **Total** | | **127** | | |
+| `pulse-context.test.tsx` | `pulse-context.tsx` | 5 | Frontend | 🟡 Media |
+| `use-relative-time.test.tsx` | `use-relative-time.ts` | 8 | Frontend | 🟡 Media |
+| `Layout.test.tsx` | `Layout.tsx` | 4 | Frontend | 🟡 Media |
+| `SendPitchModal.test.tsx` | `SendPitchModal.tsx` | 6 | Frontend | 🟡 Media |
+| `Dashboard.test.tsx` | `Dashboard.tsx` | 8 | Frontend | 🟡 Media |
+| **Total** | | **158** | | |
 
 ---
 
@@ -330,6 +335,74 @@ Mock: `framer-motion` (para evitar errores de animación en jsdom).
 | 5 | Click en error → NO llama | handler no llamado |
 | 6 | Success state → Check icon | `.lucide-check` visible |
 | 7 | Error state → X icon | `.lucide-x` visible |
+
+## 10. `pulse-context.test.tsx` (5 tests)
+
+Archivo: `apps/web/src/lib/__tests__/pulse-context.test.tsx`
+
+| # | Escenario | Verificación |
+|---|-----------|-------------|
+| 1 | Provider renderiza children | child tag visible |
+| 2 | Estado inicial idle + lastPulseAt null | default values |
+| 3 | triggerPulse setea status pulsing + llama fetch | fetch llamado con /pulse |
+| 4 | setPulseStatus actualiza status | success → error → idle |
+| 5 | lastPulseAt se actualiza en cada triggerPulse | second > first (fake timers) |
+
+## 11. `use-relative-time.test.tsx` (8 tests)
+
+Archivo: `apps/web/src/lib/__tests__/use-relative-time.test.tsx`
+
+| # | Escenario | Verificación |
+|---|-----------|-------------|
+| 1 | < 1 min ago | "Just now" |
+| 2 | 5 min ago | "5m ago" |
+| 3 | 2 hours ago | "2h ago" |
+| 4 | ~1 day ago | "Yesterday" |
+| 5 | 3 days ago | "3d ago" |
+| 6 | null/undefined input | "" |
+| 7 | Invalid ISO string | original string passthrough |
+| 8 | RelativeTime component render | "2h ago" visible |
+
+## 12. `Layout.test.tsx` (4 tests)
+
+Archivo: `apps/web/src/components/__tests__/Layout.test.tsx`
+
+| # | Escenario | Verificación |
+|---|-----------|-------------|
+| 1 | Renderiza children | child div visible |
+| 2 | Muestra AgentIndicator y PulseButton | "AI Agent Active" + al menos 2 buttons |
+| 3 | Auto-clear success tras 2s | status idle después de advanceTimersByTime(2000) |
+| 4 | Auto-clear error tras 2s | status idle después de advanceTimersByTime(2000) |
+
+## 13. `SendPitchModal.test.tsx` (6 tests)
+
+Archivo: `apps/web/src/components/__tests__/SendPitchModal.test.tsx`
+
+| # | Escenario | Verificación |
+|---|-----------|-------------|
+| 1 | Renderiza brand name y email | "TechBrand" y "partner@techbrand.com" visible |
+| 2 | Renderiza subject y content del pitch | display values |
+| 3 | Toggle edit mode | Edit → Done Editing |
+| 4 | Send llama fetch POST con datos correctos | body con subject + content |
+| 5 | Accordion original email toggle | snippet visible tras click |
+| 6 | Close button llama onClose | handler llamado |
+
+## 14. `Dashboard.test.tsx` (8 tests)
+
+Archivo: `apps/web/src/pages/__tests__/Dashboard.test.tsx`
+
+Wrapped in `<ThemeProvider>` + `<PulseProvider>` + `<MemoryRouter>`. Fetch mockeado con `mockFetchResponse`.
+
+| # | Escenario | Verificación |
+|---|-----------|-------------|
+| 1 | Fetch logs on mount | fetch('http://localhost:8080/logs') |
+| 2 | MetricCards con datos reales | "150,000", "5,000,000", "4.5", "$1,000" |
+| 3 | Daily Brief cuando agent_summary | "Daily Brief" + "Resumen diario" |
+| 4 | Pending Pitches count | "1" + "Pending Pitches" |
+| 5 | Creator name y followers | "midudev" + "150,000 Followers" |
+| 6 | API vacía no crashea | "Pro Creator" renderizado |
+| 7 | Polling con lastPulseAt set | No error |
+| 8 | Network error graceful | "Pro Creator" renderizado |
 
 ## Cobertura faltante (pendiente)
 
