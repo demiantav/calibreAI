@@ -11,7 +11,7 @@ export interface RealYouTubeMetrics {
   engagementRate: number;
 }
 
-interface VideoCandidate {
+export interface VideoCandidate {
   id: string;
   title: string;
   publishedAt: string;
@@ -21,7 +21,7 @@ interface VideoCandidate {
   comments: number;
 }
 
-function parseISODuration(duration: string): number {
+export function parseISODuration(duration: string): number {
   const match = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
   if (!match) return Infinity;
   const hours = parseInt(match[1]?.replace('H', '') || '0');
@@ -30,19 +30,19 @@ function parseISODuration(duration: string): number {
   return hours * 3600 + minutes * 60 + seconds;
 }
 
-function isShort(duration: string): boolean {
+export function isShort(duration: string): boolean {
   return parseISODuration(duration) <= 60;
 }
 
-function isDurable(v: VideoCandidate): boolean {
+export function isDurable(v: VideoCandidate): boolean {
   return !isShort(v.duration);
 }
 
-function hoursSince(v: VideoCandidate): number {
+export function hoursSince(v: VideoCandidate): number {
   return (Date.now() - new Date(v.publishedAt).getTime()) / 3600000;
 }
 
-function selectBestVideo(videos: VideoCandidate[]): VideoCandidate | null {
+export function selectBestVideo(videos: VideoCandidate[]): VideoCandidate | null {
   if (videos.length === 0) return null;
 
   const nonShorts = videos.filter(isDurable);

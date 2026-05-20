@@ -33,7 +33,6 @@ export const generatePitchUseCase = async (input: PitchInput): Promise<PitchResu
 
   const mediaKit: MediaKit | null = mediaKitData?.content || null;
   const insights = mediaKitData?.insights || '';
-  const hasMediaKit = !!mediaKitData;
 
   const styleGuide = input.pitchStyle || 'professional';
 

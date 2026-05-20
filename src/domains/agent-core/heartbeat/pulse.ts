@@ -3,19 +3,22 @@ import { executeToolCall, functionsImplementations } from "../reasoning/tool-exe
 import { supabase } from "../../../infrastructure/supabase/supabase-client.js";
 
 const sendMessageWithRetry = async (chat: any, message: any, retries = 3): Promise<any> => {
-  try {
-    return await chat.sendMessage(message);
-  } catch (error: any) {
-    if (error.status === 429 && retries > 0) {
+  let attempt = 0;
+  while (true) {
+    try {
+      return await chat.sendMessage(message);
+    } catch (error: any) {
+      if (error.status !== 429 || attempt >= retries) {
+        throw error;
+      }
+      attempt++;
       const retryDetail = error.errorDetails?.find((d: any) => d.retryInfo?.retryDelay);
       const waitTime = retryDetail
         ? parseFloat(retryDetail.retryInfo.retryDelay) * 1000
         : 15000;
-      console.log(`[Calibre] Cuota excedida. Esperando ${Math.round(waitTime/1000)}s para reintentar... (${retries} intentos restantes)`);
+      console.log(`[Calibre] Cuota excedida. Esperando ${Math.round(waitTime/1000)}s para reintentar... (${retries - attempt + 1} intentos restantes)`);
       await new Promise(resolve => setTimeout(resolve, Math.min(waitTime, 30000)));
-      return sendMessageWithRetry(chat, message, retries - 1);
     }
-    throw error;
   }
 };
 

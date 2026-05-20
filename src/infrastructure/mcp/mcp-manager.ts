@@ -284,4 +284,22 @@ class McpManager {
   }
 }
 
-export const mcpManager = McpManager.getInstance();
+let _instance: McpManager | null = null;
+
+function getInstance(): McpManager {
+  if (!_instance) {
+    _instance = McpManager.getInstance();
+  }
+  return _instance;
+}
+
+export const mcpManager = new Proxy<McpManager>({} as McpManager, {
+  get(_, prop) {
+    const instance = getInstance();
+    const value = instance[prop as keyof McpManager];
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  },
+});

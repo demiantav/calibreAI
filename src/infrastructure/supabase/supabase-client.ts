@@ -1,13 +1,25 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { config } from '../../shared/config.js';
 
-if (!config.SUPABASE_URL || !config.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error("Faltan credenciales de Supabase");
+let _client: SupabaseClient | null = null;
+
+function getClient(): SupabaseClient {
+  if (!_client) {
+    if (!config.SUPABASE_URL || !config.SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("Faltan credenciales de Supabase");
+    }
+    _client = createClient(config.SUPABASE_URL, config.SUPABASE_SERVICE_ROLE_KEY);
+  }
+  return _client;
 }
 
-console.log(`[Supabase Init] Intentando conectar a: ${config.SUPABASE_URL.substring(0, 15)}...`);
-
-export const supabase = createClient(
-  config.SUPABASE_URL,
-  config.SUPABASE_SERVICE_ROLE_KEY
-);
+export const supabase = new Proxy<SupabaseClient>({} as SupabaseClient, {
+  get(_, prop) {
+    const client = getClient();
+    const value = client[prop as keyof SupabaseClient];
+    if (typeof value === 'function') {
+      return value.bind(client);
+    }
+    return value;
+  },
+});
