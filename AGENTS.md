@@ -1,9 +1,11 @@
 # AGENTS.md — Project Memory & Progress
 
 ## Goal
+
 Sprint 7 (Testing & Quality): tests unitarios, tests de integración, infraestructura de calidad, fixing de side effects y dead code.
 
 ## Constraints & Preferences
+
 - Backend en TypeScript con Express + Supabase + Gmail API + Gemini 2.0 Flash
 - Frontend React 19 + Vite + Tailwind v4 + Framer Motion
 - Modo degradado (sin Gemini) ejecuta funciones deterministas, genera resumen estratégico propio
@@ -14,6 +16,7 @@ Sprint 7 (Testing & Quality): tests unitarios, tests de integración, infraestru
 ## Progress
 
 ### Done
+
 - **YouTube metrics infrastructure**: Search API reemplazada por Uploads Playlist (`contentDetails.relatedPlaylists.uploads` → `playlistItems` → `videos` con `part=statistics,contentDetails`)
 - **Smart Shorts filtering**: videos con duración ≤ 60s se saltan automáticamente (con fallback si todo el feed son Shorts)
 - **selectBestVideo algorithm**: prioriza video no-Short > 24h → no-Short > 1h más visto → cualquier no-Short → Short con más interacción
@@ -28,6 +31,7 @@ Sprint 7 (Testing & Quality): tests unitarios, tests de integración, infraestru
 - **Pending Pitches square card**: card cuadrada naranja oscura primera en bento grid
 
 ### Tests & Quality (Sprint 7)
+
 - **105 unit tests backend** en 7 archivos: metrics-service (45), metrics-cache (9), youtube.ts (7), tool-executor (16), pulse.ts (8), calculate-sponsorship (12), generate-pitch (12)
 - **15 integration tests API** con supertest: /health, /logs, /auth/login, /pulse, /api/pitches/:id/send
 - **7 frontend tests**: PulseButton (3 estados visuales, click handlers)
@@ -42,6 +46,7 @@ Sprint 7 (Testing & Quality): tests unitarios, tests de integración, infraestru
 - **Frontend test infra**: vitest + jsdom + @testing-library/react en apps/web
 
 ### Completed (Sprint 7)
+
 - **175 tests total**: 137 backend (9 files) + 38 frontend (6 files), all passing
 - **Frontend tests**: PulseButton (7), pulse-context (5), useRelativeTime (8), Layout (4), SendPitchModal (6), Dashboard (8)
 - **localStorage mocked** in test-setup.tsx via `Object.defineProperty` (vi.stubGlobal no funciona para propiedades de window en jsdom)
@@ -56,10 +61,16 @@ Sprint 7 (Testing & Quality): tests unitarios, tests de integración, infraestru
 - **403 detection refinement**: `error.toString().includes('403')` reemplazado por `error.status === 403 || error.message?.includes('403')` para evitar falsos positivos en stack traces. Test de contraejemplo añadido
 
 ### Blocked
-- **mcp-manager.ts**: spawn de child process + JSON-RPC. Tests requieren mocking pesado de child_process
+
 - **runDegradedMode / runPulseCheck**: 5+ dependencias externas (Gemini, Supabase, Gmail, YouTube, MCP)
 
+### Done (Sprint 7 — continuation)
+
+- **mcp-manager.ts tests**: 37 tests unitarios con mock de child_process.spawn via EventEmitter + fake timers / real timers
+- **Bug fix**: optional chaining en `spawnServer` (`stdin?.writable` en vez de `stdin.writable`) para evitar TypeError cuando stdin es null
+
 ## Key Decisions
+
 - YouTube Uploads Playlist reemplaza Search API: 3 unids/ciclo vs 100, 50x más eficiente
 - Shorts detectados por duración (`contentDetails.duration`, ≤ 60s) — definición oficial de YouTube
 - Proxy lazy pattern para eliminar side effects al importar (config, supabase, mcp-manager)
@@ -70,18 +81,20 @@ Sprint 7 (Testing & Quality): tests unitarios, tests de integración, infraestru
 - Temporal API para relative time (+158KB bundle, trade-off aceptado)
 
 ## Test Stats
-- **Total tests**: 158 (120 backend + 38 frontend)
-- **Test files**: 14 (8 backend + 6 frontend)
+
+- **Total tests**: 213 (175 backend + 38 frontend)
+- **Test files**: 16 (10 backend + 6 frontend)
 - **Build**: pasa con 0 errores
 - **TypeScript**: `pnpm typecheck` pasa, `pnpm typecheck:all` chequea tests también
 
 ## Next Steps
-1. **Tests para mcp-manager.ts**: mocking de child_process.spawn + JSON-RPC
-2. **Tests para runDegradedMode**: orquestación completa del modo degradado
-3. **Limpiar repo**: commit de todos los cambios de testing a feature branch
-4. **Ampliar frontend tests**: RelativeTime, pulse-context, MetricCard, Dashboard
+
+1. **Tests para runDegradedMode**: orquestación completa del modo degradado (5+ dependencias externas)
+2. **Limpiar repo**: commit de todos los cambios de testing a feature branch
+3. **Ampliar frontend tests**: MetricCard, createMockFetch abstraction reusable
 
 ## Critical Context
+
 - El modo degradado (`runDegradedMode`) ahora genera y persiste `agent_summary` → Daily Brief visible en Dashboard incluso sin Gemini
 - Engagement se calcula server-side como `(likes+comments)/subscribers*100` y llega pre-calculado a todos los consumidores
 - `src/app.ts` contiene las rutas Express, `src/index.ts` solo hace `app.listen()`
@@ -89,11 +102,13 @@ Sprint 7 (Testing & Quality): tests unitarios, tests de integración, infraestru
 - Frontend tests corren con `pnpm --filter calibre-dashboard test`
 
 ## Relevant Files
+
 - `src/app.ts`: Express app con routes, global error handler y rate limiting
 - `src/index.ts`: solo startup (importa app.ts)
 - `src/shared/config.ts`: Proxy lazy para env validation
 - `src/infrastructure/supabase/supabase-client.ts`: Proxy lazy para createClient
-- `src/infrastructure/mcp/mcp-manager.ts`: Proxy lazy, spawn postergado
+- `src/infrastructure/mcp/mcp-manager.ts`: Proxy lazy, spawn postergado, clase exportada para testing
+- `src/infrastructure/mcp/__tests__/mcp-manager.test.ts`: 37 tests unitarios (constructor, handleStdOut, handleStdErr, handleClose, handleError, callTool, healthCheck, shutdown, singleton)
 - `src/domains/agent-core/heartbeat/pulse.ts`: sendMessageWithRetry iterativo
 - `src/__tests__/api.integration.test.ts`: 15 tests API con supertest
 - `tsconfig.test.json`: config separada para typecheck de tests

@@ -1,5 +1,52 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+// ─── Hoisted mocks for runDegradedMode ──────────────────────────────────────
+
+const mockSupabaseInsert = vi.hoisted(() =>
+  vi.fn(() => Promise.resolve({ error: null })),
+)
+const mockSupabaseMaybeSingle = vi.hoisted(() =>
+  vi.fn(() => Promise.resolve({ data: null, error: null })),
+)
+
+vi.mock('../../../../infrastructure/supabase/supabase-client.js', () => ({
+  supabase: {
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: mockSupabaseMaybeSingle })) })),
+      insert: mockSupabaseInsert,
+    })),
+  },
+}))
+
+vi.mock('../../../../shared/config.js', () => ({
+  config: {
+    CREATOR_NAME: 'TestCreator',
+    YOUTUBE_CHANNEL_ID: 'UC-test',
+    AUTHENTICATED_USER_EMAIL: 'test@example.com',
+  },
+}))
+
+const mockGetYouTubeMetrics = vi.hoisted(() => vi.fn())
+const mockGetPreviousInsights = vi.hoisted(() => vi.fn())
+const mockUpdateLiveMediaKit = vi.hoisted(() => vi.fn())
+const mockListEmails = vi.hoisted(() => vi.fn())
+const mockGenerateAndDraftPitch = vi.hoisted(() => vi.fn())
+const mockCalculateSponsorshipValue = vi.hoisted(() => vi.fn())
+
+vi.mock('../../reasoning/tool-executor.js', () => ({
+  executeToolCall: vi.fn(),
+  functionsImplementations: {
+    getYouTubeMetrics: mockGetYouTubeMetrics,
+    getPreviousInsights: mockGetPreviousInsights,
+    updateLiveMediaKit: mockUpdateLiveMediaKit,
+    listEmails: mockListEmails,
+    generateAndDraftPitch: mockGenerateAndDraftPitch,
+    calculateSponsorshipValue: mockCalculateSponsorshipValue,
+  },
+}))
+
+import { runDegradedMode } from '../pulse.js'
+
 // ─── Function under test (matches iterative version in pulse.ts) ─────────────
 
 const sendMessageWithRetry = async (chat: any, message: any, retries = 3): Promise<any> => {
@@ -118,5 +165,137 @@ describe('sendMessageWithRetry', () => {
 
     await expect(sendMessageWithRetry(chat, 'hello')).rejects.toThrow('Internal server error')
     expect(chat.sendMessage).toHaveBeenCalledTimes(1)
+  })
+})
+
+// ─── runDegradedMode smoke tests ────────────────────────────────────────────
+
+function baseMetrics(overrides: Record<string, any> = {}) {
+  return {
+    subscriberCount: 150000,
+    totalViews: 5000000,
+    lastVideoViews: 120000,
+    lastVideoLikes: 8500,
+    lastVideoComments: 1200,
+    engagementRate: 6.5,
+    channelName: 'TestChannel',
+    ...overrides,
+  }
+}
+
+function sponsorshipForecast() {
+  return {
+    mention: { min: 900, max: 1300, currency: 'USD' },
+    dedicated: { min: 2600, max: 3500, currency: 'USD' },
+    series: { min: 6200, max: 8000, currency: 'USD' },
+  }
+}
+
+describe('runDegradedMode', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // Default: all tools succeed
+    mockGetYouTubeMetrics.mockResolvedValueOnce(baseMetrics())
+    mockGetPreviousInsights.mockResolvedValueOnce([{
+      content: { subscribers: 140000, totalViews: 4800000 },
+    }])
+    mockUpdateLiveMediaKit.mockResolvedValueOnce({ status: 'ok' })
+    mockListEmails.mockResolvedValueOnce({
+      content: [{ text: JSON.stringify([]) }],
+    })
+    mockCalculateSponsorshipValue.mockResolvedValueOnce(sponsorshipForecast())
+  })
+
+  it('generates and persists summary when all tools succeed', async () => {
+    await runDegradedMode('UC-test')
+
+    const insertCall = mockSupabaseInsert.mock.calls[0]?.[0]?.[0]
+    expect(insertCall.type).toBe('agent_summary')
+    expect(insertCall.creator_name).toBe('TestCreator')
+    expect(insertCall.content.text).toContain('150,000')
+    expect(insertCall.content.text).toContain('5,000,000')
+    expect(insertCall.content.text).toContain('6.50%')
+    expect(insertCall.content.text).toContain('sólido') // engagement >5%
+    expect(insertCall.content.text).toContain('$900')
+    expect(insertCall.content.text).toContain('$2600')
+    expect(insertCall.content.text).toContain('Creciste')
+    expect(insertCall.insights).toContain('150,000 subs')
+  })
+
+  it('inserts agent_error when YouTube metrics fail', async () => {
+    // Override: YouTube fails
+    mockGetYouTubeMetrics.mockReset()
+    mockGetYouTubeMetrics.mockRejectedValueOnce(new Error('API error'))
+
+    await runDegradedMode('UC-test')
+
+    const errorCall = mockSupabaseInsert.mock.calls[0]?.[0]?.[0]
+    expect(errorCall.type).toBe('agent_error')
+    expect(errorCall.content.text).toContain('no pudo obtener métricas')
+    // No further inserts (early return)
+    expect(mockSupabaseInsert).toHaveBeenCalledTimes(1)
+  })
+
+  it('generates summary with fallbacks when emails and sponsorship fail', async () => {
+    // Override: emails and sponsorship fail, low engagement
+    mockGetYouTubeMetrics.mockReset()
+    mockGetYouTubeMetrics.mockResolvedValueOnce(baseMetrics({
+      subscriberCount: 50000,
+      totalViews: 1000000,
+      lastVideoViews: 30000,
+      lastVideoLikes: 200,
+      lastVideoComments: 50,
+      engagementRate: 2.5,
+    }))
+    mockGetPreviousInsights.mockReset()
+    mockGetPreviousInsights.mockResolvedValueOnce(null)
+    mockListEmails.mockReset()
+    mockListEmails.mockRejectedValueOnce(new Error('Gmail API down'))
+    mockCalculateSponsorshipValue.mockReset()
+    mockCalculateSponsorshipValue.mockRejectedValueOnce(new Error('Gemini 429'))
+
+    await runDegradedMode('UC-test')
+
+    const insertCall = mockSupabaseInsert.mock.calls[0]?.[0]?.[0]
+    expect(insertCall.type).toBe('agent_summary')
+    // Fallback rates used (defaults: 850/1200/2500/6000)
+    expect(insertCall.content.text).toContain('$850')
+    expect(insertCall.content.text).toContain('$2500')
+    expect(insertCall.content.text).toContain('$6000')
+    // Low engagement tier
+    expect(insertCall.content.text).toContain('fase de crecimiento')
+    // No previous insights → primer análisis
+    expect(insertCall.content.text).toContain('primer análisis')
+    // No pitches
+    expect(insertCall.content.text).toContain('No se detectaron')
+    expect(insertCall.insights).toContain('0 pitches')
+  })
+
+  it('detects brand emails, generates pitches, and includes brand names in summary', async () => {
+    // Override: emails contain one brand email and one non-brand
+    mockListEmails.mockReset()
+    mockListEmails.mockResolvedValueOnce({
+      content: [{
+        text: JSON.stringify([
+          { id: 'g1', subject: 'Colaboración', snippet: 'marca', from: '"Nike" <nike@test.com>' },
+          { id: 'g2', subject: 'hello', snippet: 'casual chat', from: 'friend@gmail.com' },
+        ]),
+      }],
+    })
+
+    await runDegradedMode('UC-test')
+
+    // Only the brand email triggers a pitch
+    expect(mockGenerateAndDraftPitch).toHaveBeenCalledTimes(1)
+    expect(mockGenerateAndDraftPitch).toHaveBeenCalledWith({
+      creatorName: 'TestCreator',
+      gmailId: 'g1',
+    })
+
+    const insertCall = mockSupabaseInsert.mock.calls[0]?.[0]?.[0]
+    expect(insertCall.type).toBe('agent_summary')
+    expect(insertCall.content.text).toContain('Nike')
+    expect(insertCall.content.text).toContain('1 oportunidad')
+    expect(insertCall.insights).toContain('1 pitches')
   })
 })

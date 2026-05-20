@@ -19,7 +19,7 @@ interface McpResponse {
   error?: any;
 }
 
-class McpManager {
+export class McpManager {
   private static instance: McpManager;
   private mcpProcess: ChildProcessWithoutNullStreams | null = null;
   private isInitializedPromise: Promise<void> | null = null;
@@ -68,7 +68,7 @@ class McpManager {
 
     // Send MCP initialize request after a short delay to let the process start
     setTimeout(() => {
-      if (this.mcpProcess?.stdin.writable) {
+      if (this.mcpProcess?.stdin?.writable) {
         const initRequest = JSON.stringify({
           jsonrpc: '2.0',
           id: 1,
@@ -125,7 +125,7 @@ class McpManager {
         this.resolveInitialized();
         this.resolveInitialized = null;
         this.rejectInitialized = null;
-        if (this.mcpProcess?.stdin.writable) {
+      if (this.mcpProcess?.stdin?.writable) {
           const notif = JSON.stringify({
             jsonrpc: '2.0',
             method: 'notifications/initialized',

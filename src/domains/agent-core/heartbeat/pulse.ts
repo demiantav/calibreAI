@@ -23,7 +23,7 @@ const sendMessageWithRetry = async (chat: any, message: any, retries = 3): Promi
   }
 };
 
-const runDegradedMode = async (channelId: string) => {
+export const runDegradedMode = async (channelId: string) => {
   console.log("[Calibre] Ejecutando modo degradado (sin orquestación de Gemini)...");
 
   let metrics: any = null;
