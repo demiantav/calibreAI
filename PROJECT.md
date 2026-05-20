@@ -77,7 +77,17 @@ Dashboard React 19 + Vite + Tailwind v4 + Framer Motion. Dark/Light mode, 4 pág
 
 ---
 
-## 🟡 Sprint 7: Testing & Quality (En curso)
+## 🟡 Sprint 7: Testing & Quality (Cerrando)
+
+### Completado
+- 179 tests unitarios backend (10 archivos): metrics-service, mcp-manager (37), tool-executor, pulse (12), calculate-sponsorship, generate-pitch, metrics-cache, youtube, auth-middleware
+- 15 tests de integración API (supertest: /health, /logs, /pulse, /pitches, /auth)
+- 38 tests frontend (6 archivos): PulseButton, pulse-context, useRelativeTime, Layout, SendPitchModal, Dashboard
+- 4 tests smoke `runDegradedMode` (happy path, fallbacks, brand emails)
+- Side effects eliminados (Proxy lazy pattern en config, supabase, mcp-manager)
+- Dead code removido (youtube-client.ts, generate-media-kit.ts, LogEntryCard, PitchCard)
+- Express refactor (app.ts + index.ts) + global error handler + rate limiting
+- Docs consolidados (6 → 4 archivos md)
 
 ### Stats
 - **Total tests:** 217 (179 backend + 38 frontend)

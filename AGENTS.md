@@ -2,7 +2,7 @@
 
 ## Goal
 
-Sprint 7 (Testing & Quality): tests unitarios, tests de integración, infraestructura de calidad, fixing de side effects y dead code.
+Sprint 7 (Testing & Quality): cerrando. Cobertura de tests completa, solo queda infraestructura de frontend (createMockFetch).
 
 ## Constraints & Preferences
 
@@ -62,12 +62,14 @@ Sprint 7 (Testing & Quality): tests unitarios, tests de integración, infraestru
 
 ### Blocked
 
-- **runDegradedMode / runPulseCheck**: 5+ dependencias externas (Gemini, Supabase, Gmail, YouTube, MCP)
+- **runPulseCheck**: bucle Gemini + function calling con 3+ dependencias externas vivas (Gemini chat, tool executor, Supabase)
 
 ### Done (Sprint 7 — continuation)
 
 - **mcp-manager.ts tests**: 37 tests unitarios con mock de child_process.spawn via EventEmitter + fake timers / real timers
 - **Bug fix**: optional chaining en `spawnServer` (`stdin?.writable` en vez de `stdin.writable`) para evitar TypeError cuando stdin es null
+- **runDegradedMode smoke tests**: 4 tests (happy path, YouTube failure, fallbacks, brand emails) en `pulse.test.ts`
+- **Docs consolidation**: 6 archivos md → 4 (eliminados CALIBRE_MEMORY.md, SESSION.md, youtube/TEST_CASES.md)
 
 ## Key Decisions
 
@@ -89,9 +91,9 @@ Sprint 7 (Testing & Quality): tests unitarios, tests de integración, infraestru
 
 ## Next Steps
 
-1. **Tests para runDegradedMode**: orquestación completa del modo degradado (5+ dependencias externas)
-2. **Limpiar repo**: commit de todos los cambios de testing a feature branch
-3. **Ampliar frontend tests**: MetricCard, createMockFetch abstraction reusable
+1. **`createMockFetch` abstraction**: infraestructura reusable para tests de frontend que consumen API
+2. **Ampliar frontend tests**: MetricCard con datos mockeados vía createMockFetch
+3. **Actualizar TEST_CASES.md**: reflejar tests de mcp-manager y runDegradedMode como completados
 
 ## Critical Context
 

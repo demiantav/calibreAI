@@ -8,7 +8,8 @@
 | `metrics-cache.test.ts` | `metrics-cache.ts` | 9 | Unit | 🔴 Alta |
 | `youtube.test.ts` | `content-pipeline/tools/youtube.ts` | 7 | Unit | 🔴 Alta |
 | `tool-executor.test.ts` | `agent-core/reasoning/tool-executor.ts` | 16 | Unit | 🔴 Alta |
-| `pulse.test.ts` | `agent-core/heartbeat/pulse.ts` | 8 | Unit | 🔴 Alta |
+| `pulse.test.ts` | `agent-core/heartbeat/pulse.ts` | 12 | Unit | 🔴 Alta |
+| `mcp-manager.test.ts` | `mcp/mcp-manager.ts` | 37 | Unit | 🔴 Alta |
 | `calculate-sponsorship.test.ts` | `brand-deals/use-cases/calculate-sponsorship.ts` | 12 | Unit | 🟡 Media |
 | `generate-pitch.test.ts` | `brand-deals/use-cases/generate-pitch.ts` | 12 | Unit | 🟡 Media |
 | `api.integration.test.ts` | `app.ts` (Express routes) | 15 | Integración | 🔴 Alta |
@@ -19,9 +20,9 @@
 | `SendPitchModal.test.tsx` | `SendPitchModal.tsx` | 6 | Frontend | 🟡 Media |
 | `Dashboard.test.tsx` | `Dashboard.tsx` | 8 | Frontend | 🟡 Media |
 | `auth-middleware.test.ts` | `auth-middleware.ts` | 5 | Unit | 🔴 Alta |
-| **Total** | | **163** (137 backend + 38 frontend + 5 auth = 163 fails, total backend includes auth)* | | |
+| **Total** | | **217** (179 backend + 38 frontend) | | |
 
-> *Auth middleware tests (5) are included in the 137 backend tests. Total unique tests: 175 (137 backend + 38 frontend).
+> *Pulse.test.ts: 8 tests de sendMessageWithRetry + 4 tests de runDegradedMode. MCP-manager: 37 tests unitarios con mock de child_process.spawn + EventEmitter.*
 
 ---
 
@@ -425,9 +426,9 @@ Mock: `vi.mock('../shared/config.js')` con objeto config mutable.
 
 | Archivo | Razón | Prioridad |
 |---------|-------|-----------|
-| `mcp-manager.ts` | Spawn de child process + JSON-RPC. Difícil de unit testear | 🔴 Alta |
-| `pulse.ts` (runDegradedMode) | 5 dependencias externas (Gemini, Supabase, Gmail, YouTube, MCP) | 🔴 Alta |
-| `pulse.ts` (runPulseCheck) | Bucle Gemini + function calling | 🔴 Alta |
+| `pulse.ts` (runPulseCheck) | Bucle Gemini + function calling con 3+ dependencias externas vivas | 🔴 Alta |
+| `createMockFetch` (frontend) | Infraestructura reusable de fetch mockeado para tests de componentes | 🟡 Media |
+| `MetricCard.tsx` (frontend) | Tests de componente con datos mockeados vía API | 🟡 Media |
 
 ## Notas técnicas
 
