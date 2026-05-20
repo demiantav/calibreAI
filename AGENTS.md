@@ -82,7 +82,7 @@ Sprint 7 (Testing & Quality): tests unitarios, tests de integración, infraestru
 
 ## Test Stats
 
-- **Total tests**: 213 (175 backend + 38 frontend)
+- **Total tests**: 217 (179 backend + 38 frontend)
 - **Test files**: 16 (10 backend + 6 frontend)
 - **Build**: pasa con 0 errores
 - **TypeScript**: `pnpm typecheck` pasa, `pnpm typecheck:all` chequea tests también

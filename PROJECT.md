@@ -1,120 +1,171 @@
-# CALIBRE — PROYECTO DE DESARROLLO (SPRINT TRACKING)
+# CALIBRE — Proyecto
 
 ## Visión General
 Calibre es un Agente de IA autónomo para la gestión de negocio de creadores de contenido.
 
 ---
-## 🟢 SPRINT 0: Cimentación e Infraestructura (Completado)
-- [x] Configuración de Screaming Architecture.
-- [x] Conexión con Gemini 2.0 Flash.
-- [x] Integración real con YouTube Data API v3.
-- [x] Implementación de Capa de Persistencia (Supabase).
-- [x] Inicialización de Git Flow.
+
+## 🟢 Sprint 0: Cimentación e Infraestructura (Completado)
+Screaming Architecture, Gemini 2.0 Flash, YouTube Data API v3, Supabase, Git Flow.
+
+## 🟢 Sprint 1: Inteligencia Comparativa y Control (Completado)
+Memoria Comparativa, Function Calling, Retry Logic, endpoints `/pulse` y `/logs`.
+
+## 🟢 Sprint 2: Motor de Ventas e Ingresos (Completado)
+Gmail MCP (list_emails, send_email), Auto-Pitch Engine, Sponsorship Forecasting.
+
+## 🟢 Sprint 3: Visualización y Dashboard (Completado)
+Dashboard React 19 + Vite + Tailwind v4 + Framer Motion. Dark/Light mode, 4 páginas, métricas reales.
 
 ---
-## 🟢 SPRINT 1: Inteligencia Comparativa y Control (Completado)
-- [x] Memoria Comparativa, Function Calling, Retry Logic, Endpoints de control.
-- [x] Permisos de base de datos validados y análisis comparativo funcional.
 
----
-## 🟢 SPRINT 2: Motor de Ventas e Ingresos (Completado)
-- [x] Integración Gmail (MCP) para lectura/escritura de correos.
-- [x] Implementación de `Auto-Pitch Engine` (borradores automáticos).
-- [x] Lógica de `Sponsorship Forecasting`.
-
----
-## 🟢 SPRINT 3: Visualización y Dashboard (Completado)
-- [x] Dashboard con React 19 + Vite + Tailwind v4 + Framer Motion.
-- [x] 4 páginas: Dashboard, Logs, Pitches, Sponsorship.
-- [x] Dark/Light mode + animaciones motion design premium.
-- [x] Build: 446KB JS, 122KB CSS, 0 errores.
-
----
-## 🔵 SPRINT 4: Draft Review Flow (En curso)
+## 🔵 Sprint 4: Draft Review Flow (Completado)
 **Objetivo:** Cerrar el loop pitch → revisión → envío real con aprobación del usuario.
 
-### Implementado
-- [x] Status `draft_ready` → `sent` → `responded`
-- [x] `POST /api/pitches/:id/send` (valida, envía, actualiza)
-- [x] SendPitchModal (preview + edit + send + original email collapsible)
-- [x] Badge "Draft Ready" + botón "Review & Send"
-- [x] Card compacta "Pending Pitches" en Dashboard (fondo naranja, contador)
-- [x] Tabs (Pending / Sent / Responded) en página Pitches
-- [x] Auto-pulse al iniciar servidor
-- [x] RFC 2047 decoding de subjects
-- [x] From header extraction
-- [x] Dedup persistente (processed_emails)
-- [x] Daily Brief del agente (hero section en Dashboard)
-- [x] Email original visible en SendPitchModal
-- [x] AI Active animation con CSS keyframes (sin reinicio)
-- [x] Fallback de sponsorship sin "Gemini no disponible"
+### Features
+- Status `draft_ready` → `sent` → `responded` en `BrandDeal`
+- `POST /api/pitches/:id/send` (valida, envía por MCP, actualiza BD)
+- `SendPitchModal` (preview + edit + send + original email collapsible)
+- Badge "Draft Ready" (amarillo) + botón "Review & Send" en Pitches
+- Card "Pending Pitches" en Dashboard (fondo naranja, contador)
+- Tabs (Pending / Sent / Responded) en página Pitches
+- Auto-pulse al iniciar servidor (5s delay)
+- RFC 2047 decoding de subjects
+- From header extraction (corrige `unknown@email.com`)
+- Brand name desde From header
+- Dedup persistente vía `processed_emails`
+- Daily Brief del agente (hero section en Dashboard con resumen AI)
+- Email original visible en SendPitchModal (collapsible)
+- AI Active animation con CSS keyframes (sin reinicio en re-render)
+- Fallback de sponsorship sin "Gemini no disponible"
 
-### Bugs detectados en testing
-| Bug | Estado |
-|-----|--------|
-| "Just now" no se actualiza | Pendiente |
-| Pulse sin feedback visual | Pendiente |
-| SQL permissions (processed_emails) | ✅ Fixeado |
-| AI Active animation se reinicia | ✅ Fixeado |
-| "Gemini no disponible" en UI | ✅ Fixeado |
+### Bugs detectados y fixeados
+| Bug | Causa | Fix |
+|-----|-------|-----|
+| "Just now" no se actualiza | `formatDate()` se ejecuta una vez al renderizar | Hook `useRelativeTime` con setInterval cada 30s |
+| Pulse sin feedback visual | Botón dispara pero UI no muestra progreso | `PulseButton` con 3 estados: idle/pulsing/success/error. Auto-clear 2s |
+| Auto-pulse regeneraba pitches | Sin GRANT INSERT en `processed_emails` | `GRANT INSERT, SELECT ON processed_emails` |
+| AI Active animation se reiniciaba | Framer Motion keyframes se re-crean | Reemplazado por CSS `@keyframes` nativo |
+| "Gemini no disponible" en UI | Texto de fallback expuesto al usuario | Mensaje genérico amigable |
+| Engagement 0.0% por Shorts | Search API devolvía Shorts como último video | Uploads Playlist + smart Shorts filtering por duración |
+| Dashboard no se actualiza tras pulse | Sin polling entre Layout y Dashboard | `PulseContext` + polling hasta detectar nuevo `agent_summary` |
 
 ---
-## 🔵 SPRINT 5: Production Readiness & Infrastructure (Planificado)
-**Objetivo:** Preparar Calibre para clientes reales gestionando límites free tier y escalabilidad multi-tenant.
+
+## 🔵 Sprint 5: YouTube Optimization & Engagement (Completado)
+**Objetivo:** Reemplazar Search API (100u/ciclo) por Uploads Playlist (3u/ciclo). 50x más eficiente.
+
+### Features
+- YouTube metrics vía Uploads Playlist + Videos batch (3 unidades/ciclo vs 100)
+- Smart Shorts detection por duración (`contentDetails.duration`, ≤ 60s)
+- Algoritmo `selectBestVideo`: maduro > 24h → reciente > 1h → más visto → fallback Short
+- Filtro de datos inconsistentes (views=0 + likes>0 se descartan)
+- Engagement rate pre-calculado server-side (`(likes+comments)/subs*100`)
+- Cache layer (`channel_metrics_cache` con TTL 1h, upsert a Supabase)
+- Modo degradado: `runDegradedMode` captura métricas, insights, forecast → genera resumen narrativo → persiste `agent_summary`
+- Display `<0.01%` para engagement pequeño (evita `0.00%` engañoso)
+- Relative time con Temporal API (`Temporal.Instant.since()`)
+
+---
+
+## 🟡 Sprint 6: UX Polish (Actual)
+- Pulse feedback visual (3 estados en PulseButton)
+- PulseStatus state machine (`idle | pulsing | success | error`)
+- Dashboard setea `success` al detectar nuevo `agent_summary`, `error` tras timeout 60s
+- Relative time hook + componente `<RelativeTime>`
+- Pending Pitches card cuadrada naranja oscura primera en bento grid
+
+---
+
+## 🟡 Sprint 7: Testing & Quality (En curso)
+
+### Stats
+- **Total tests:** 217 (179 backend + 38 frontend)
+- **Test files:** 16 (10 backend + 6 frontend)
+- **Build:** 0 errores, 0 warnings
+
+### Coverage
+| Archivo | Tests | Tipo |
+|---------|-------|------|
+| `metrics-service.test.ts` | 45 | Unit |
+| `mcp-manager.test.ts` | 37 | Unit |
+| `tool-executor.test.ts` | 16 | Unit |
+| `api.integration.test.ts` | 15 | Integration |
+| `calculate-sponsorship.test.ts` | 12 | Unit |
+| `generate-pitch.test.ts` | 12 | Unit |
+| `metrics-cache.test.ts` | 9 | Unit |
+| `pulse.test.ts` | 12 | Unit |
+| `youtube.test.ts` | 7 | Unit |
+| `auth-middleware.test.ts` | 5 | Unit |
+| Frontend tests (6 files) | 38 | Frontend |
+
+### Pendiente
+| Item | Prioridad |
+|------|-----------|
+| `createMockFetch` abstraction reusable | 🟡 Media |
+| Ampliar frontend tests (MetricCard) | 🟢 Baja |
+
+---
+
+## Análisis de Producción
 
 ### Free Tier Limits (Verificado 18/05/2026)
-
-| API | Free Tier | Consumo/ciclo | Ciclos/día |
+| Servicio | Free | Producción (con pago) | Costo est. mensual |
 |---|---|---|---|
-| **Gemini Flash** | 60 RPM / 1,000 RPD | 1-4 calls | ~250-1000 (RPM bottleneck) |
-| **YouTube Data API** | 10,000 Q/día | ~102 Q (search=100 + stats=2) | **~96** 🚨 |
-| **Gmail API** | 1B Q/día | ~5 Q | Ilimitado |
-| **Supabase** | 500 MB DB / 2 GB BW | Mínimo | 50K filas/mes |
+| **Gemini Flash** | 60 RPM / 1,000 RPD | 2,000 RPM / 10,000 RPD | ~$2-5 |
+| **YouTube Data API** | 10,000 Q/día | Sin límite diario | ~$1-3 |
+| **Gmail API** | 1B Q/día | 1B Q/día | $0 |
+| **Supabase** | 500 MB DB / 2 GB BW | 8 GB DB / 50 GB BW (Pro) | $25 |
 
-**Cuello de botella principal:** YouTube `search` endpoint cuesta **100 unidades** por ciclo.
-
-### Plan de Migración a Producción
-
-| # | Acción | Impacto | Costo est. |
-|---|--------|---------|------------|
-| 1 | **Gemini: Activar facturación** (Google AI Studio → 2,000 RPM / 10,000 RPD) | Elimina 429s | ~$2-5/mes |
-| 2 | **YouTube: Cache metrics en Supabase** con TTL 1h (reduce 102Q → ~2Q por canal) | +96 ciclos/día | $0 (código) |
-| 3 | **YouTube: API Key con cuota paga** (sin límite diario) | Ilimitado | ~$1-3/mes |
-| 4 | **Rate limiter interno**: cola de requests Gemini, throttle 1 pulso/5min por creator | Evita 429s residuales | $0 (código) |
-| 5 | **Supabase: Pro ($25/mes)** al tener >3 clientes (8 GB DB, 50 GB BW) | Escala | $25/mes |
-| 6 | **Multi-tenant keys**: YouTube/Gemini compartidas, Gmail OAuth por creator (ya hecho) | Sin cambio | $0 |
-
-### Implementación
-- [ ] Activar facturación en Google AI Studio
-- [ ] Cache de YouTube metrics en Supabase (TTL 1h)
-- [ ] YouTube API key con cuota paga en .env
-- [ ] Cola de requests para Gemini (rate limiter interno)
-- [ ] Throttle de pulsos por creator
-- [ ] Evaluar upgrade a Supabase Pro
+### Decisiones de producción
+| Decisión | Detalle |
+|---|---|
+| Gemini → Pay-as-you-go | Activar facturación en Google AI Studio (sin cambios de código) |
+| YouTube → Cache + pago | Cache implementado (TTL 1h). API key con cuota paga opcional |
+| Rate limiting | Cola de requests Gemini + throttle 1 pulso/5min por creator |
+| Supabase → Pro | Migrar cuando haya >3 clientes activos |
+| Multi-tenant keys | YouTube/Gemini compartidas (sistema). Gmail OAuth por creator (ya listo) |
 
 ---
+
+## Problemas Conocidos
+
+| # | Problema | Estado |
+|---|---------|--------|
+| 1 | Cache `channel_metrics_cache` tiene error permission denied | Correr GRANT |
+| 2 | Gmail API no habilitada en Google Cloud Console | Pendiente |
+| 3 | Sin rate limiting interno (cola Gemini) | Pendiente |
+| 4 | Gemini en free tier (429 frecuentes) | Mitigado con retry + degraded mode |
+| 5 | YouTube API quota limit | Mitigado (3u/ciclo + cache 1h) |
+
+---
+
 ## 🗺️ Roadmap (post-MVP)
 
 | Prioridad | Feature | Descripción |
 |---|---|---|
 | 🔴 P1 | **Production hardening** | Rate limiting, caching YouTube, paid API keys |
-| 🔴 P1 | **Multi-tenant (Agency)** | Una cuenta de agencia con múltiples creadores. Switcher, Gmail tokens por creator, RLS |
+| 🔴 P1 | **Multi-tenant (Agency)** | Una cuenta con múltiples creadores. Switcher, Gmail tokens por creator, RLS |
 | 🔴 P1 | **Auto-Pitch opcional** | Modo automático configurable por creador |
 | 🔴 P1 | **Landing page** | Presencia pública en inglés para Google for Startups |
-| 🟡 P2 | **Instagram Integration** | Métricas de IG para sponsorship multi-plataforma |
-| 🟡 P2 | **TikTok Integration** | Ídem |
-| 🟡 P2 | **Tests (Vitest)** | Cobertura backend + frontend |
+| 🟡 P2 | **Instagram / TikTok** | Métricas multi-plataforma para sponsorship |
+| 🟡 P2 | **Más tests** | Cobertura frontend adicional |
 | 🟢 P3 | **Pagos (Stripe)** | Free / Creator ($19) / Pro ($49) |
 | 🟢 P3 | **Agency Dashboard** | Métricas agregadas, facturación, reportes |
 
 ---
-## 🛠 CONTEXTO DE DESARROLLO
-- **Rama:** `feature/sprint-4-draft-review`
-- **Canal de YouTube Test:** `UC8LeXCWOalN8SxlrPcG-PaQ` (midudev)
-- **Tablas:** `agent_logs`, `processed_emails`, `user_auth`, `brand_deals`
-- **Endpoints:** `GET /pulse`, `GET /logs`, `POST /api/pitches/:id/send`, `GET /auth/login`, `GET /auth/callback`
-- **Modelo IA:** `gemini-flash-latest`
+
+## 🛠 Contexto de Desarrollo
+
+- **Modelo IA:** `gemini-flash-latest` (con retry 3x para 429)
+- **Backend:** Express + Supabase + MCP (Gmail child process)
 - **Dashboard:** `apps/web` — React 19 + Vite + Tailwind v4 + Framer Motion
 - **Package manager:** pnpm (workspace: raíz + apps/web)
-- **Rate limiting actual:** Retry 3x con backoff 15-30s en 429 Gemini + modo degradado
-- **Fallbacks actuales:** Mock YouTube (738K subs / 67M views), mock pitch (template), mock sponsorship (subs * 0.002)
+- **Tablas:** `agent_logs`, `processed_emails`, `user_auth`, `brand_deals`, `channel_metrics_cache`
+- **Endpoints:** `GET /pulse`, `GET /logs`, `POST /api/pitches/:id/send`, `GET /auth/login`, `GET /auth/callback`
+- **Auth:** Gmail OAuth2 con tokens en tabla `user_auth`
+- **Paleta:** acento naranja `#EA5103`. Light: `#FFEED0` fondo / `#1A0E09` texto. Dark: `#120A06` fondo / `#FFEED0` texto
+- **Layout:** Bento grid asimétrico (12 col), sidebar 260px flotante glass-card, profile bar con avatar ring animado
+- **Canal test:** `UC8LeXCWOalN8SxlrPcG-PaQ` (midudev)
+- **Build:** 451KB JS (138KB gzip) / 124KB CSS (19KB gzip)
+- **Fallbacks:** mock YouTube (738K subs), mock pitch (template), mock sponsorship (subs × 0.002)
