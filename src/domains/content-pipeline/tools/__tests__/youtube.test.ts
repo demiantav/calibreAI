@@ -123,10 +123,21 @@ describe('fetchYouTubeChannelStats', () => {
     expect(setCachedMetrics).toHaveBeenCalledWith(CHANNEL_ID, sampleMetrics)
   })
 
-  it('should detect quotaExceeded from error.toString() containing 403', async () => {
+  it('should fall back to mock when error.message contains 403', async () => {
+    vi.mocked(getCachedMetrics).mockResolvedValueOnce(null)
+    vi.mocked(getRealYouTubeMetrics).mockRejectedValueOnce(new Error('403 Forbidden'))
+    vi.mocked(getMockYouTubeMetrics).mockResolvedValueOnce(mockMetrics)
+
+    const result = await fetchYouTubeChannelStats(CHANNEL_ID)
+    expect(result).toEqual(mockMetrics)
+  })
+
+  it('should still fall back to mock even when error is not quota/403 (always falls back)', async () => {
+    // The function always returns mock data on ANY error; the isQuotaError flag
+    // only affects the log message, not the behavior.
     vi.mocked(getCachedMetrics).mockResolvedValueOnce(null)
     vi.mocked(getRealYouTubeMetrics).mockRejectedValueOnce(
-      Object.assign(new Error('some error'), { toString: () => 'Error: 403' }),
+      Object.assign(new Error('server error'), { toString: () => 'TypeError: 10403 network failure' }),
     )
     vi.mocked(getMockYouTubeMetrics).mockResolvedValueOnce(mockMetrics)
 

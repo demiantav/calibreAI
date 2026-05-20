@@ -18,7 +18,10 @@
 | `Layout.test.tsx` | `Layout.tsx` | 4 | Frontend | 🟡 Media |
 | `SendPitchModal.test.tsx` | `SendPitchModal.tsx` | 6 | Frontend | 🟡 Media |
 | `Dashboard.test.tsx` | `Dashboard.tsx` | 8 | Frontend | 🟡 Media |
-| **Total** | | **158** | | |
+| `auth-middleware.test.ts` | `auth-middleware.ts` | 5 | Unit | 🔴 Alta |
+| **Total** | | **163** (137 backend + 38 frontend + 5 auth = 163 fails, total backend includes auth)* | | |
+
+> *Auth middleware tests (5) are included in the 137 backend tests. Total unique tests: 175 (137 backend + 38 frontend).
 
 ---
 
@@ -403,6 +406,20 @@ Wrapped in `<ThemeProvider>` + `<PulseProvider>` + `<MemoryRouter>`. Fetch mocke
 | 6 | API vacía no crashea | "Pro Creator" renderizado |
 | 7 | Polling con lastPulseAt set | No error |
 | 8 | Network error graceful | "Pro Creator" renderizado |
+
+## 15. `auth-middleware.test.ts` (5 tests)
+
+Archivo: `src/__tests__/auth-middleware.test.ts`
+
+Mock: `vi.mock('../shared/config.js')` con objeto config mutable.
+
+| # | Escenario | Verificación |
+|---|-----------|-------------|
+| 1 | Sin `AUTH_API_KEY` configurada → pasa | next() llamado |
+| 2 | `x-api-key` correcto → pasa | next() llamado |
+| 3 | `x-api-key` faltante | 401, error "No autorizado" |
+| 4 | `x-api-key` incorrecto | 401, error "No autorizado" |
+| 5 | Modo test salta auth aunque haya key | next() llamado |
 
 ## Cobertura faltante (pendiente)
 

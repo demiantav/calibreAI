@@ -1,15 +1,18 @@
 import express from 'express';
 import cors from 'cors';
-import type { Request, Response, NextFunction } from 'express';
+import helmet from 'helmet';
 import { supabase } from './infrastructure/supabase/supabase-client.js';
 import { config } from './shared/config.js';
 import { getAuthUrl, oAuth2Client } from './infrastructure/gmail/gmail-client.js';
 import { mcpManager } from './infrastructure/mcp/mcp-manager.js';
 import { runPulseCheck } from './domains/agent-core/heartbeat/pulse.js';
+import { authMiddleware } from './shared/auth-middleware.js';
+import { createOAuthState, verifyOAuthState } from './shared/oauth-state.js';
 
 export const app = express();
 
 app.use(cors());
+app.use(helmet());
 app.use(express.json());
 
 // Rate limiting (skipped in test mode so integration tests aren't blocked)
@@ -36,14 +39,24 @@ if (config.NODE_ENV !== 'test') {
   app.use('/api/pitches/:id/send', strictLimiter)
 }
 
+app.use('/pulse', authMiddleware)
+app.use('/logs', authMiddleware)
+app.use('/api', authMiddleware)
+
 // Auth Endpoints
 app.get('/auth/login', (req, res) => {
-  const url = getAuthUrl();
+  const state = createOAuthState();
+  const url = getAuthUrl(state);
   res.redirect(url);
 });
 
 app.get('/auth/callback', async (req, res) => {
-  const { code } = req.query;
+  const { code, state } = req.query;
+
+  if (!state || typeof state !== 'string' || !verifyOAuthState(state)) {
+    return res.status(400).json({ error: 'Estado de autenticación inválido o expirado' });
+  }
+
   if (!code || typeof code !== 'string') {
     return res.status(400).send('Código de autorización faltante');
   }
@@ -56,7 +69,7 @@ app.get('/auth/callback', async (req, res) => {
     const { error } = await supabase
       .from('user_auth')
       .upsert({
-        user_email: 'tavolarodemian06@gmail.com',
+        user_email: config.AUTHENTICATED_USER_EMAIL,
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
         expires_at: expiryDate.toISOString()
@@ -74,8 +87,10 @@ app.get('/auth/callback', async (req, res) => {
 // Endpoint para disparar el agente manualmente
 app.get('/pulse', async (req, res) => {
   console.log("[API] Disparando ciclo del agente...");
-  runPulseCheck();
   res.json({ message: "Ciclo del agente iniciado. Revisa la consola o los logs en Supabase." });
+  runPulseCheck().catch((err) => {
+    console.error("[API] Error no capturado en ciclo del agente:", err);
+  });
 });
 
 // Endpoint para ver los últimos logs del agente
@@ -131,9 +146,10 @@ app.post('/api/pitches/:id/send', async (req, res) => {
       return res.status(400).json({ error: `El pitch no está en estado draft_ready (status: ${pitch.status})` });
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const targetEmail = pitch.brandEmail || '';
-    if (!emailRegex.test(targetEmail)) {
+    const targetEmail = (pitch.brandEmail || '').trim();
+    // Basic email structure check, length limit, and reject HTML/special chars
+    const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(targetEmail) || targetEmail.length > 254) {
       return res.status(400).json({ error: `Email de destino inválido: "${targetEmail}"` });
     }
 

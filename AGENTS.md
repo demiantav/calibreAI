@@ -42,13 +42,18 @@ Sprint 7 (Testing & Quality): tests unitarios, tests de integración, infraestru
 - **Frontend test infra**: vitest + jsdom + @testing-library/react en apps/web
 
 ### Completed (Sprint 7)
-- **158 tests total**: 120 backend (8 files) + 38 frontend (6 files), all passing
+- **175 tests total**: 137 backend (9 files) + 38 frontend (6 files), all passing
 - **Frontend tests**: PulseButton (7), pulse-context (5), useRelativeTime (8), Layout (4), SendPitchModal (6), Dashboard (8)
 - **localStorage mocked** in test-setup.tsx via `Object.defineProperty` (vi.stubGlobal no funciona para propiedades de window en jsdom)
 - **SendPitchModal query fix**: `getByText(/TechBrand$/)` en vez de `getByText('TechBrand', { exact: false })` para evitar match con `partner@techbrand.com`
 - **Layout button query fix**: `getAllByRole('button').length >= 2` en vez de `getByRole('button')` (Sidebar tiene ThemeToggle button adicional)
 - **pulse-context lastPulseAt fix**: `vi.useFakeTimers()` + `vi.advanceTimersByTime(100)` para que Date.now() retorne valor distinto en cada llamada
 - **"throws outside provider" test eliminado**: `useContext(createContext(defaultValue))` nunca lanza
+- **Auth middleware**: `auth-middleware.ts` — protege `/pulse`, `/logs`, `/api/*` con `x-api-key`. Opcional y bypass en test mode. Tests unitarios separados (5 tests).
+- **Auth callback tests**: 4 tests de integración para `GET /auth/callback` — code faltante, getToken error, Supabase error, success path
+- **Email injection prevention**: regex mejorado para `brandEmail` — rechaza local-parts largos, HTML/script tags, header injection (`\r\n`). 3 tests de integración añadidos
+- **parseISODuration `Infinity` downstream**: tests que verifican que `isShort`/`isDurable`/`selectBestVideo` manejan duraciones malformadas (`Infinity`) correctamente
+- **403 detection refinement**: `error.toString().includes('403')` reemplazado por `error.status === 403 || error.message?.includes('403')` para evitar falsos positivos en stack traces. Test de contraejemplo añadido
 
 ### Blocked
 - **mcp-manager.ts**: spawn de child process + JSON-RPC. Tests requieren mocking pesado de child_process

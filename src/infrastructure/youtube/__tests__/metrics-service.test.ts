@@ -120,6 +120,12 @@ describe('isShort', () => {
   it('should return false for PT10M (10 minutes)', () => {
     expect(isShort('PT10M')).toBe(false)
   })
+
+  it('should return false for Infinity (malformed duration is not short)', () => {
+    expect(isShort('foobar')).toBe(false)
+    expect(isShort('')).toBe(false)
+    expect(isShort('P1DT2H')).toBe(false)
+  })
 })
 
 // ─── isDurable ──────────────────────────────────────────────────────────────────
@@ -139,6 +145,11 @@ describe('isDurable', () => {
 
   it('should return true for a 10-minute video', () => {
     expect(isDurable(makeVideo({ duration: 'PT10M', publishedAt: new Date().toISOString() }))).toBe(true)
+  })
+
+  it('should return true for Infinity duration (malformed treated as non-short)', () => {
+    expect(isDurable(makeVideo({ duration: 'foobar', publishedAt: new Date().toISOString() }))).toBe(true)
+    expect(isDurable(makeVideo({ duration: 'P1DT2H', publishedAt: new Date().toISOString() }))).toBe(true)
   })
 })
 
@@ -335,6 +346,23 @@ describe('selectBestVideo', () => {
     })
     // exactly24h is not > 24, so it falls to step 2 (> 1h), where recentHigh wins by views
     expect(selectBestVideo([exactly24h, recentHigh])!.id).toBe('recent-2h')
+  })
+
+  it('should treat videos with Infinity duration (malformed) as non-shorts', () => {
+    const infiniteDur = makeVideo({
+      id: 'infinite',
+      duration: 'foobar',
+      publishedAt: '2026-05-18T12:00:00Z',
+      views: 99999,
+    })
+    const short = makeVideo({
+      id: 'short',
+      duration: 'PT15S',
+      publishedAt: '2026-05-20T11:00:00Z',
+      likes: 999,
+    })
+    // Infinite duration is not isShort → treated as durable, so it wins
+    expect(selectBestVideo([short, infiniteDur])!.id).toBe('infinite')
   })
 
   it('should handle mix of shorts, recent non-shorts, and mature non-shorts', () => {

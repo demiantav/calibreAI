@@ -3,9 +3,9 @@ import { supabase } from "../../../infrastructure/supabase/supabase-client.js";
 import { mcpManager } from "../../../infrastructure/mcp/mcp-manager.js";
 import { generatePitchUseCase } from "../../brand-deals/use-cases/generate-pitch.js";
 import { calculateSponsorshipUseCase } from "../../brand-deals/use-cases/calculate-sponsorship.js";
-import { gmail, oAuth2Client } from "../../../infrastructure/gmail/gmail-client.js";
-
-const AUTHENTICATED_USER_EMAIL = 'tavolarodemian06@gmail.com';
+import { gmail } from "../../../infrastructure/gmail/gmail-client.js";
+import { ensureGmailAuth } from "../../../shared/gmail-auth.js";
+import { config } from "../../../shared/config.js";
 
 function normalizeEmail(email: string): string {
   return email.replace(/.*<([^>]+)>.*/, '$1').replace(/["']/g, '').trim().toLowerCase();
@@ -22,33 +22,6 @@ function decodeRFC2047(input: string): string {
   });
 }
 
-async function ensureGmailAuth(): Promise<void> {
-  const { data } = await supabase
-    .from('user_auth')
-    .select('*')
-    .eq('user_email', 'tavolarodemian06@gmail.com')
-    .single();
-  if (!data) throw new Error('No autenticado. Ejecuta /auth/login');
-
-  oAuth2Client.setCredentials({
-    access_token: data.access_token,
-    refresh_token: data.refresh_token,
-  });
-
-  const expiresAt = data.expires_at ? new Date(data.expires_at).getTime() : 0;
-  if (Date.now() >= expiresAt - 60000) {
-    console.log('[Tool Executor] Token expirado, refrescando...');
-    const { credentials } = await oAuth2Client.refreshAccessToken();
-    oAuth2Client.setCredentials(credentials);
-    await supabase.from('user_auth').upsert({
-      user_email: 'tavolarodemian06@gmail.com',
-      access_token: credentials.access_token,
-      refresh_token: credentials.refresh_token || data.refresh_token,
-      expires_at: new Date(Date.now() + (credentials.expiry_date || 3600 * 1000)).toISOString(),
-    });
-  }
-}
-
 async function fetchEmailByGmailId(gmailId: string): Promise<{ from: string; subject: string; snippet: string }> {
   await ensureGmailAuth();
   const detail = await gmail.users.messages.get({ userId: 'me', id: gmailId });
@@ -57,8 +30,8 @@ async function fetchEmailByGmailId(gmailId: string): Promise<{ from: string; sub
   const from = headers.find((h: any) => h.name === 'From')?.value || '';
 
   // Safety: no generar pitch contra el propio usuario
-  if (from.includes(AUTHENTICATED_USER_EMAIL)) {
-    throw new Error(`El email ${gmailId} es del propio usuario (${AUTHENTICATED_USER_EMAIL}), saltando.`);
+  if (from.includes(config.AUTHENTICATED_USER_EMAIL)) {
+    throw new Error(`El email ${gmailId} es del propio usuario (${config.AUTHENTICATED_USER_EMAIL}), saltando.`);
   }
 
   return {
@@ -146,7 +119,7 @@ export const functionsImplementations = {
 
       // Filtrar emails ya procesados y del propio usuario
       const filtered = details.filter((msg: any) =>
-        !processedSet.has(msg.id) && !msg.from?.includes(AUTHENTICATED_USER_EMAIL)
+        !processedSet.has(msg.id) && !msg.from?.includes(config.AUTHENTICATED_USER_EMAIL)
       );
       if (filtered.length < details.length) {
         console.log(`[Tool Executor] Filtrados ${details.length - filtered.length} emails ya procesados`);

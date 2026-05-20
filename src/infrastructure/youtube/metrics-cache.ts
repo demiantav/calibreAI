@@ -17,7 +17,8 @@ export const getCachedMetrics = async (channelId: string): Promise<RealYouTubeMe
     if (age > CACHE_TTL_MS) return null;
 
     return data.data as unknown as RealYouTubeMetrics;
-  } catch {
+  } catch (e) {
+    console.warn('[Metrics Cache] Error leyendo caché:', e);
     return null;
   }
 };
@@ -35,7 +36,7 @@ export const setCachedMetrics = async (channelId: string, metrics: RealYouTubeMe
     if (error) {
       console.warn('[Metrics Cache] Error guardando caché (el sistema funciona igual):', error.message);
     }
-  } catch {
-    // no crítico — el sistema sigue funcionando sin caché
+  } catch (e) {
+    console.warn('[Metrics Cache] Error guardando caché:', e);
   }
 };

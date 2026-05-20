@@ -1,6 +1,7 @@
 import { model } from "../reasoning/gemini-client.js";
 import { executeToolCall, functionsImplementations } from "../reasoning/tool-executor.js";
 import { supabase } from "../../../infrastructure/supabase/supabase-client.js";
+import { config } from "../../../shared/config.js";
 
 const sendMessageWithRetry = async (chat: any, message: any, retries = 3): Promise<any> => {
   let attempt = 0;
@@ -36,12 +37,12 @@ const runDegradedMode = async (channelId: string) => {
     console.log(`[Calibre] ✅ Métricas obtenidas: ${metrics.subscriberCount} subs`);
 
     // 2. Insights previos
-    insights = await functionsImplementations.getPreviousInsights({ creatorName: 'midudev' });
+    insights = await functionsImplementations.getPreviousInsights({ creatorName: config.CREATOR_NAME });
     console.log(`[Calibre] ✅ Insights recuperados: ${Array.isArray(insights) ? insights.length : 0} registros`);
 
     // 3. Update Media Kit
     const updateResult = await functionsImplementations.updateLiveMediaKit({
-      creatorName: 'midudev',
+      creatorName: config.CREATOR_NAME,
       metrics: {
         subscribers: metrics.subscriberCount,
         totalViews: metrics.totalViews,
@@ -60,7 +61,8 @@ const runDegradedMode = async (channelId: string) => {
       let emailList: any[] = [];
       try {
         emailList = emails?.content?.[0]?.text ? JSON.parse(emails.content[0].text) : [];
-      } catch {
+      } catch (e) {
+        console.warn('[Calibre] Error parseando lista de emails:', e);
         emailList = [];
       }
       console.log(`[Calibre] ✅ ${emailList.length} emails listados`);
@@ -85,7 +87,7 @@ const runDegradedMode = async (channelId: string) => {
 
         try {
           const pitchResult = await functionsImplementations.generateAndDraftPitch({
-            creatorName: 'midudev',
+            creatorName: config.CREATOR_NAME,
             gmailId: email.id,
           });
           const brandName = rawFrom.replace(/^"?(.*?)"?\s*<.*$/, '$1').trim() || 'Marca';
@@ -102,7 +104,7 @@ const runDegradedMode = async (channelId: string) => {
     // 5. Sponsorship forecast
     try {
       forecast = await functionsImplementations.calculateSponsorshipValue({
-        creatorName: 'midudev',
+        creatorName: config.CREATOR_NAME,
         subscribers: metrics.subscriberCount,
         totalViews: metrics.totalViews,
         lastVideoViews: metrics.lastVideoViews,
@@ -120,13 +122,23 @@ const runDegradedMode = async (channelId: string) => {
     console.error("[Calibre] Error en modo degradado:", error);
   }
 
-  // --- Generar resumen amigable ---
-  const subs = metrics?.subscriberCount ?? 127500;
-  const totalViews = metrics?.totalViews ?? 4825000;
-  const lastVideoViews = metrics?.lastVideoViews ?? 250000;
-  const lastVideoLikes = metrics?.lastVideoLikes ?? 42000;
-  const lastVideoComments = metrics?.lastVideoComments ?? 3800;
-  const engRaw = metrics?.engagementRate ?? 2.86;
+  if (!metrics) {
+    console.error("[Calibre] Modo degradado falló completamente — no se generará summary.");
+    await supabase.from('agent_logs').insert([{
+      creator_name: config.CREATOR_NAME,
+      type: 'agent_error',
+      content: { text: 'El modo degradado no pudo obtener métricas. Revisa la conexión con YouTube API.' },
+      insights: 'Error: todas las fuentes de datos fallaron.',
+    }]);
+    return;
+  }
+
+  const subs = metrics.subscriberCount;
+  const totalViews = metrics.totalViews;
+  const lastVideoViews = metrics.lastVideoViews;
+  const lastVideoLikes = metrics.lastVideoLikes;
+  const lastVideoComments = metrics.lastVideoComments;
+  const engRaw = metrics.engagementRate;
   const engDisplay = engRaw <= 0 ? '0' : engRaw < 0.01 ? '<0.01' : engRaw.toFixed(2);
   const mentionMin = forecast?.mention?.min ?? 850;
   const mentionMax = forecast?.mention?.max ?? 1200;
@@ -191,7 +203,7 @@ const runDegradedMode = async (channelId: string) => {
 
   // Guardar resumen
   await supabase.from('agent_logs').insert([{
-    creator_name: 'midudev',
+    creator_name: config.CREATOR_NAME,
     type: 'agent_summary',
     content: { text: summary },
     insights: `Resumen estratégico: ${subs.toLocaleString()} subs, ${pitchBrands.length} pitches generados.`,
@@ -207,12 +219,12 @@ const runDegradedMode = async (channelId: string) => {
 export const runPulseCheck = async () => {
   console.log("[Calibre] Iniciando ciclo de razonamiento autónomo (con auto-retry)...");
 
-  const TEST_CHANNEL_ID = "UC8LeXCWOalN8SxlrPcG-PaQ"; // midudev
+  const channelId = config.YOUTUBE_CHANNEL_ID;
   const chat = model.startChat();
 
   try {
     const result = await sendMessageWithRetry(chat, 
-      `Calibre, revisa el estado del creador con ID "${TEST_CHANNEL_ID}". 
+      `Calibre, revisa el estado del creador con ID "${channelId}". 
        PASOS OBLIGATORIOS:
        1. Consulta YouTube para ver las métricas actuales.
        2. Usa "getPreviousInsights" para ver qué analizaste la última vez de este creador.
@@ -251,7 +263,7 @@ export const runPulseCheck = async () => {
 
     // Guardar resumen del agente como log
     await supabase.from('agent_logs').insert([{
-      creator_name: 'midudev',
+      creator_name: config.CREATOR_NAME,
       type: 'agent_summary',
       content: { text: agentText },
       insights: 'Resumen del agente tras el ciclo de análisis.',
@@ -262,7 +274,7 @@ export const runPulseCheck = async () => {
   } catch (error: any) {
     if (error.status === 429) {
       console.warn("[Calibre] Gemini no disponible por cuota. Cambiando a modo degradado...");
-      await runDegradedMode(TEST_CHANNEL_ID);
+      await runDegradedMode(channelId);
     } else {
       console.error("[Calibre] Error crítico en el bucle autónomo:", error);
     }

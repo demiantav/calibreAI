@@ -4,19 +4,19 @@ import { config } from '../../shared/config.js';
 export const oAuth2Client = new google.auth.OAuth2(
   config.GMAIL_CLIENT_ID,
   config.GMAIL_CLIENT_SECRET,
-  'http://localhost:8080/auth/callback'
+  config.GMAIL_REDIRECT_URI
 );
 
-// Exportamos una función para generar la URL de autorización
-export function getAuthUrl() {
+export function getAuthUrl(state: string) {
   const scopes = [
     'https://www.googleapis.com/auth/gmail.readonly',
     'https://www.googleapis.com/auth/gmail.send'
   ];
-  
+
   return oAuth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: scopes,
+    state,
   });
 }
 

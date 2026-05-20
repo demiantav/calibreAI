@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { gmail, oAuth2Client } from "../../../infrastructure/gmail/gmail-client.js";
-import { supabase } from "../../../infrastructure/supabase/supabase-client.js";
+import { gmail } from "../../../infrastructure/gmail/gmail-client.js";
+import { ensureGmailAuth } from "../../../shared/gmail-auth.js";
 
 // Intercept stdout to prevent non-JSON output from contaminating MCP JSON-RPC protocol
 const originalStdoutWrite = process.stdout.write.bind(process.stdout);
@@ -20,44 +20,12 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
-// Función para cargar tokens desde Supabase, autorizar el cliente y refrescar si expiró
-async function ensureAuthenticated() {
-  const { data, error } = await supabase
-    .from('user_auth')
-    .select('*')
-    .eq('user_email', 'tavolarodemian06@gmail.com')
-    .single();
-
-  if (error || !data) throw new Error("No autenticado. Ejecuta /auth/login");
-  
-  oAuth2Client.setCredentials({
-    access_token: data.access_token,
-    refresh_token: data.refresh_token,
-  });
-
-  // Refrescar token si está expirado o próximo a expirar
-  const expiresAt = data.expires_at ? new Date(data.expires_at).getTime() : 0;
-  if (Date.now() >= expiresAt - 60000) {
-    console.log('[MCP] Token expirado, refrescando...');
-    const { credentials } = await oAuth2Client.refreshAccessToken();
-    oAuth2Client.setCredentials(credentials);
-
-    await supabase.from('user_auth').upsert({
-      user_email: 'tavolarodemian06@gmail.com',
-      access_token: credentials.access_token,
-      refresh_token: credentials.refresh_token || data.refresh_token,
-      expires_at: new Date(Date.now() + (credentials.expiry_date || 3600 * 1000)).toISOString(),
-    });
-    console.log('[MCP] Token refrescado y persistido en Supabase.');
-  }
-}
-
 server.tool(
   "list_emails",
   "Lista los últimos correos recibidos",
   { maxResults: z.number().default(5) },
   async ({ maxResults }) => {
-    await ensureAuthenticated();
+    await ensureGmailAuth();
     
     const response = await gmail.users.messages.list({
       userId: 'me',
@@ -91,7 +59,7 @@ server.tool(
     body: z.string(),
   },
   async ({ to, subject, body }) => {
-    await ensureAuthenticated();
+    await ensureGmailAuth();
 
     function encodeHeader(text: string): string {
       if (/^[\x00-\x7F]*$/.test(text)) return text;

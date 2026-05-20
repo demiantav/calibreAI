@@ -13,12 +13,14 @@ export const fetchYouTubeChannelStats = async (channelId: string): Promise<RealY
   // 2. Try real API
   try {
     const metrics = await getRealYouTubeMetrics(channelId);
-    await setCachedMetrics(channelId, metrics).catch(() => {});
+    await setCachedMetrics(channelId, metrics).catch((e) => {
+      console.warn('[YouTube Tool] Error guardando caché:', e);
+    });
     return metrics;
   } catch (error: any) {
     const isQuotaError = error.message?.includes('quotaExceeded')
-      || error.message?.includes('quota')
-      || error.toString().includes('403');
+      || error.status === 403
+      || error.message?.includes('403');
     console.warn(`[YouTube Tool] Usando mock datos simulados (${isQuotaError ? 'cuota excedida' : 'error: ' + error.message})`);
     return await getMockYouTubeMetrics(channelId);
   }

@@ -1,4 +1,5 @@
 import { RealYouTubeMetrics } from '../../../infrastructure/youtube/metrics-service.js';
+import { config } from '../../../shared/config.js';
 
 export const getMockYouTubeMetrics = async (channelId?: string): Promise<RealYouTubeMetrics> => {
   return new Promise((resolve) => {
