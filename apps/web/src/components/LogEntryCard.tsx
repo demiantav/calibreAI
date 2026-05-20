@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { FileText, BarChart3, DollarSign, Clock } from 'lucide-react';
 import type { LogEntry } from '@/lib/types';
+import { RelativeTime } from '@/lib/use-relative-time';
 
 const typeConfig = {
   media_kit_update: {
@@ -41,18 +42,6 @@ export function LogEntryCard({ entry, index }: LogEntryCardProps) {
   const config = typeConfig[entry.type as keyof typeof typeConfig] || typeConfig.media_kit_update;
   const Icon = config.icon;
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffHours < 1) return 'Just now';
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays === 1) return 'Yesterday';
-    return `${diffDays} days ago`;
-  };
-
   return (
     <motion.article
       className={`${config.bgColor} ${config.borderColor} border rounded-[24px] p-5 hover:shadow-xl transition-all duration-300`}
@@ -79,7 +68,7 @@ export function LogEntryCard({ entry, index }: LogEntryCardProps) {
             <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${config.pillBg} ${config.textColor}`}>{config.label}</span>
             <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
               <Clock className="w-3 h-3" />
-              {formatDate(entry.created_at)}
+              <RelativeTime iso={entry.created_at} />
             </span>
           </div>
           <p className="text-sm text-foreground leading-relaxed font-medium">{entry.insights}</p>

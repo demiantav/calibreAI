@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { usePulse } from '@/lib/pulse-context';
+import { RelativeTime } from '@/lib/use-relative-time';
 import type { LogEntry, SponsorshipForecast, PitchDraft } from '@/lib/types';
 
 export default function Dashboard() {
@@ -182,6 +183,37 @@ export default function Dashboard() {
 
       {/* Bento grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* Pending Pitches — square card */}
+        {pendingPitches.length > 0 && (
+          <motion.section
+            className="lg:col-span-4 aspect-square rounded-[24px] p-7 relative overflow-hidden bg-gradient-to-br from-[#b33a00] to-[#8a2b00] border border-[#e65c00]/30 shadow-[0_0_30px_-5px_rgba(234,81,3,0.3)]"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, type: 'spring', stiffness: 200, damping: 20 }}
+          >
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#ff8c42] via-[#ff6a00] to-transparent" />
+            <div className="flex flex-col h-full">
+              <div className="flex-1 flex flex-col items-center justify-center gap-1">
+                <span className="text-7xl font-display font-black text-[#ff8c42]">
+                  {pendingPitches.length}
+                </span>
+                <span className="text-xs font-black text-[#ff8c42]/60 uppercase tracking-wider -mt-1">
+                  pending
+                </span>
+                <p className="text-sm font-display font-black text-white tracking-tight mt-3">Pending Pitches</p>
+                <p className="text-xs font-bold text-white/50">Drafts ready to send</p>
+              </div>
+              <Link
+                to="/pitches"
+                className="inline-flex items-center justify-center gap-1.5 w-full py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-black transition-all"
+              >
+                Review All
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </motion.section>
+        )}
+
         {/* Latest Insights */}
         {latestAnalysis && (
           <motion.section
@@ -203,7 +235,7 @@ export default function Dashboard() {
                     New
                   </span>
                 </div>
-                <p className="text-xs font-bold text-text-tertiary">Just now · Media Kit Analysis</p>
+                <p className="text-xs font-bold text-text-tertiary"><RelativeTime iso={latestAnalysis?.created_at} /> · Media Kit Analysis</p>
               </div>
             </div>
             <p className="text-sm text-text-secondary leading-relaxed max-w-prose">{latestAnalysis.insights}</p>
@@ -336,38 +368,7 @@ export default function Dashboard() {
           </div>
         </motion.section>
 
-        {/* Pending Pitches — solid orange card */}
-        {pendingPitches.length > 0 && (
-          <motion.section
-            className="lg:col-span-4 rounded-[24px] p-7 relative overflow-hidden bg-accent/15 border border-accent/25"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-          >
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-accent/60 to-accent/10" />
-            <div className="flex flex-col items-center text-center gap-3">
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-6xl font-display font-black text-accent">
-                  {pendingPitches.length}
-                </span>
-                <span className="text-sm font-black text-accent/70 self-end mb-2">
-                  pending
-                </span>
-              </div>
-              <div>
-                <p className="text-sm font-display font-black text-text tracking-tight">Pending Pitches</p>
-                <p className="text-xs font-bold text-text-tertiary">Drafts ready to send</p>
-              </div>
-              <Link
-                to="/pitches"
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-accent/20 hover:bg-accent/30 text-accent rounded-2xl text-xs font-black transition-all"
-              >
-                Review All
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </motion.section>
-        )}
+
       </div>
 
       {(isLoading || isPulsing) && (

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Layers, BarChart3, FileText, DollarSign, Sparkles } from 'lucide-react';
 import type { LogEntry } from '@/lib/types';
+import { RelativeTime } from '@/lib/use-relative-time';
 
 type FilterType = 'all' | 'media_kit_update' | 'pitch_draft' | 'sponsorship_forecast' | 'agent_summary';
 
@@ -26,18 +27,6 @@ const typeIcons: Record<string, typeof BarChart3> = {
   sponsorship_forecast: DollarSign,
   agent_summary: Sparkles,
 };
-
-function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffHours < 1) return 'Just now';
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return 'Yesterday';
-  return `${diffDays}d ago`;
-}
 
 export default function Logs() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -136,7 +125,7 @@ export default function Logs() {
                     </div>
                     <span className="text-xs font-black text-text-secondary">{typeStyle.label}</span>
                     <span className="w-1 h-1 rounded-full bg-text-tertiary" />
-                    <span className="text-xs font-bold text-text-tertiary">{formatDate(entry.created_at)}</span>
+                    <span className="text-xs font-bold text-text-tertiary"><RelativeTime iso={entry.created_at} /></span>
                   </div>
                   <p className="text-sm text-text-secondary leading-relaxed font-medium">{entry.insights}</p>
                 </div>
