@@ -2,7 +2,7 @@
 
 ## Goal
 
-Sprint 8 (Frontend Testing Completion): cerrar cobertura de tests frontend + runPulseCheck testing — createMockFetch infra + MetricCard, AgentIndicator, Logs, Sponsorship, Pitches, Sidebar, runPulseCheck (8 tests).
+Sprint 9 (Production Hardening + Responsive MVP): poner Calibre listo para producción — rate limiting, health checks, graceful shutdown, responsive design mobile, datos reales en UI.
 
 ## Constraints & Preferences
 
@@ -103,11 +103,24 @@ Sprint 8 (Frontend Testing Completion): cerrar cobertura de tests frontend + run
 - **runPulseCheck tests** (8): single round, multi-round, no function calls, 429 fallback, retry success, non-429 error, executeToolCall error, prompt verification
   - Refactor: inyección de dependencias opcionales (`deps?: PulseCheckDeps`) con defaults
 
-## Next Steps (Sprint 9)
+## Completed (Sprint 9 — Production Hardening + Responsive)
 
-1. **Production Hardening**: Rate limiting interno (cola Gemini), graceful shutdown, health checks
-2. **Landing Page**: Presencia pública en inglés para Google for Startups
-3. **Auto-Pitch opcional**: Toggle por creador (manual vs automático)
+- **Gmail API verified**: tokens existen para `tavolarodemian06@gmail.com` en `user_auth`
+- **Supabase cache permissions**: `channel_metrics_cache` funciona correctamente (columna `data`)
+- **Rate limiting Gemini**: `p-queue` con `concurrency: 1` + delay 1s entre requests en `gemini-client.ts`
+- **Health check real**: `GET /health` verifica Supabase, Gmail MCP, YouTube API. Retorna 200 o 503 con `checks` detallado
+- **Graceful shutdown**: SIGTERM/SIGINT cierran HTTP server, MCP child process, y exit limpio
+- **Responsive sidebar**: hamburger menu en mobile (`lg:hidden`), drawer con backdrop, desktop sin cambios
+- **Responsive layout**: `ml-0 lg:ml-[300px]`, paddings adaptativos, `pt-14 lg:pt-4`
+- **PulseButton mobile**: oculto en mobile (`hidden lg:block`), visible solo desktop
+- **AgentIndicator real**: `Layout` fetchea logs y pasa counts dinámicos (re-fetch tras pulse)
+- **Typography mobile**: paddings reducidos (`p-4 lg:p-10`), font sizes adaptativos, flex-wrap en stats
+
+## Next Steps (Sprint 10)
+
+1. **Landing Page**: Presencia pública en inglés para Google for Startups
+2. **Auto-Pitch opcional**: Toggle por creador (manual vs automático)
+3. **Multi-tenant (Agency)**: Una cuenta con múltiples creadores
 
 ## Critical Context
 

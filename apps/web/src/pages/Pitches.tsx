@@ -54,7 +54,7 @@ export default function Pitches() {
   };
 
   return (
-    <motion.div className="min-h-screen p-8 lg:p-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
+    <motion.div className="min-h-screen p-4 lg:p-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
       <header className="mb-6">
         <div className="flex items-center gap-3 mb-1">
           <div className="w-1 h-6 rounded-full bg-accent" />

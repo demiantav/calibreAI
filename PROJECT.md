@@ -113,6 +113,28 @@ Dashboard React 19 + Vite + Tailwind v4 + Framer Motion. Dark/Light mode, 4 pág
 
 ---
 
+## 🟢 Sprint 9: Production Hardening + Responsive MVP (Completado)
+
+### Completado
+- **Gmail API**: tokens verificados en `user_auth` para `tavolarodemian06@gmail.com`
+- **Supabase cache**: `channel_metrics_cache` funciona correctamente (columna `data`)
+- **Rate limiting Gemini**: `p-queue` con `concurrency: 1` + delay 1s entre requests
+- **Health check real**: `GET /health` verifica Supabase, Gmail MCP, YouTube API — retorna 200/503 con checks detallados
+- **Graceful shutdown**: SIGTERM/SIGINT cierran HTTP server + MCP child process
+- **Responsive sidebar**: hamburger menu en mobile (`lg:hidden`), drawer con backdrop
+- **Responsive layout**: `ml-0 lg:ml-[300px]`, paddings adaptativos
+- **PulseButton mobile**: oculto en mobile, visible solo desktop
+- **AgentIndicator real**: Layout fetchea logs y pasa counts dinámicos
+- **Typography mobile**: paddings reducidos, font sizes adaptativos, flex-wrap
+
+### Stats
+- **Total tests:** 263 (187 backend + 76 frontend) — all passing
+- **Test files:** 22 (10 backend + 12 frontend)
+- **Build:** 0 errores, 0 warnings
+- **Frontend responsive:** usable en mobile (sidebar, layout, typography)
+
+---
+
 ## Análisis de Producción
 
 ### Free Tier Limits (Verificado 18/05/2026)

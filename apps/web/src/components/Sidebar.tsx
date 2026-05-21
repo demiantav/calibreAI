@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, FileText, DollarSign, Sparkles, Settings, HelpCircle, Youtube, Instagram, Twitter, Music2, Moon, Sun } from 'lucide-react';
+import { LayoutDashboard, ScrollText, FileText, DollarSign, Sparkles, Settings, HelpCircle, Youtube, Instagram, Twitter, Music2, Moon, Sun, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/lib/theme';
 
 const navItems = [
@@ -28,6 +28,7 @@ export function Sidebar() {
   const pathname = useLocation().pathname;
   const [creatorName, setCreatorName] = useState('Sarah Chen');
   const [subscriberCount, setSubscriberCount] = useState(127500);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -47,6 +48,11 @@ export function Sidebar() {
     fetchProfile();
   }, []);
 
+  // Close sidebar when route changes (mobile)
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
+
   const formatSubs = (n: number) => {
     if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
     if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
@@ -55,15 +61,10 @@ export function Sidebar() {
 
   const isActive = (href: string) => pathname === href;
 
-  return (
-    <motion.aside 
-      initial={{ x: -280, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ type: 'spring', damping: 20, stiffness: 100 }}
-      className="fixed left-4 top-4 bottom-4 w-[260px] glass-card rounded-[24px] flex flex-col z-50 overflow-hidden"
-    >
+  const sidebarContent = (
+    <>
       <div className="px-8 pt-10 pb-8">
-        <Link to="/" className="flex items-center gap-3 group">
+        <Link to="/" className="flex items-center gap-3 group" onClick={() => setIsOpen(false)}>
           <motion.div 
             whileHover={{ rotate: 180, scale: 1.1 }}
             transition={{ type: 'spring', damping: 10 }}
@@ -188,7 +189,51 @@ export function Sidebar() {
           </div>
         </div>
       </div>
-    </motion.aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile hamburger button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 w-10 h-10 rounded-xl bg-surface-hover border border-border/50 flex items-center justify-center text-text hover:text-accent transition-colors"
+        aria-label="Toggle menu"
+      >
+        {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+      </button>
+
+      {/* Desktop sidebar — always visible */}
+      <aside className="hidden lg:flex fixed left-4 top-4 bottom-4 w-[260px] glass-card rounded-[24px] flex-col z-40 overflow-hidden">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile sidebar — overlay drawer */}
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+            />
+            {/* Drawer */}
+            <motion.aside
+              initial={{ x: -280, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -280, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="lg:hidden fixed left-0 top-0 bottom-0 w-[280px] glass-card rounded-r-[24px] flex-col z-50 overflow-hidden"
+            >
+              {sidebarContent}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 

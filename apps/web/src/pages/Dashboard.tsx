@@ -108,8 +108,8 @@ export default function Dashboard() {
     <motion.div className="min-h-screen" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
 
       {/* Profile bar with animated avatar ring */}
-      <div className="flex items-center justify-between mb-10">
-        <div className="flex items-center gap-5">
+      <div className="flex items-center justify-between mb-6 lg:mb-10">
+        <div className="flex items-center gap-3 lg:gap-5">
           <div className="relative">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent to-accent-secondary flex items-center justify-center text-white text-xl font-black shadow-lg relative z-10">
               {creatorName.charAt(0).toUpperCase()}
@@ -130,12 +130,12 @@ export default function Dashboard() {
               <h1 className="text-2xl font-display font-black text-text tracking-tight">{creatorName}</h1>
               <span className="px-3 py-1 rounded-full bg-accent-muted-soft text-accent-muted text-xs font-black uppercase tracking-wider">Pro Creator</span>
             </div>
-            <div className="flex items-center gap-4 mt-1">
-              <p className="text-sm font-bold text-text-secondary">{realSubs.toLocaleString()} Followers</p>
-              <span className="w-1 h-1 rounded-full bg-text-tertiary" />
-              <p className="text-sm font-bold text-text-secondary">{engDisplay}% Eng. Rate</p>
-              <span className="w-1 h-1 rounded-full bg-text-tertiary" />
-              <p className="text-sm font-bold text-text-secondary">${forecastContent?.mention?.min ?? 850} Min. Rate</p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+              <p className="text-xs lg:text-sm font-bold text-text-secondary">{realSubs.toLocaleString()} Followers</p>
+              <span className="w-1 h-1 rounded-full bg-text-tertiary hidden sm:block" />
+              <p className="text-xs lg:text-sm font-bold text-text-secondary">{engDisplay}% Eng. Rate</p>
+              <span className="w-1 h-1 rounded-full bg-text-tertiary hidden sm:block" />
+              <p className="text-xs lg:text-sm font-bold text-text-secondary">${forecastContent?.mention?.min ?? 850} Min. Rate</p>
             </div>
           </div>
         </div>

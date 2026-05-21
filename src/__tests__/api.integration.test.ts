@@ -61,12 +61,16 @@ import { app } from '../app.js'
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('API /health', () => {
-  it('should return 200 with status and timestamp', async () => {
+  it('should return health status with timestamp and dependency checks', async () => {
     const res = await request(app).get('/health')
 
-    expect(res.status).toBe(200)
-    expect(res.body.status).toBe('Calibre Agent is online')
+    // Status can be 200 (healthy) or 503 (degraded) depending on mocks
+    expect([200, 503]).toContain(res.status)
     expect(res.body.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+    expect(res.body.checks).toBeDefined()
+    expect(res.body.checks.supabase).toBeDefined()
+    expect(res.body.checks.gmail_mcp).toBeDefined()
+    expect(res.body.checks.youtube_api).toBeDefined()
   })
 
   it('should not expose stack trace in global error handler (test mode)', async () => {

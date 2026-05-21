@@ -187,8 +187,48 @@ app.post('/api/pitches/:id/send', async (req, res) => {
   }
 });
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'Calibre Agent is online', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+  const checks: Record<string, { status: 'ok' | 'error'; details?: string }> = {};
+  let overall = 'healthy';
+
+  // 1. Supabase check
+  try {
+    const { error } = await supabase.from('agent_logs').select('id').limit(1);
+    checks.supabase = { status: error ? 'error' : 'ok', details: error?.message };
+    if (error) overall = 'degraded';
+  } catch (e: any) {
+    checks.supabase = { status: 'error', details: e.message };
+    overall = 'degraded';
+  }
+
+  // 2. Gmail MCP check
+  try {
+    const isHealthy = await mcpManager.healthCheck();
+    checks.gmail_mcp = { status: isHealthy ? 'ok' : 'error', details: isHealthy ? undefined : 'MCP unhealthy' };
+    if (!isHealthy) overall = 'degraded';
+  } catch (e: any) {
+    checks.gmail_mcp = { status: 'error', details: e.message };
+    overall = 'degraded';
+  }
+
+  // 3. YouTube API key check (lightweight: just validate key format, not actual quota)
+  try {
+    const youtubeResponse = await fetch(
+      `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=UC_x5XG1OV2P6uZZ5FSM9Ttw&key=${config.YOUTUBE_API_KEY}`
+    );
+    checks.youtube_api = { status: youtubeResponse.ok ? 'ok' : 'error', details: youtubeResponse.ok ? undefined : `HTTP ${youtubeResponse.status}` };
+    if (!youtubeResponse.ok) overall = 'degraded';
+  } catch (e: any) {
+    checks.youtube_api = { status: 'error', details: e.message };
+    overall = 'degraded';
+  }
+
+  const statusCode = overall === 'healthy' ? 200 : 503;
+  res.status(statusCode).json({
+    status: overall === 'healthy' ? 'Calibre Agent is online' : 'Calibre Agent is degraded',
+    timestamp: new Date().toISOString(),
+    checks,
+  });
 });
 
 // Global error handler (4 params = Express error middleware)
