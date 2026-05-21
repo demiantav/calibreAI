@@ -103,9 +103,11 @@ Dashboard React 19 + Vite + Tailwind v4 + Framer Motion. Dark/Light mode, 4 pág
 - 76 tests frontend (12 archivos): PulseButton (7), pulse-context (5), useRelativeTime (8), Layout (4), SendPitchModal (6), Dashboard (8), MetricCard (7), AgentIndicator (4), Logs (8), Sponsorship (5), Pitches (8), Sidebar (6)
 - Dashboard migrado a `createMockFetch` con test de secuencias para polling
 - Todos los componentes principales del dashboard tienen cobertura de test
+- **runPulseCheck testing** (8 tests): inyección de dependencias opcionales (`PulseCheckDeps`) con defaults. Single/multi-round, 429 fallback, retry, non-429 error, executeToolCall error, prompt verification
+- Última cobertura faltante crítica cerrada
 
 ### Stats
-- **Total tests:** 255 (179 backend + 76 frontend)
+- **Total tests:** 263 (187 backend + 76 frontend)
 - **Test files:** 22 (10 backend + 12 frontend)
 - **Build:** 0 errores, 0 warnings
 

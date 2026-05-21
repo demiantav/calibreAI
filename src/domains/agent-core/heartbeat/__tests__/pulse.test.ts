@@ -45,7 +45,7 @@ vi.mock('../../reasoning/tool-executor.js', () => ({
   },
 }))
 
-import { runDegradedMode } from '../pulse.js'
+import { runDegradedMode, runPulseCheck } from '../pulse.js'
 
 // ─── Function under test (matches iterative version in pulse.ts) ─────────────
 
@@ -297,5 +297,270 @@ describe('runDegradedMode', () => {
     expect(insertCall.content.text).toContain('Nike')
     expect(insertCall.content.text).toContain('1 oportunidad')
     expect(insertCall.insights).toContain('1 pitches')
+  })
+})
+
+// ─── runPulseCheck tests ──────────────────────────────────────────────────────
+
+function createMockResponse(opts: {
+  rounds?: Array<Array<{ name: string; args: any }>>
+  text?: string
+}) {
+  const fn = vi.fn()
+  if (opts.rounds && opts.rounds.length > 0) {
+    // Each round returns all function calls for that iteration
+    opts.rounds.forEach((round) => {
+      fn.mockReturnValueOnce(round)
+    })
+  }
+  fn.mockReturnValue([]) // final: no more calls
+  return {
+    response: {
+      functionCalls: fn,
+      text: vi.fn().mockReturnValue(opts.text || 'Resumen del agente'),
+    },
+  }
+}
+
+describe('runPulseCheck', () => {
+  const mockExecuteToolCall = vi.fn()
+  const mockRunDegradedMode = vi.fn()
+
+  // Supabase insert mock is already defined in the file-level vi.mock
+  // We just need to reset it between tests
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockSupabaseInsert.mockClear()
+  })
+
+  it('should call executeToolCall once and persist final summary (single round)', async () => {
+    const chatSendMessage = vi.fn().mockResolvedValue(
+      createMockResponse({
+        rounds: [[{ name: 'getYouTubeMetrics', args: { channelId: 'UC-test' } }]],
+        text: 'Final summary after metrics',
+      })
+    )
+
+    mockExecuteToolCall.mockResolvedValue({ status: 'ok', metrics: { subs: 150000 } })
+
+    await runPulseCheck({
+      startChat: () => ({ sendMessage: chatSendMessage }),
+      executeToolCall: mockExecuteToolCall,
+      supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
+      runDegradedMode: mockRunDegradedMode,
+      config: { CREATOR_NAME: 'TestCreator', YOUTUBE_CHANNEL_ID: 'UC-test', AUTHENTICATED_USER_EMAIL: '' } as any,
+      sendMessageWithRetry: async (chat: any, msg: any) => chat.sendMessage(msg),
+    })
+
+    // First message + tool results message = 2 calls
+    expect(chatSendMessage).toHaveBeenCalledTimes(2)
+    expect(mockExecuteToolCall).toHaveBeenCalledTimes(1)
+    expect(mockExecuteToolCall).toHaveBeenCalledWith({ name: 'getYouTubeMetrics', args: { channelId: 'UC-test' } })
+
+    // Final summary persisted
+    const insertCall = mockSupabaseInsert.mock.calls[0]?.[0]?.[0]
+    expect(insertCall).toBeDefined()
+    expect(insertCall.type).toBe('agent_summary')
+    expect(insertCall.content.text).toBe('Final summary after metrics')
+    expect(insertCall.creator_name).toBe('TestCreator')
+
+    // Degraded mode should NOT be called
+    expect(mockRunDegradedMode).not.toHaveBeenCalled()
+  })
+
+  it('should handle multiple rounds of function calls', async () => {
+    const chatSendMessage = vi.fn()
+      // Round 1: getYouTubeMetrics
+      .mockResolvedValueOnce(createMockResponse({
+        rounds: [[{ name: 'getYouTubeMetrics', args: { channelId: 'UC-test' } }]],
+      }))
+      // Round 2: listEmails + calculateSponsorshipValue
+      .mockResolvedValueOnce(createMockResponse({
+        rounds: [
+          [
+            { name: 'listEmails', args: { maxResults: 10 } },
+            { name: 'calculateSponsorshipValue', args: {} },
+          ],
+        ],
+      }))
+      // Round 3: final response, no more function calls
+      .mockResolvedValueOnce(createMockResponse({
+        text: 'Multi-round complete',
+      }))
+
+    mockExecuteToolCall
+      .mockResolvedValueOnce({ subs: 150000 })
+      .mockResolvedValueOnce({ emails: [] })
+      .mockResolvedValueOnce({ value: 5000 })
+
+    await runPulseCheck({
+      startChat: () => ({ sendMessage: chatSendMessage }),
+      executeToolCall: mockExecuteToolCall,
+      supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
+      runDegradedMode: mockRunDegradedMode,
+      config: { CREATOR_NAME: 'TestCreator', YOUTUBE_CHANNEL_ID: 'UC-test', AUTHENTICATED_USER_EMAIL: '' } as any,
+      sendMessageWithRetry: async (chat: any, msg: any) => chat.sendMessage(msg),
+    })
+
+    // Initial prompt + round1 tool results + round2 tool results = 3 calls
+    expect(chatSendMessage).toHaveBeenCalledTimes(3)
+    // 1 + 2 = 3 tool executions
+    expect(mockExecuteToolCall).toHaveBeenCalledTimes(3)
+
+    const insertCall = mockSupabaseInsert.mock.calls[0]?.[0]?.[0]
+    expect(insertCall.content.text).toBe('Multi-round complete')
+  })
+
+  it('should persist summary when Gemini responds directly without function calls', async () => {
+    const chatSendMessage = vi.fn().mockResolvedValue(
+      createMockResponse({
+        text: 'Direct response without tools',
+      })
+    )
+
+    await runPulseCheck({
+      startChat: () => ({ sendMessage: chatSendMessage }),
+      executeToolCall: mockExecuteToolCall,
+      supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
+      runDegradedMode: mockRunDegradedMode,
+      config: { CREATOR_NAME: 'TestCreator', YOUTUBE_CHANNEL_ID: 'UC-test', AUTHENTICATED_USER_EMAIL: '' } as any,
+      sendMessageWithRetry: async (chat: any, msg: any) => chat.sendMessage(msg),
+    })
+
+    expect(chatSendMessage).toHaveBeenCalledTimes(1)
+    expect(mockExecuteToolCall).not.toHaveBeenCalled()
+
+    const insertCall = mockSupabaseInsert.mock.calls[0]?.[0]?.[0]
+    expect(insertCall.content.text).toBe('Direct response without tools')
+  })
+
+  it('should fallback to degraded mode on 429 error from first sendMessage', async () => {
+    const chatSendMessage = vi.fn().mockRejectedValue({ status: 429, message: 'Quota exceeded' })
+
+    await runPulseCheck({
+      startChat: () => ({ sendMessage: chatSendMessage }),
+      executeToolCall: mockExecuteToolCall,
+      supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
+      runDegradedMode: mockRunDegradedMode,
+      config: { CREATOR_NAME: 'TestCreator', YOUTUBE_CHANNEL_ID: 'UC-429-test', AUTHENTICATED_USER_EMAIL: '' } as any,
+      sendMessageWithRetry: async (chat: any, msg: any) => chat.sendMessage(msg),
+    })
+
+    expect(mockRunDegradedMode).toHaveBeenCalledTimes(1)
+    expect(mockRunDegradedMode).toHaveBeenCalledWith('UC-429-test')
+    expect(mockSupabaseInsert).not.toHaveBeenCalled()
+  })
+
+  it('should retry 429 and succeed without degraded mode', async () => {
+    const chatSendMessage = vi.fn()
+      .mockRejectedValueOnce({ status: 429, message: 'Quota exceeded' })
+      .mockResolvedValueOnce(createMockResponse({
+        functionCalls: [],
+        text: 'After retry success',
+      }))
+
+    // Custom sendMessageWithRetry that retries once
+    const customRetry = async (chat: any, msg: any, retries = 3) => {
+      let attempt = 0
+      while (true) {
+        try {
+          return await chat.sendMessage(msg)
+        } catch (error: any) {
+          if (error.status !== 429 || attempt >= retries) throw error
+          attempt++
+        }
+      }
+    }
+
+    await runPulseCheck({
+      startChat: () => ({ sendMessage: chatSendMessage }),
+      executeToolCall: mockExecuteToolCall,
+      supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
+      runDegradedMode: mockRunDegradedMode,
+      config: { CREATOR_NAME: 'TestCreator', YOUTUBE_CHANNEL_ID: 'UC-test', AUTHENTICATED_USER_EMAIL: '' } as any,
+      sendMessageWithRetry: customRetry,
+    })
+
+    expect(chatSendMessage).toHaveBeenCalledTimes(2)
+    expect(mockRunDegradedMode).not.toHaveBeenCalled()
+
+    const insertCall = mockSupabaseInsert.mock.calls[0]?.[0]?.[0]
+    expect(insertCall.content.text).toBe('After retry success')
+  })
+
+  it('should log critical error and skip degraded mode on non-429 error', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const chatSendMessage = vi.fn().mockRejectedValue(new Error('Gemini internal error'))
+
+    await runPulseCheck({
+      startChat: () => ({ sendMessage: chatSendMessage }),
+      executeToolCall: mockExecuteToolCall,
+      supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
+      runDegradedMode: mockRunDegradedMode,
+      config: { CREATOR_NAME: 'TestCreator', YOUTUBE_CHANNEL_ID: 'UC-test', AUTHENTICATED_USER_EMAIL: '' } as any,
+      sendMessageWithRetry: async (chat: any, msg: any) => chat.sendMessage(msg),
+    })
+
+    expect(mockRunDegradedMode).not.toHaveBeenCalled()
+    expect(mockSupabaseInsert).not.toHaveBeenCalled()
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[Calibre] Error crítico en el bucle autónomo:',
+      expect.any(Error)
+    )
+
+    consoleSpy.mockRestore()
+  })
+
+  it('should propagate executeToolCall errors to console.error and skip persistence', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const chatSendMessage = vi.fn()
+      // Round 1: getYouTubeMetrics
+      .mockResolvedValueOnce(createMockResponse({
+        rounds: [[{ name: 'getYouTubeMetrics', args: { channelId: 'UC-test' } }]],
+      }))
+
+    mockExecuteToolCall.mockRejectedValueOnce(new Error('Gmail API error'))
+
+    await runPulseCheck({
+      startChat: () => ({ sendMessage: chatSendMessage }),
+      executeToolCall: mockExecuteToolCall,
+      supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
+      runDegradedMode: mockRunDegradedMode,
+      config: { CREATOR_NAME: 'TestCreator', YOUTUBE_CHANNEL_ID: 'UC-test', AUTHENTICATED_USER_EMAIL: '' } as any,
+      sendMessageWithRetry: async (chat: any, msg: any) => chat.sendMessage(msg),
+    })
+
+    // Error is logged as critical, no summary persisted
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[Calibre] Error crítico en el bucle autónomo:',
+      expect.any(Error)
+    )
+    expect(mockSupabaseInsert).not.toHaveBeenCalled()
+
+    consoleSpy.mockRestore()
+  })
+
+  it('should include channelId in the initial prompt to Gemini', async () => {
+    const chatSendMessage = vi.fn().mockResolvedValue(
+      createMockResponse({
+        functionCalls: [],
+        text: 'Done',
+      })
+    )
+
+    await runPulseCheck({
+      startChat: () => ({ sendMessage: chatSendMessage }),
+      executeToolCall: mockExecuteToolCall,
+      supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
+      runDegradedMode: mockRunDegradedMode,
+      config: { CREATOR_NAME: 'TestCreator', YOUTUBE_CHANNEL_ID: 'UC-prompt-test', AUTHENTICATED_USER_EMAIL: '' } as any,
+      sendMessageWithRetry: async (chat: any, msg: any) => chat.sendMessage(msg),
+    })
+
+    const firstCallArg = chatSendMessage.mock.calls[0]?.[0]
+    expect(firstCallArg).toContain('UC-prompt-test')
+    expect(firstCallArg).toContain('getPreviousInsights')
+    expect(firstCallArg).toContain('listEmails')
+    expect(firstCallArg).toContain('calculateSponsorshipValue')
   })
 })

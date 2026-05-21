@@ -216,14 +216,30 @@ export const runDegradedMode = async (channelId: string) => {
   console.log("---------------------------------\n");
 };
 
-export const runPulseCheck = async () => {
+export interface PulseCheckDeps {
+  startChat?: () => { sendMessage: any };
+  executeToolCall?: typeof executeToolCall;
+  supabase?: typeof supabase;
+  runDegradedMode?: typeof runDegradedMode;
+  config?: typeof config;
+  sendMessageWithRetry?: typeof sendMessageWithRetry;
+}
+
+export const runPulseCheck = async (deps?: PulseCheckDeps) => {
+  const _startChat = deps?.startChat || model.startChat.bind(model);
+  const _executeToolCall = deps?.executeToolCall || executeToolCall;
+  const _supabase = deps?.supabase || supabase;
+  const _runDegradedMode = deps?.runDegradedMode || runDegradedMode;
+  const _config = deps?.config || config;
+  const _sendMessageWithRetry = deps?.sendMessageWithRetry || sendMessageWithRetry;
+
   console.log("[Calibre] Iniciando ciclo de razonamiento autónomo (con auto-retry)...");
 
-  const channelId = config.YOUTUBE_CHANNEL_ID;
-  const chat = model.startChat();
+  const channelId = _config.YOUTUBE_CHANNEL_ID;
+  const chat = _startChat();
 
   try {
-    const result = await sendMessageWithRetry(chat, 
+    const result = await _sendMessageWithRetry(chat, 
       `Calibre, revisa el estado del creador con ID "${channelId}". 
        PASOS OBLIGATORIOS:
        1. Consulta YouTube para ver las métricas actuales.
@@ -241,7 +257,7 @@ export const runPulseCheck = async () => {
       const toolResults = [];
 
       for (const call of functionCalls) {
-        const result = await executeToolCall({ name: call.name, args: call.args });
+        const result = await _executeToolCall({ name: call.name, args: call.args });
         toolResults.push({
           functionResponse: {
             name: call.name,
@@ -250,7 +266,7 @@ export const runPulseCheck = async () => {
         });
       }
 
-      const nextStep = await sendMessageWithRetry(chat, toolResults);
+      const nextStep = await _sendMessageWithRetry(chat, toolResults);
       response = nextStep.response;
       functionCalls = response.functionCalls();
     }
@@ -262,8 +278,8 @@ export const runPulseCheck = async () => {
     console.log("---------------------------------\n");
 
     // Guardar resumen del agente como log
-    await supabase.from('agent_logs').insert([{
-      creator_name: config.CREATOR_NAME,
+    await _supabase.from('agent_logs').insert([{
+      creator_name: _config.CREATOR_NAME,
       type: 'agent_summary',
       content: { text: agentText },
       insights: 'Resumen del agente tras el ciclo de análisis.',
@@ -274,7 +290,7 @@ export const runPulseCheck = async () => {
   } catch (error: any) {
     if (error.status === 429) {
       console.warn("[Calibre] Gemini no disponible por cuota. Cambiando a modo degradado...");
-      await runDegradedMode(channelId);
+      await _runDegradedMode(channelId);
     } else {
       console.error("[Calibre] Error crítico en el bucle autónomo:", error);
     }

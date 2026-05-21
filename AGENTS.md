@@ -2,7 +2,7 @@
 
 ## Goal
 
-Sprint 8 (Frontend Testing Completion): cerrar cobertura de tests frontend — createMockFetch infra + MetricCard, AgentIndicator, Logs, Sponsorship, Pitches, Sidebar.
+Sprint 8 (Frontend Testing Completion): cerrar cobertura de tests frontend + runPulseCheck testing — createMockFetch infra + MetricCard, AgentIndicator, Logs, Sponsorship, Pitches, Sidebar, runPulseCheck (8 tests).
 
 ## Constraints & Preferences
 
@@ -84,13 +84,13 @@ Sprint 8 (Frontend Testing Completion): cerrar cobertura de tests frontend — c
 
 ## Test Stats
 
-- **Total tests**: 255 (179 backend + 76 frontend)
+- **Total tests**: 263 (187 backend + 76 frontend)
 - **Test files**: 22 (10 backend + 12 frontend)
 - **Build**: pasa con 0 errores
 - **TypeScript**: `pnpm typecheck` pasa
 - **createMockFetch**: implementado en `test-utils.tsx` con soporte para múltiples URLs, secuencias de respuestas, network errors, delay simulation y assertions (`called`, `callCount`, `lastCall`)
 
-## Completed (Sprint 8 — Frontend Testing)
+## Completed (Sprint 8 — Frontend Testing + runPulseCheck)
 
 - **createMockFetch abstraction**: builder pattern con `.get()`, `.post()`, secuencias, network errors, delay, assertions
 - **Dashboard migrated** a `createMockFetch` con test de secuencias para polling
@@ -100,6 +100,8 @@ Sprint 8 (Frontend Testing Completion): cerrar cobertura de tests frontend — c
 - **Sponsorship tests** (5): fetch on mount, fallback CPM, header, network error
 - **Pitches tests** (8): fetch, tabs, brand info, Review & Send button, empty states, sorting, network error
 - **Sidebar tests** (6): nav items, active route, profile data fetch, fallback, theme toggle
+- **runPulseCheck tests** (8): single round, multi-round, no function calls, 429 fallback, retry success, non-429 error, executeToolCall error, prompt verification
+  - Refactor: inyección de dependencias opcionales (`deps?: PulseCheckDeps`) con defaults
 
 ## Next Steps (Sprint 9)
 

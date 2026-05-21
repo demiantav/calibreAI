@@ -428,11 +428,9 @@ Mock: `vi.mock('../shared/config.js')` con objeto config mutable.
 | 4 | `x-api-key` incorrecto | 401, error "No autorizado" |
 | 5 | Modo test salta auth aunque haya key | next() llamado |
 
-## Cobertura faltante (pendiente)
+## Cobertura completa ✅
 
-| Archivo | Razón | Prioridad |
-|---------|-------|-----------|
-| `pulse.ts` (runPulseCheck) | Bucle Gemini + function calling con 3+ dependencias externas vivas | 🔴 Alta |
+Todos los módulos críticos tienen tests. `runPulseCheck` — el último pendiente — fue resuelto con inyección de dependencias opcionales.
 
 ---
 
@@ -518,7 +516,24 @@ Archivo: `apps/web/src/components/__tests__/Sidebar.test.tsx`
 | 3 | Active route highlight | `/pitches` → link Pitches con `text-accent` |
 | 4 | Fetch profile data | `called('logs')` true |
 | 5 | Fallback profile | `Sarah Chen` + `Pro Creator` antes de fetch |
-| 6 | Theme toggle | botón "Dark Mode"/"Light Mode" visible |
+ | 6 | Theme toggle | botón "Dark Mode"/"Light Mode" visible |
+
+## 22. `pulse.test.ts` — `runPulseCheck` (8 tests)
+
+Archivo: `src/domains/agent-core/heartbeat/__tests__/pulse.test.ts`
+
+Mock: Inyección de dependencias opcionales (`PulseCheckDeps`). Cada test inyecta mocks controlados de `startChat`, `executeToolCall`, `supabase`, `runDegradedMode`, `config`, `sendMessageWithRetry`.
+
+| # | Escenario | Verificación |
+|---|-----------|-------------|
+| 1 | Single round: 1 function call + respuesta final | `executeToolCall` 1 vez, Supabase insert con `agent_summary` |
+| 2 | Multi-round: 2+ iteraciones de function calls | `executeToolCall` 3 veces (1+2), resumen final persistido |
+| 3 | Sin function calls: respuesta directa | `executeToolCall` NO llamado, resumen persistido |
+| 4 | 429 error en primer mensaje: fallback a degraded | `runDegradedMode` llamado con channelId correcto |
+| 5 | Retry exitoso: 429 luego retry → success | `runDegradedMode` NO llamado, resumen persistido |
+| 6 | Error no-429 (500): loguea y termina | `runDegradedMode` NO llamado, NO persiste resumen |
+| 7 | Error en executeToolCall: se propaga y loguea | `console.error` llamado, no persiste summary |
+| 8 | Prompt incluye channelId y tools | primer mensaje contiene `UC-prompt-test`, `getPreviousInsights`, `listEmails`, `calculateSponsorshipValue` |
 
 ## Notas técnicas
 
