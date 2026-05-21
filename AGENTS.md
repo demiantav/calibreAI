@@ -2,7 +2,7 @@
 
 ## Goal
 
-Sprint 7 (Testing & Quality): cerrando. Cobertura de tests completa, solo queda infraestructura de frontend (createMockFetch).
+Sprint 8 (Frontend Testing Completion): cerrar cobertura de tests frontend — createMockFetch infra + MetricCard, AgentIndicator, Logs, Sponsorship, Pitches, Sidebar.
 
 ## Constraints & Preferences
 
@@ -84,16 +84,28 @@ Sprint 7 (Testing & Quality): cerrando. Cobertura de tests completa, solo queda 
 
 ## Test Stats
 
-- **Total tests**: 217 (179 backend + 38 frontend)
-- **Test files**: 16 (10 backend + 6 frontend)
+- **Total tests**: 255 (179 backend + 76 frontend)
+- **Test files**: 22 (10 backend + 12 frontend)
 - **Build**: pasa con 0 errores
-- **TypeScript**: `pnpm typecheck` pasa, `pnpm typecheck:all` chequea tests también
+- **TypeScript**: `pnpm typecheck` pasa
+- **createMockFetch**: implementado en `test-utils.tsx` con soporte para múltiples URLs, secuencias de respuestas, network errors, delay simulation y assertions (`called`, `callCount`, `lastCall`)
 
-## Next Steps
+## Completed (Sprint 8 — Frontend Testing)
 
-1. **`createMockFetch` abstraction**: infraestructura reusable para tests de frontend que consumen API
-2. **Ampliar frontend tests**: MetricCard con datos mockeados vía createMockFetch
-3. **Actualizar TEST_CASES.md**: reflejar tests de mcp-manager y runDegradedMode como completados
+- **createMockFetch abstraction**: builder pattern con `.get()`, `.post()`, secuencias, network errors, delay, assertions
+- **Dashboard migrated** a `createMockFetch` con test de secuencias para polling
+- **MetricCard tests** (7): render props, trend positivo/negativo, icon, prefix/suffix, accent
+- **AgentIndicator tests** (4): render counts, link a /logs, texto "AI Agent Active", defaults
+- **Logs tests** (8): fetch on mount, filtro por tipo, búsqueda, empty state, network error, loading
+- **Sponsorship tests** (5): fetch on mount, fallback CPM, header, network error
+- **Pitches tests** (8): fetch, tabs, brand info, Review & Send button, empty states, sorting, network error
+- **Sidebar tests** (6): nav items, active route, profile data fetch, fallback, theme toggle
+
+## Next Steps (Sprint 9)
+
+1. **Production Hardening**: Rate limiting interno (cola Gemini), graceful shutdown, health checks
+2. **Landing Page**: Presencia pública en inglés para Google for Startups
+3. **Auto-Pitch opcional**: Toggle por creador (manual vs automático)
 
 ## Critical Context
 

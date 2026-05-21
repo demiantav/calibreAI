@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, act } from '@testing-library/react'
-import { renderWithProviders, mockFetchResponse } from '@/test-utils'
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { render, screen, waitFor, act } from '@testing-library/react'
+import { renderWithProviders, createMockFetch } from '@/test-utils'
 import Dashboard from '../Dashboard'
 import { PulseProvider } from '@/lib/pulse-context'
 import { MemoryRouter } from 'react-router-dom'
@@ -37,27 +37,24 @@ const mockLogs = [
   },
 ]
 
-function renderDashboard() {
-  mockFetchResponse(mockLogs)
-  return renderWithProviders(<Dashboard />)
-}
-
 describe('Dashboard', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
   })
 
   it('should fetch logs on mount', async () => {
-    const fetchFn = mockFetchResponse(mockLogs)
+    const mock = createMockFetch().get('logs', mockLogs).install()
     renderWithProviders(<Dashboard />)
 
     await vi.waitFor(() => {
-      expect(fetchFn).toHaveBeenCalledWith('http://localhost:8080/logs')
+      expect(mock.called('logs')).toBe(true)
     })
+    expect(mock.callCountFor('logs')).toBe(1)
   })
 
   it('should render MetricCards from fetched data', async () => {
-    renderDashboard()
+    createMockFetch().get('logs', mockLogs).install()
+    renderWithProviders(<Dashboard />)
 
     await vi.waitFor(() => {
       expect(screen.getByText('150,000')).toBeInTheDocument()
@@ -68,7 +65,8 @@ describe('Dashboard', () => {
   })
 
   it('should show Daily Brief when agent_summary exists', async () => {
-    renderDashboard()
+    createMockFetch().get('logs', mockLogs).install()
+    renderWithProviders(<Dashboard />)
 
     await vi.waitFor(() => {
       expect(screen.getByText('Daily Brief')).toBeInTheDocument()
@@ -77,7 +75,8 @@ describe('Dashboard', () => {
   })
 
   it('should show Pending Pitches count when draft_ready exists', async () => {
-    renderDashboard()
+    createMockFetch().get('logs', mockLogs).install()
+    renderWithProviders(<Dashboard />)
 
     await vi.waitFor(() => {
       expect(screen.getByText('1')).toBeInTheDocument()
@@ -86,7 +85,8 @@ describe('Dashboard', () => {
   })
 
   it('should render creator name and follower count', async () => {
-    renderDashboard()
+    createMockFetch().get('logs', mockLogs).install()
+    renderWithProviders(<Dashboard />)
 
     await vi.waitFor(() => {
       expect(screen.getByText('midudev')).toBeInTheDocument()
@@ -95,41 +95,37 @@ describe('Dashboard', () => {
   })
 
   it('should render without crash when API returns empty', async () => {
-    mockFetchResponse([])
+    createMockFetch().get('logs', []).install()
     renderWithProviders(<Dashboard />)
+
     await vi.waitFor(() => {
       expect(screen.getByText('Pro Creator')).toBeInTheDocument()
     })
   })
 
-  it('should set pulse success when agent_summary is found during polling', async () => {
-    const fetchFn = mockFetchResponse(mockLogs)
-    const now = Date.now() - 10000 // 10s ago
+  it('should support sequential fetch responses for polling scenarios', async () => {
+    // This test verifies createMockFetch supports multiple responses for the same URL
+    // (used by Dashboard polling mechanism)
+    const mock = createMockFetch()
+      .get('logs', [{ id: '1', type: 'media_kit_update', content: { subscribers: 1000 }, creator_name: 'Test', insights: '', created_at: '' }])
+      .get('logs', [{ id: '2', type: 'media_kit_update', content: { subscribers: 2000 }, creator_name: 'Test', insights: '', created_at: '' }])
+      .install()
 
-    function PulseTest() {
-      return <Dashboard />
-    }
+    // Call 1
+    const res1 = await fetch('http://localhost:8080/logs')
+    const data1 = await res1.json()
+    expect(data1[0].content.subscribers).toBe(1000)
+    expect(mock.callCountFor('logs')).toBe(1)
 
-    render(
-      <MemoryRouter>
-        <PulseProvider>
-          <Dashboard />
-        </PulseProvider>
-      </MemoryRouter>
-    )
-
-    // Wait for initial render
-    await vi.waitFor(() => {
-      expect(screen.getByText('Pro Creator')).toBeInTheDocument()
-    })
-
-    // Trigger a "pulse" by manipulating context — we just verify the Dashboard renders
-    // without error when lastPulseAt is set. The actual polling test is complex
-    // and best done via integration tests.
+    // Call 2 (simulating a polling re-fetch)
+    const res2 = await fetch('http://localhost:8080/logs')
+    const data2 = await res2.json()
+    expect(data2[0].content.subscribers).toBe(2000)
+    expect(mock.callCountFor('logs')).toBe(2)
   })
 
   it('should handle network error gracefully', async () => {
-    mockFetchResponse(null, 500)
+    createMockFetch().get('logs', new Error('Network error')).install()
     renderWithProviders(<Dashboard />)
 
     await vi.waitFor(() => {

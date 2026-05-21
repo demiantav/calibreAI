@@ -19,10 +19,16 @@
 | `Layout.test.tsx` | `Layout.tsx` | 4 | Frontend | 🟡 Media |
 | `SendPitchModal.test.tsx` | `SendPitchModal.tsx` | 6 | Frontend | 🟡 Media |
 | `Dashboard.test.tsx` | `Dashboard.tsx` | 8 | Frontend | 🟡 Media |
+| `MetricCard.test.tsx` | `MetricCard.tsx` | 7 | Frontend | 🟡 Media |
+| `AgentIndicator.test.tsx` | `AgentIndicator.tsx` | 4 | Frontend | 🟡 Media |
+| `Logs.test.tsx` | `Logs.tsx` | 8 | Frontend | 🟡 Media |
+| `Sponsorship.test.tsx` | `Sponsorship.tsx` | 5 | Frontend | 🟡 Media |
+| `Pitches.test.tsx` | `Pitches.tsx` | 8 | Frontend | 🟡 Media |
+| `Sidebar.test.tsx` | `Sidebar.tsx` | 6 | Frontend | 🟡 Media |
 | `auth-middleware.test.ts` | `auth-middleware.ts` | 5 | Unit | 🔴 Alta |
-| **Total** | | **217** (179 backend + 38 frontend) | | |
+| **Total** | | **255** (179 backend + 76 frontend) | | |
 
-> *Pulse.test.ts: 8 tests de sendMessageWithRetry + 4 tests de runDegradedMode. MCP-manager: 37 tests unitarios con mock de child_process.spawn + EventEmitter.*
+> *Pulse.test.ts: 8 tests de sendMessageWithRetry + 4 tests de runDegradedMode. MCP-manager: 37 tests unitarios con mock de child_process.spawn + EventEmitter. Frontend: 76 tests en 12 archivos, todos con `createMockFetch` o mocks de framer-motion.*
 
 ---
 
@@ -427,8 +433,92 @@ Mock: `vi.mock('../shared/config.js')` con objeto config mutable.
 | Archivo | Razón | Prioridad |
 |---------|-------|-----------|
 | `pulse.ts` (runPulseCheck) | Bucle Gemini + function calling con 3+ dependencias externas vivas | 🔴 Alta |
-| `createMockFetch` (frontend) | Infraestructura reusable de fetch mockeado para tests de componentes | 🟡 Media |
-| `MetricCard.tsx` (frontend) | Tests de componente con datos mockeados vía API | 🟡 Media |
+
+---
+
+## 16. `MetricCard.test.tsx` (7 tests)
+
+Archivo: `apps/web/src/components/__tests__/MetricCard.test.tsx`
+
+| # | Escenario | Verificación |
+|---|-----------|-------------|
+| 1 | Render label y valor formateado | `150,000` visible con label "Followers" |
+| 2 | Trend positivo | `+15%` con clase `text-success` |
+| 3 | Trend negativo | `-8%` con clase `text-red-500` |
+| 4 | Icon rendering | `.lucide-users` visible |
+| 5 | Prefix y suffix | `$`, `5,000`, `/mo` visibles |
+| 6 | Accent styles | clase `border-accent` presente |
+| 7 | Sin trend | no hay elementos con `%` |
+
+## 17. `AgentIndicator.test.tsx` (4 tests)
+
+Archivo: `apps/web/src/components/__tests__/AgentIndicator.test.tsx`
+
+| # | Escenario | Verificación |
+|---|-----------|-------------|
+| 1 | Render "AI Agent Active" | texto visible |
+| 2 | Default counts (0, 0) | `0 logs · 0 pitches` |
+| 3 | Custom counts | `42 logs · 7 pitches` |
+| 4 | Link a /logs | `href="/logs"` |
+
+## 18. `Logs.test.tsx` (8 tests)
+
+Archivo: `apps/web/src/pages/__tests__/Logs.test.tsx`
+
+Mock: `createMockFetch` con logs de 4 tipos distintos.
+
+| # | Escenario | Verificación |
+|---|-----------|-------------|
+| 1 | Fetch on mount | `called('logs')` true |
+| 2 | Render entries con labels | 4 entries con sus insights visibles |
+| 3 | Filtro por tipo | click "Pitches" → solo pitch visible |
+| 4 | Búsqueda por texto | search "pitch" → filtra correctamente |
+| 5 | Empty state con filtro | `No results found` + `Try adjusting...` |
+| 6 | Empty state sin datos | API vacía → empty state |
+| 7 | Network error | no crashea, empty state aparece |
+| 8 | Loading skeleton | `.animate-pulse` presente durante fetch |
+
+## 19. `Sponsorship.test.tsx` (5 tests)
+
+Archivo: `apps/web/src/pages/__tests__/Sponsorship.test.tsx`
+
+| # | Escenario | Verificación |
+|---|-----------|-------------|
+| 1 | Fetch on mount | `called('logs')` true |
+| 2 | Header y CPM hero | `Sponsorship Rates` + `Your CPM` + `$22.50` |
+| 3 | Fallback CPM | API vacía → `$18.50` (fallback) |
+| 4 | Header consistente | `AI-powered pricing...` visible |
+| 5 | Network error → fallback | `$18.50` visible, no crashea |
+
+## 20. `Pitches.test.tsx` (8 tests)
+
+Archivo: `apps/web/src/pages/__tests__/Pitches.test.tsx`
+
+Mock: 3 pitches con statuses distintos (draft_ready, sent, responded).
+
+| # | Escenario | Verificación |
+|---|-----------|-------------|
+| 1 | Fetch on mount | `called('logs')` true |
+| 2 | Render cards con brand info | `TechBrand`, email, subject, status |
+| 3 | Tabs filtran correctamente | click "Sent" → solo `GameCorp` visible |
+| 4 | Review & Send para draft_ready | botón visible en tab Pending |
+| 5 | Sin Review & Send para sent | botón NO visible en tab Sent |
+| 6 | Empty state | `No pending pitches` + explicación |
+| 7 | Sorting por fecha | solo pitches del tab activo visibles |
+| 8 | Network error graceful | empty state, no crashea |
+
+## 21. `Sidebar.test.tsx` (6 tests)
+
+Archivo: `apps/web/src/components/__tests__/Sidebar.test.tsx`
+
+| # | Escenario | Verificación |
+|---|-----------|-------------|
+| 1 | Nav items | Dashboard, Activity, Pitches, Rates |
+| 2 | Bottom items | Settings, Help |
+| 3 | Active route highlight | `/pitches` → link Pitches con `text-accent` |
+| 4 | Fetch profile data | `called('logs')` true |
+| 5 | Fallback profile | `Sarah Chen` + `Pro Creator` antes de fetch |
+| 6 | Theme toggle | botón "Dark Mode"/"Light Mode" visible |
 
 ## Notas técnicas
 

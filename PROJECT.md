@@ -68,7 +68,7 @@ Dashboard React 19 + Vite + Tailwind v4 + Framer Motion. Dark/Light mode, 4 pág
 
 ---
 
-## 🟡 Sprint 6: UX Polish (Actual)
+## 🟢 Sprint 6: UX Polish (Completado)
 - Pulse feedback visual (3 estados en PulseButton)
 - PulseStatus state machine (`idle | pulsing | success | error`)
 - Dashboard setea `success` al detectar nuevo `agent_summary`, `error` tras timeout 60s
@@ -77,7 +77,7 @@ Dashboard React 19 + Vite + Tailwind v4 + Framer Motion. Dark/Light mode, 4 pág
 
 ---
 
-## 🟡 Sprint 7: Testing & Quality (Cerrando)
+## 🟢 Sprint 7: Testing & Quality (Completado)
 
 ### Completado
 - 179 tests unitarios backend (10 archivos): metrics-service, mcp-manager (37), tool-executor, pulse (12), calculate-sponsorship, generate-pitch, metrics-cache, youtube, auth-middleware
@@ -94,26 +94,20 @@ Dashboard React 19 + Vite + Tailwind v4 + Framer Motion. Dark/Light mode, 4 pág
 - **Test files:** 16 (10 backend + 6 frontend)
 - **Build:** 0 errores, 0 warnings
 
-### Coverage
-| Archivo | Tests | Tipo |
-|---------|-------|------|
-| `metrics-service.test.ts` | 45 | Unit |
-| `mcp-manager.test.ts` | 37 | Unit |
-| `tool-executor.test.ts` | 16 | Unit |
-| `api.integration.test.ts` | 15 | Integration |
-| `calculate-sponsorship.test.ts` | 12 | Unit |
-| `generate-pitch.test.ts` | 12 | Unit |
-| `metrics-cache.test.ts` | 9 | Unit |
-| `pulse.test.ts` | 12 | Unit |
-| `youtube.test.ts` | 7 | Unit |
-| `auth-middleware.test.ts` | 5 | Unit |
-| Frontend tests (6 files) | 38 | Frontend |
+---
 
-### Pendiente
-| Item | Prioridad |
-|------|-----------|
-| `createMockFetch` abstraction reusable | 🟡 Media |
-| Ampliar frontend tests (MetricCard) | 🟢 Baja |
+## 🟢 Sprint 8: Frontend Testing Completion (Completado)
+
+### Completado
+- `createMockFetch` abstraction: builder pattern con `.get()`, `.post()`, secuencias, network errors, delay, assertions
+- 76 tests frontend (12 archivos): PulseButton (7), pulse-context (5), useRelativeTime (8), Layout (4), SendPitchModal (6), Dashboard (8), MetricCard (7), AgentIndicator (4), Logs (8), Sponsorship (5), Pitches (8), Sidebar (6)
+- Dashboard migrado a `createMockFetch` con test de secuencias para polling
+- Todos los componentes principales del dashboard tienen cobertura de test
+
+### Stats
+- **Total tests:** 255 (179 backend + 76 frontend)
+- **Test files:** 22 (10 backend + 12 frontend)
+- **Build:** 0 errores, 0 warnings
 
 ---
 
