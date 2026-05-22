@@ -135,6 +135,35 @@ Dashboard React 19 + Vite + Tailwind v4 + Framer Motion. Dark/Light mode, 4 pág
 
 ---
 
+## 🟢 Sprint 9.5: Premium Visual Pass — "Creator Studio" (Completado)
+
+### Completado
+- **Dashboard rediseñado**: de "panel de métricas SaaS" a "estudio digital del creador"
+- **Hero Section prominente**: nombre del creador en `text-7xl`, avatar grande (`w-28`) con anillo orgánico SVG animado + glow orb, engagement rate como métrica hero (`text-8xl`, naranja acento)
+- **Growth Chart**: componente SVG puro con área bajo la curva, gradiente naranja, puntos interactivos con tooltip hover — estilo Mathical
+- **Daily Brief editorial**: texto grande (`text-2xl-3xl`) sin card container, lectura tipo artículo/reporte
+- **Rates como barras horizontales**: `RateBar` con gradiente animado de ancho, labels editoriales, comparativa con market avg
+- **Timeline vertical elegante**: línea conectora, iconos coloreados por tipo, fechas relativas, hover expand
+- **Layout asimétrico**: 7-col + 5-col grid, pending pitches como card naranja prominente
+- **Eliminado bento grid genérico**: reemplazado por secciones diferenciadas con tratamientos visuales propios
+- **Dark theme profundo**: `--bg: #030305`, `--surface: rgba(255,255,255,0.02)`, glassmorphism real con `blur(40px)`
+- **Contraste tipográfico radical**: `--text: #F0F0F5` (blanco frío), `--text-secondary: #A0A0B0`, `--text-tertiary: #5A5A70`
+- **Acento secundario frío**: cyan `#22D3EE` para badges secundarios y gradientes (contraste con naranja `#FF6B2C`)
+- **Ambient glow orbs**: 4 gradientes radiales en `body` (naranja + cyan + púrpura)
+- **Glow/bloom real**: `.neon-glow` duplica intensidad en dark; `.glow-border` genera borde luminoso animado en cards
+- **CountUp animation**: hook `useCountUp` — números animan de 0 al valor (1800ms)
+- **PulseButton transform**: gradiente cónico rotatorio según estado, glow pulsante, anillo orgánico SVG, 3 ripple rings en pulsing, sparkles rotando en idle, label "Pulse" en idle
+- **Tipografía jerárquica**: labels `uppercase tracking-[0.15em] font-semibold`, números `tabular-nums`, body `font-normal`
+- **Responsive rates**: `RateBar` adaptativo, `GrowthChart` con `viewBox` fluido
+
+### Stats
+- **Total tests:** 263 (187 backend + 76 frontend) — all passing
+- **Test files:** 22 (10 backend + 12 frontend)
+- **Build:** 0 errores, 0 warnings
+- **Bundle:** ~618KB JS (188KB gzip) / ~134KB CSS (21KB gzip)
+
+---
+
 ## Análisis de Producción
 
 ### Free Tier Limits (Verificado 18/05/2026)
@@ -159,12 +188,13 @@ Dashboard React 19 + Vite + Tailwind v4 + Framer Motion. Dark/Light mode, 4 pág
 ## Problemas Conocidos
 
 | # | Problema | Estado |
-|---|---------|--------|
-| 1 | Cache `channel_metrics_cache` tiene error permission denied | Correr GRANT |
-| 2 | Gmail API no habilitada en Google Cloud Console | Pendiente |
-| 3 | Sin rate limiting interno (cola Gemini) | Pendiente |
+|---|---|---------|
+| 1 | Cache `channel_metrics_cache` | Resuelto — permissions corregidos, funciona correctamente |
+| 2 | Gmail API | Habilitada, tokens en `user_auth` para `tavolarodemian06@gmail.com` |
+| 3 | Rate limiting interno (cola Gemini) | Resuelto — `p-queue` con `concurrency: 1` + delay 1s |
 | 4 | Gemini en free tier (429 frecuentes) | Mitigado con retry + degraded mode |
 | 5 | YouTube API quota limit | Mitigado (3u/ciclo + cache 1h) |
+| 6 | Gmail token expired (`invalid_grant`) | **NUEVO** — refresh token expiró, requiere re-autorización OAuth |
 
 ---
 
@@ -172,10 +202,10 @@ Dashboard React 19 + Vite + Tailwind v4 + Framer Motion. Dark/Light mode, 4 pág
 
 | Prioridad | Feature | Descripción |
 |---|---|---|
-| 🔴 P1 | **Production hardening** | Rate limiting, caching YouTube, paid API keys |
-| 🔴 P1 | **Multi-tenant (Agency)** | Una cuenta con múltiples creadores. Switcher, Gmail tokens por creator, RLS |
-| 🔴 P1 | **Auto-Pitch opcional** | Modo automático configurable por creador |
+| 🟢 | **Production hardening** | Completado: rate limiting, caching YouTube, health checks, graceful shutdown |
 | 🔴 P1 | **Landing page** | Presencia pública en inglés para Google for Startups |
+| 🔴 P1 | **Auto-Pitch opcional** | Toggle por creador (manual vs automático) |
+| 🔴 P1 | **Multi-tenant (Agency)** | Una cuenta con múltiples creadores. Switcher, Gmail tokens por creator, RLS |
 | 🟡 P2 | **Instagram / TikTok** | Métricas multi-plataforma para sponsorship |
 | 🟡 P2 | **Más tests** | Cobertura frontend adicional |
 | 🟢 P3 | **Pagos (Stripe)** | Free / Creator ($19) / Pro ($49) |
@@ -192,8 +222,8 @@ Dashboard React 19 + Vite + Tailwind v4 + Framer Motion. Dark/Light mode, 4 pág
 - **Tablas:** `agent_logs`, `processed_emails`, `user_auth`, `brand_deals`, `channel_metrics_cache`
 - **Endpoints:** `GET /pulse`, `GET /logs`, `POST /api/pitches/:id/send`, `GET /auth/login`, `GET /auth/callback`
 - **Auth:** Gmail OAuth2 con tokens en tabla `user_auth`
-- **Paleta:** acento naranja `#EA5103`. Light: `#FFEED0` fondo / `#1A0E09` texto. Dark: `#120A06` fondo / `#FFEED0` texto
-- **Layout:** Bento grid asimétrico (12 col), sidebar 260px flotante glass-card, profile bar con avatar ring animado
+- **Paleta:** acento naranja `#FF6B2C` (antes `#EA5103`). Acento secundario frío: cyan `#22D3EE`. Dark: `#030305` fondo / `#F0F0F5` texto / `#A0A0B0` secundario / `#5A5A70` terciario. Light: `#FFEED0` fondo / `#1A0E09` texto
+- **Layout:** Dashboard asimétrico (7-col + 5-col), secciones diferenciadas (hero, growth chart, rates bars, timeline), sidebar 260px flotante glass-card, profile bar con avatar ring orgánico SVG animado
 - **Canal test:** `UC8LeXCWOalN8SxlrPcG-PaQ` (midudev)
-- **Build:** 451KB JS (138KB gzip) / 124KB CSS (19KB gzip)
+- **Build:** ~618KB JS (188KB gzip) / ~134KB CSS (21KB gzip)
 - **Fallbacks:** mock YouTube (738K subs), mock pitch (template), mock sponsorship (subs × 0.002)
