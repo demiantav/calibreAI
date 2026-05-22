@@ -1,13 +1,16 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { AgentIndicator } from './AgentIndicator';
 import { PulseButton } from './PulseButton';
 import { usePulse } from '@/lib/pulse-context';
+import { useApiFetch } from '@/hooks/use-api-fetch';
+import type { LogEntry } from '@/lib/types';
+
+const LOGS_ENDPOINT = '/logs';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const { pulseStatus, setPulseStatus, triggerPulse } = usePulse();
-  const [logsCount, setLogsCount] = useState(0);
-  const [pitchCount, setPitchCount] = useState(0);
+  const { data: logs, refetch } = useApiFetch<LogEntry[]>(LOGS_ENDPOINT);
 
   useEffect(() => {
     if (pulseStatus === 'success' || pulseStatus === 'error') {
@@ -16,23 +19,15 @@ export default function Layout({ children }: { children: ReactNode }) {
     }
   }, [pulseStatus, setPulseStatus]);
 
-  // Fetch real counts for AgentIndicator
+  // Re-fetch after pulse completes
   useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        const res = await fetch('http://localhost:8080/logs');
-        if (res.ok) {
-          const data = await res.json();
-          setLogsCount(data.length);
-          const pitches = data.filter((log: any) => log.type === 'pitch_draft');
-          setPitchCount(pitches.length);
-        }
-      } catch {
-        // silent fail — keep defaults
-      }
-    };
-    fetchCounts();
-  }, [pulseStatus]); // Re-fetch after pulse to update counts
+    if (pulseStatus === 'success') {
+      refetch();
+    }
+  }, [pulseStatus, refetch]);
+
+  const logsCount = logs?.length ?? 0;
+  const pitchCount = logs?.filter((log) => log.type === 'pitch_draft').length ?? 0;
 
   return (
     <div className="flex min-h-screen bg-bg selection:bg-accent/20 selection:text-accent">
@@ -42,8 +37,8 @@ export default function Layout({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      {/* PulseButton: hidden on mobile, visible on desktop */}
-      <div className="hidden lg:block fixed bottom-8 right-8 z-50">
+      {/* PulseButton: visible on all devices, positioned for thumb reach on mobile */}
+      <div className="fixed bottom-8 right-8 z-50 lg:bottom-8 lg:right-8">
         <PulseButton onPulse={triggerPulse} status={pulseStatus} />
       </div>
     </div>

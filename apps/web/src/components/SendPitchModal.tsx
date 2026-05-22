@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X, Send, Sparkles, Mail, ChevronDown, MessageSquare } from 'lucide-react';
 import type { PitchDraft } from '@/lib/types';
@@ -15,21 +15,39 @@ export default function SendPitchModal({ pitch, pitchId, onClose, onSent }: Send
   const [content, setContent] = useState(pitch.pitchContent || '');
   const [isEditing, setIsEditing] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [showOriginal, setShowOriginal] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Escape key closes modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    // Focus the close button when modal opens
+    closeButtonRef.current?.focus();
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const handleSend = async () => {
     setIsSending(true);
+    setSendError(null);
     try {
-      const res = await fetch(`http://localhost:8080/api/pitches/${pitchId}/send`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}/api/pitches/${pitchId}/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subject, content }),
       });
-      if (!res.ok) throw new Error('Failed to send');
+      if (!res.ok) throw new Error(`Failed to send: ${res.status} ${res.statusText}`);
       onSent();
       onClose();
     } catch (err) {
-      console.error(err);
+      const message = err instanceof Error ? err.message : 'Failed to send pitch. Please try again.';
+      setSendError(message);
     } finally {
       setIsSending(false);
     }
@@ -45,7 +63,11 @@ export default function SendPitchModal({ pitch, pitchId, onClose, onSent }: Send
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
       <motion.div
-        className="relative glass-card rounded-[24px] p-7 w-full max-w-lg z-10"
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="send-pitch-title"
+        className="relative rounded-[24px] p-7 w-full max-w-lg z-10 bg-surface border border-border shadow-xl"
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
@@ -57,16 +79,18 @@ export default function SendPitchModal({ pitch, pitchId, onClose, onSent }: Send
               <Send className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-display font-black text-text tracking-tight">Send Pitch</h2>
+              <h2 id="send-pitch-title" className="text-lg font-sans font-bold text-text tracking-tight">Send Pitch</h2>
               <p className="text-xs font-bold text-text-tertiary">to {pitch.brandName}</p>
             </div>
           </div>
           <motion.button
+            ref={closeButtonRef}
             whileTap={{ scale: 0.9 }}
             onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-surface-hover border border-border/50 flex items-center justify-center text-text-tertiary hover:text-text transition-colors"
+            aria-label="Close dialog"
+            className="w-11 h-11 rounded-xl bg-surface-hover border border-border/50 flex items-center justify-center text-text-tertiary hover:text-text transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </motion.button>
         </div>
 
@@ -150,12 +174,19 @@ export default function SendPitchModal({ pitch, pitchId, onClose, onSent }: Send
           </div>
         </div>
 
+        {/* Error message */}
+        {sendError && (
+          <div className="mt-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-400 font-medium">
+            {sendError}
+          </div>
+        )}
+
         {/* Footer */}
         <div className="flex items-center justify-between mt-6 pt-4 border-t border-border/50">
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsEditing(!isEditing)}
-            className="px-5 py-2.5 rounded-2xl text-xs font-black text-accent bg-accent-soft hover:bg-accent-soft/80 transition-all"
+            className="px-5 py-3 rounded-2xl text-sm font-semibold text-accent bg-accent-soft hover:bg-accent-soft/80 transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent min-h-[44px]"
           >
             {isEditing ? 'Done Editing' : 'Edit'}
           </motion.button>
@@ -164,7 +195,7 @@ export default function SendPitchModal({ pitch, pitchId, onClose, onSent }: Send
             whileTap={{ scale: 0.95 }}
             onClick={handleSend}
             disabled={isSending}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl text-xs font-black text-white bg-accent hover:brightness-110 transition-all shadow-lg shadow-accent/20 disabled:opacity-50"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-semibold text-white bg-accent hover:brightness-110 transition-all shadow-lg shadow-accent/20 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white min-h-[44px]"
           >
             {isSending ? (
               <>

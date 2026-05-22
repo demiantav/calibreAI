@@ -104,8 +104,8 @@ describe('Dashboard', () => {
     renderWithProviders(<Dashboard />)
 
     await vi.waitFor(() => {
-      // Default creator name renders when no data
-      expect(screen.getByText('Sarah Chen')).toBeInTheDocument()
+      // Shows empty state when no data
+      expect(screen.getByText('Your Channel')).toBeInTheDocument()
     })
   })
 
@@ -135,8 +135,8 @@ describe('Dashboard', () => {
     renderWithProviders(<Dashboard />)
 
     await vi.waitFor(() => {
-      // Default creator name renders even on error
-      expect(screen.getByText('Sarah Chen')).toBeInTheDocument()
+      // Shows error state on network failure
+      expect(screen.getByText('Could not load data')).toBeInTheDocument()
     })
   })
 })

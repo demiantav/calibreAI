@@ -2,6 +2,7 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ThemeProvider } from '@/lib/theme';
 import { PulseProvider } from '@/lib/pulse-context';
+import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Logs from './pages/Logs';
@@ -29,6 +30,7 @@ function AnimatedPage({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const location = useLocation();
+  useKeyboardShortcuts();
 
   return (
     <ThemeProvider>

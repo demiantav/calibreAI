@@ -9,6 +9,23 @@
     <link href="https://fonts.cdnfonts.com/css/satoshi" rel="stylesheet" />
     <link href="https://fonts.cdnfonts.com/css/cabinet-grotesk" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+      /* FOUT prevention: system-ui first, then web fonts load with swap */
+      @font-face {
+        font-family: 'Satoshi';
+        font-style: normal;
+        font-weight: 400 900;
+        font-display: swap;
+        src: local('Satoshi');
+      }
+      @font-face {
+        font-family: 'Cabinet Grotesk';
+        font-style: normal;
+        font-weight: 400 900;
+        font-display: swap;
+        src: local('Cabinet Grotesk');
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

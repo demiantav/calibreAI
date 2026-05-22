@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { TrendingUp } from 'lucide-react';
 
 interface DataPoint {
   month: string;
@@ -13,37 +14,37 @@ interface GrowthChartProps {
   accentColor?: string;
 }
 
-const defaultData: DataPoint[] = [
-  { month: 'Jan', value: 2.1, label: '2.1%' },
-  { month: 'Feb', value: 2.3, label: '2.3%' },
-  { month: 'Mar', value: 2.8, label: '2.8%' },
-  { month: 'Apr', value: 3.2, label: '3.2%' },
-  { month: 'May', value: 3.8, label: '3.8%' },
-  { month: 'Jun', value: 4.1, label: '4.1%' },
-  { month: 'Jul', value: 4.5, label: '4.5%' },
-  { month: 'Aug', value: 4.9, label: '4.9%' },
-  { month: 'Sep', value: 5.2, label: '5.2%' },
-  { month: 'Oct', value: 5.6, label: '5.6%' },
-  { month: 'Nov', value: 6.1, label: '6.1%' },
-  { month: 'Dec', value: 6.5, label: '6.5%' },
-];
-
-export function GrowthChart({ data = defaultData, height = 280, accentColor = '#FF6B2C' }: GrowthChartProps) {
+export function GrowthChart({ data, height = 280, accentColor = '#FF6B2C' }: GrowthChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="relative w-full">
+        <div className="flex items-baseline gap-4 mb-6">
+          <h3 className="text-sm font-semibold text-text-tertiary uppercase tracking-[0.15em]">Engagement Growth</h3>
+        </div>
+        <div className="rounded-[24px] border border-border bg-surface flex flex-col items-center justify-center" style={{ height }}>
+          <TrendingUp className="w-8 h-8 text-text-tertiary mb-3" />
+          <p className="text-sm font-semibold text-text-secondary">No growth data yet</p>
+          <p className="text-xs text-text-tertiary mt-1">Run a Pulse to track your engagement over time</p>
+        </div>
+      </div>
+    );
+  }
 
   const { pathD, areaD, points, maxValue } = useMemo(() => {
     const padding = { top: 20, right: 0, bottom: 30, left: 0 };
     const chartWidth = 1000;
     const chartHeight = height - padding.top - padding.bottom;
-    const max = Math.max(...data.map(d => d.value)) * 1.15;
+    const rawMax = Math.max(...data.map(d => d.value));
+    const max = rawMax === 0 ? 1 : rawMax * 1.15;
     const min = 0;
 
     const getX = (i: number) => padding.left + (i / (data.length - 1)) * (chartWidth - padding.left - padding.right);
     const getY = (v: number) => padding.top + chartHeight - ((v - min) / (max - min)) * chartHeight;
 
-    // Smooth curve using cubic bezier
     const linePoints = data.map((d, i) => ({ x: getX(i), y: getY(d.value) }));
-    
+
     let d = `M ${linePoints[0].x} ${linePoints[0].y}`;
     for (let i = 0; i < linePoints.length - 1; i++) {
       const p0 = linePoints[i];
@@ -55,7 +56,6 @@ export function GrowthChart({ data = defaultData, height = 280, accentColor = '#
       d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p1.x} ${p1.y}`;
     }
 
-    // Area path
     const areaD = `${d} L ${linePoints[linePoints.length - 1].x} ${padding.top + chartHeight} L ${linePoints[0].x} ${padding.top + chartHeight} Z`;
 
     return { pathD: d, areaD, points: linePoints, maxValue: max };
@@ -65,9 +65,8 @@ export function GrowthChart({ data = defaultData, height = 280, accentColor = '#
     <div className="relative w-full">
       <div className="flex items-baseline gap-4 mb-6">
         <h3 className="text-sm font-semibold text-text-tertiary uppercase tracking-[0.15em]">Engagement Growth</h3>
-        <span className="text-xs text-accent font-medium">+209% YoY</span>
       </div>
-      
+
       <div className="relative" style={{ height }}>
         <svg viewBox="0 0 1000 280" className="w-full h-full" preserveAspectRatio="none">
           <defs>
@@ -122,7 +121,6 @@ export function GrowthChart({ data = defaultData, height = 280, accentColor = '#
                 strokeWidth={hoveredIndex === i ? 3 : 2}
                 className="transition-all duration-200"
               />
-              {/* Invisible hit area */}
               <rect
                 x={point.x - 40}
                 y="0"
@@ -166,7 +164,7 @@ export function GrowthChart({ data = defaultData, height = 280, accentColor = '#
             }}
           >
             <p className="text-xs font-semibold text-text">{data[hoveredIndex].label}</p>
-            <p className="text-[10px] text-text-tertiary">{data[hoveredIndex].month} 2024</p>
+            <p className="text-[10px] text-text-tertiary">{data[hoveredIndex].month}</p>
           </motion.div>
         )}
       </div>

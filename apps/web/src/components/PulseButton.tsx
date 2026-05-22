@@ -126,6 +126,7 @@ export function PulseButton({ onPulse, status }: PulseButtonProps) {
       <motion.button
         whileTap={isIdle ? { scale: 0.9 } : {}}
         onClick={isIdle ? onPulse : undefined}
+        aria-label={isIdle ? 'Run AI pulse analysis' : isPulsing ? 'Analysis in progress' : showSuccess ? 'Analysis complete' : showError ? 'Analysis failed' : 'Pulse button'}
         className="relative w-16 h-16 rounded-full flex items-center justify-center cursor-pointer"
         animate={{
           scale: isPulsing ? [1, 1.1, 1] : 1,

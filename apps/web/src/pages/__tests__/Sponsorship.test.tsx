@@ -33,7 +33,9 @@ describe('Sponsorship', () => {
     ]).install()
     render(<Sponsorship />)
 
-    expect(screen.getByText('Sponsorship Rates')).toBeInTheDocument()
+    await vi.waitFor(() => {
+      expect(screen.getByText('Sponsorship Rates')).toBeInTheDocument()
+    })
     expect(screen.getByText('Your CPM')).toBeInTheDocument()
 
     // CPM value from API (22.5)
@@ -42,13 +44,12 @@ describe('Sponsorship', () => {
     })
   })
 
-  it('should show fallback CPM when API has no forecast', async () => {
+  it('should show empty state when API has no forecast', async () => {
     createMockFetch().get('logs', []).install()
     render(<Sponsorship />)
 
-    // Fallback CPM is $18.50
     await vi.waitFor(() => {
-      expect(screen.getByText('$18.50')).toBeInTheDocument()
+      expect(screen.getByText('No forecast yet')).toBeInTheDocument()
     })
     expect(screen.getByText('Sponsorship Rates')).toBeInTheDocument()
   })
@@ -59,18 +60,18 @@ describe('Sponsorship', () => {
     ]).install()
     render(<Sponsorship />)
 
-    expect(screen.getByText('Sponsorship Rates')).toBeInTheDocument()
+    await vi.waitFor(() => {
+      expect(screen.getByText('Sponsorship Rates')).toBeInTheDocument()
+    })
     expect(screen.getByText('AI-powered pricing based on market analysis')).toBeInTheDocument()
   })
 
-  it('should handle network error with fallback', async () => {
+  it('should show error state on network failure', async () => {
     createMockFetch().get('logs', new Error('Network error')).install()
     render(<Sponsorship />)
 
-    // Should show fallback data, not crash
     await vi.waitFor(() => {
-      expect(screen.getByText('$18.50')).toBeInTheDocument()
+      expect(screen.getByText('Could not load data')).toBeInTheDocument()
     })
-    expect(screen.getByText('Sponsorship Rates')).toBeInTheDocument()
   })
 })

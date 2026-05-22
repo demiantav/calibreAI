@@ -22,15 +22,15 @@ describe('Sidebar', () => {
     expect(screen.getByText('Rates')).toBeInTheDocument()
   })
 
-  it('should render bottom items', () => {
+  it('should render theme toggle', () => {
     render(
       <MemoryRouter>
         <Sidebar />
       </MemoryRouter>
     )
 
-    expect(screen.getByText('Settings')).toBeInTheDocument()
-    expect(screen.getByText('Help')).toBeInTheDocument()
+    const themeButton = screen.getByRole('button', { name: /Mode/i })
+    expect(themeButton).toBeInTheDocument()
   })
 
   it('should highlight active route', () => {
@@ -68,7 +68,7 @@ describe('Sidebar', () => {
     )
 
     // Fallback data before fetch completes
-    expect(screen.getByText('Sarah Chen')).toBeInTheDocument()
+    expect(screen.getByText('Creator')).toBeInTheDocument()
     expect(screen.getByText('Pro Creator')).toBeInTheDocument()
   })
 

@@ -96,8 +96,7 @@ describe('SendPitchModal', () => {
     const user = userEvent.setup()
     render(<SendPitchModal {...defaultProps} onClose={onClose} />)
 
-    const xBtn = screen.getByRole('button', { name: '' })
-      .closest('button')
+    const xBtn = screen.getByRole('button', { name: /close/i })
     if (xBtn) {
       await user.click(xBtn)
     }

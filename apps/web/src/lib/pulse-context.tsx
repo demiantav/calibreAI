@@ -23,7 +23,7 @@ export function PulseProvider({ children }: { children: ReactNode }) {
   const triggerPulse = useCallback(async () => {
     setPulseStatus('pulsing');
     setLastPulseAt(Date.now());
-    await fetch('http://localhost:8080/pulse').catch(() => {});
+    await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}/pulse`).catch(() => {});
   }, []);
 
   return (

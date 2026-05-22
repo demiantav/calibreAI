@@ -3,11 +3,35 @@ import { Activity, MessageSquare, TrendingUp, BarChart3, type LucideIcon } from 
 import { RelativeTime } from '@/lib/use-relative-time';
 import type { LogEntry } from '@/lib/types';
 
-const logTypeMeta: Record<string, { icon: LucideIcon; label: string; color: string }> = {
-  media_kit_update: { icon: BarChart3, label: 'Analysis', color: '#FF6B2C' },
-  pitch_draft: { icon: MessageSquare, label: 'Pitch', color: '#22D3EE' },
-  sponsorship_forecast: { icon: TrendingUp, label: 'Forecast', color: '#A78BFA' },
-  agent_summary: { icon: BarChart3, label: 'Brief', color: '#FBBF24' },
+const logTypeMeta: Record<string, { icon: LucideIcon; label: string; accentClass: string; softClass: string; borderClass: string }> = {
+  media_kit_update: {
+    icon: BarChart3,
+    label: 'Analysis',
+    accentClass: 'text-accent',
+    softClass: 'bg-accent/10',
+    borderClass: 'border-accent/20',
+  },
+  pitch_draft: {
+    icon: MessageSquare,
+    label: 'Pitch',
+    accentClass: 'text-accent-muted',
+    softClass: 'bg-accent-muted/10',
+    borderClass: 'border-accent-muted/20',
+  },
+  sponsorship_forecast: {
+    icon: TrendingUp,
+    label: 'Forecast',
+    accentClass: 'text-purple-400',
+    softClass: 'bg-purple-400/10',
+    borderClass: 'border-purple-400/20',
+  },
+  agent_summary: {
+    icon: BarChart3,
+    label: 'Brief',
+    accentClass: 'text-warning',
+    softClass: 'bg-warning/10',
+    borderClass: 'border-warning/20',
+  },
 };
 
 interface TimelineProps {
@@ -29,12 +53,17 @@ export function Timeline({ logs }: TimelineProps) {
     <div className="relative">
       {/* Vertical line */}
       <div className="absolute left-[19px] top-2 bottom-2 w-px bg-gradient-to-b from-border via-border to-transparent" />
-      
+
       <div className="space-y-0">
         {activityLogs.map((log, i) => {
-          const meta = logTypeMeta[log.type] || { icon: Activity, label: 'Event', color: '#5A5A70' };
+          const meta = logTypeMeta[log.type] || {
+            icon: Activity,
+            label: 'Event',
+            accentClass: 'text-text-tertiary',
+            softClass: 'bg-surface-raised',
+            borderClass: 'border-border',
+          };
           const Icon = meta.icon;
-          const isLast = i === activityLogs.length - 1;
 
           return (
             <motion.div
@@ -47,14 +76,10 @@ export function Timeline({ logs }: TimelineProps) {
             >
               {/* Icon dot */}
               <div className="relative z-10 shrink-0">
-                <div 
-                  className="w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300"
-                  style={{ 
-                    borderColor: `${meta.color}20`,
-                    backgroundColor: `${meta.color}10`,
-                  }}
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all duration-300 ${meta.softClass} ${meta.borderClass}`}
                 >
-                  <Icon className="w-4 h-4" style={{ color: meta.color }} strokeWidth={2} />
+                  <Icon className={`w-4 h-4 ${meta.accentClass}`} strokeWidth={2} />
                 </div>
               </div>
 
@@ -66,7 +91,7 @@ export function Timeline({ logs }: TimelineProps) {
                     <RelativeTime iso={log.created_at} />
                   </span>
                 </div>
-                <p className="text-sm text-text-secondary leading-relaxed truncate group-hover:whitespace-normal group-hover:truncate-none transition-all">
+                <p className="text-sm text-text-secondary leading-relaxed truncate">
                   {log.insights}
                 </p>
               </div>

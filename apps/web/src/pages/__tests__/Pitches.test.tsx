@@ -174,9 +174,9 @@ describe('Pitches', () => {
       </MemoryRouter>
     )
 
-    // Should not crash, show empty state
+    // Should show error state on network failure
     await vi.waitFor(() => {
-      expect(screen.getByText('No pending pitches')).toBeInTheDocument()
+      expect(screen.getByText('Could not load data')).toBeInTheDocument()
     })
   })
 })

@@ -145,6 +145,83 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 - **Label tooltip**: "Pulse" aparece debajo del botón en idle
 - **Transiciones suaves**: AnimatePresence con spring physics entre estados
 
+## Completed (Sprint 9.75 — Impeccable Polish Pass)
+
+### Harden (impeccable harden)
+- **useApiFetch hook**: `data | isLoading | error | refetch` — reemplaza fetch manuales silenciosos en toda la app
+- **ErrorState component**: UI visual de error con icono, mensaje y botón "Try again"
+- **Skeleton components**: `SkeletonCard`, `SkeletonMetric`, `SkeletonText` con `animate-pulse`
+- **Datos fake eliminados**: "Sarah Chen", 127,500, +15%, +209% YoY, default rates, defaultData en GrowthChart
+- **Empty states honestos**: "No metrics yet", "No forecast yet", "No growth data yet" con call-to-action
+
+### Typeset (impeccable typeset)
+- **Display font restringida**: `Cabinet Grotesk` solo en hero headings (text-4xl+). UI labels, nav, tabs, data migrados a `Satoshi` / `font-sans`
+- **Font-display swap**: `@font-face` declarations en `index.html` con `font-display: swap`
+- **Focus indicators**: `:focus-visible` global con `outline: 2px solid var(--accent)`. Focus rings en tabs, botones, inputs
+- **Pesos normalizados**: `font-black` → `font-semibold` en nav, tabs, labels. `font-black` → `font-bold` en data numbers
+
+### Distill (impeccable distill)
+- **Glassmorphism universal eliminado**: `backdrop-blur(40px)` removido de cards, sidebar, modales, logs. Ahora superficies sólidas con bordes sutiles
+- **Glow orbs reducidos**: 4 orbs radiales pesados → 1 orb sutil en dark, 2 en light
+- **`.neon-glow` reducido**: `0 0 30px` → `0 0 16px`
+- **`.glow-border` reducido**: opacidad 0.4 permanente → 0.25, solo en hover
+- **Sidebar**: `glass-card` → `bg-surface border border-border shadow-lg`
+
+### Quieter (impeccable quieter)
+- **prefers-reduced-motion global**: `@media` reduce todas las animaciones a 0.01ms
+- **3D tilt eliminado**: MetricCard `rotateX/Y` + `preserve-3d` reemplazado por `whileHover={{ y: -2 }}`
+
+### Polish (impeccable polish)
+- **Contrastes WCAG**: Badges cyan sobre cyan 12% → `bg-surface-raised text-text-secondary`. Pending Pitches `text-white/50` → `text-white/80`
+- **ARIA**: `aria-label` dinámico en PulseButton (4 estados). `aria-expanded` en mobile hamburger. `aria-live="polite"` en polling toast
+- **SendPitchModal error visible**: Estado `sendError` con banner rojo en vez de `console.error` silencioso
+- **Rutas fantasmas ocultas**: `/settings`, `/help` y social links (`#`) comentados hasta implementación
+- **Code cleanup**: Imports no usados removidos (Settings, HelpCircle, Youtube, Instagram, Twitter, Music2)
+
+### Adapt (impeccable adapt)
+- **PulseButton visible en mobile**: Removido `hidden lg:block`, ahora accesible en todos los dispositivos
+- **Touch targets ≥ 44px**: Hamburger `w-10 → w-11`, close modal `w-8 → w-11`, tabs `py-2 → py-2.5`, filter pills `min-h-[44px]`, AgentIndicator `min-h-[44px]`, SendPitchModal CTAs `py-3 min-h-[44px]`
+- **Links sin padding**: "Details →", "View all pitches" ahora tienen `px-3 py-2`/`px-2 py-1.5`
+- **Font sizes mínimos en mobile**: `text-xs` (12px) → `sm:text-sm` (14px) en tabs, filtros, AgentIndicator. `text-[10px]` oculto en mobile (`hidden sm:inline`)
+- **Tablet grid**: Asymmetric 7+5 colapsa a single-column (`grid-cols-1 lg:grid-cols-12`) sin breakage
+
+### Stats post-adapt
+- **Build**: ✅ 0 errores TypeScript
+- **Tests**: ✅ 76/76 frontend tests pasando
+- **CSS bundle**: 132KB (stable)
+- **JS bundle**: 618KB (stable)
+
+### Harden Critical (impeccable harden — Option A)
+- **API config centralizada**: `lib/api-config.ts` con `API_BASE_URL` via `VITE_API_URL` env + `getApiHeaders()` con `x-api-key`
+- **useApiFetch refactor**: AbortController + 10s timeout + auth headers + stale closure fix (optionsRef) + keep stale data on error
+- **Polling cleanup fix**: `guard.timeoutId` guarda el `setTimeout` recursivo y se limpia en cleanup
+- **Division by zero fixes**: GrowthChart (`rawMax === 0 ? 1 : rawMax * 1.15`), RateBar (`min === 0 ? 0 : spread`)
+- **URLs hardcodeadas removidas**: `localhost:8080` eliminado de Dashboard, Logs, Pitches, Sponsorship, Sidebar, Layout, SendPitchModal, pulse-context
+- **vite-env.d.ts**: types para `import.meta.env`
+
+### Stats post-harden-critical
+- **Build**: ✅ 0 errores TypeScript
+- **Tests**: ✅ 76/76 frontend tests pasando
+- **CSS bundle**: 132KB (stable)
+- **JS bundle**: 618KB (stable)
+
+### Harden B-Group (impeccable harden — follow-up)
+- **Datos fake eliminados**: "Rate pending" y "High match" badges removidos de Pitch cards (eran strings estáticas, no datos reales)
+- **Market avg hardcoded eliminado**: `item.min * 1.15` removido de RateBar y Sponsorship. Reemplazado por range real del forecast
+- **SendPitchModal accessibility**: `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, Escape key handler, auto-focus on open, `aria-label="Close dialog"`
+- **Timeline truncate fix**: `group-hover:truncate-none` (clase Tailwind inválida) removida
+
+### Final Pass (impeccable polish + adapt follow-up)
+- **Timeline colores hardcoded fix**: Hex (`#FF6B2C`, `#22D3EE`, etc.) reemplazados por clases Tailwind usando tokens CSS (`text-accent`, `text-accent-muted`, `text-purple-400`, `text-warning`). Ahora respetan el tema dark/light
+- **Sidebar mobile accessibility**: Escape key cierra el drawer. Auto-focus en primer elemento focusable al abrir. Componente `MobileSidebarDrawer` extraído
+- **Keyboard shortcuts**: Hook `useKeyboardShortcuts` — `D` (Dashboard), `L` (Logs), `P` (Pitches), `R` (Rates/Sponsorship). Ignora cuando el usuario escribe en inputs
+
+### Stats post-final-pass
+- **Build**: ✅ 0 errores TypeScript
+- **Tests**: ✅ 76/76 frontend tests pasando
+- **CSS bundle**: 133KB (stable)
+- **JS bundle**: 619KB (stable)
+
 ## Next Steps (Sprint 10)
 
 1. **Landing Page**: Presencia pública en inglés para Google for Startups

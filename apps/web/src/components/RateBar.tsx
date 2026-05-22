@@ -10,7 +10,7 @@ interface RateBarProps {
 
 export function RateBar({ label, min, max, desc, index }: RateBarProps) {
   const mid = (min + max) / 2;
-  const spread = ((max - min) / min) * 100;
+  const spread = min === 0 ? 0 : ((max - min) / min) * 100;
   
   return (
     <motion.div
@@ -26,7 +26,7 @@ export function RateBar({ label, min, max, desc, index }: RateBarProps) {
           <span className="text-[10px] text-text-tertiary/50">{desc}</span>
         </div>
         <div className="flex items-baseline gap-1">
-          <span className="text-xl font-display font-black text-text tabular-nums">${min.toLocaleString()}</span>
+          <span className="text-xl font-sans font-bold text-text tabular-nums">${min.toLocaleString()}</span>
           <span className="text-xs text-text-tertiary">— ${max.toLocaleString()}</span>
         </div>
       </div>
@@ -49,9 +49,9 @@ export function RateBar({ label, min, max, desc, index }: RateBarProps) {
         />
       </div>
       
-      {/* Midpoint marker */}
+      {/* Range indicator */}
       <div className="flex items-center gap-1 mt-1.5">
-        <span className="text-[10px] text-text-tertiary/40">Market avg: ${Math.round(mid * 1.15).toLocaleString()}</span>
+        <span className="text-[10px] text-text-tertiary/70">Range: ${min.toLocaleString()} — ${max.toLocaleString()}</span>
       </div>
     </motion.div>
   );
