@@ -57,11 +57,14 @@ describe('Dashboard', () => {
     renderWithProviders(<Dashboard />)
 
     await vi.waitFor(() => {
-      expect(screen.getByText('150,000')).toBeInTheDocument()
+      // 150,000 appears in hero and MetricCard
+      expect(screen.getAllByText('150,000').length).toBeGreaterThanOrEqual(1)
     })
     expect(screen.getByText('5,000,000')).toBeInTheDocument()
     expect(screen.getByText('4.5')).toBeInTheDocument()
-    expect(screen.getByText('$1,000')).toBeInTheDocument()
+    // $ prefix and value are in separate elements now
+    expect(screen.getByText('$')).toBeInTheDocument()
+    expect(screen.getByText('1,000')).toBeInTheDocument()
   })
 
   it('should show Daily Brief when agent_summary exists', async () => {
@@ -91,7 +94,9 @@ describe('Dashboard', () => {
     await vi.waitFor(() => {
       expect(screen.getByText('midudev')).toBeInTheDocument()
     })
-    expect(screen.getByText('150,000 Followers')).toBeInTheDocument()
+    expect(screen.getAllByText('150,000').length).toBeGreaterThanOrEqual(1)
+    // "followers" appears in the hero tagline with surrounding spaces
+    expect(screen.getByText(/followers/)).toBeInTheDocument()
   })
 
   it('should render without crash when API returns empty', async () => {
@@ -99,7 +104,8 @@ describe('Dashboard', () => {
     renderWithProviders(<Dashboard />)
 
     await vi.waitFor(() => {
-      expect(screen.getByText('Pro Creator')).toBeInTheDocument()
+      // Default creator name renders when no data
+      expect(screen.getByText('Sarah Chen')).toBeInTheDocument()
     })
   })
 
@@ -129,7 +135,8 @@ describe('Dashboard', () => {
     renderWithProviders(<Dashboard />)
 
     await vi.waitFor(() => {
-      expect(screen.getByText('Pro Creator')).toBeInTheDocument()
+      // Default creator name renders even on error
+      expect(screen.getByText('Sarah Chen')).toBeInTheDocument()
     })
   })
 })

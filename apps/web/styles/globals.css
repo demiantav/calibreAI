@@ -25,23 +25,23 @@
 }
 
 .dark {
-  /* Dark — Warm Cream Emphasis */
-  --bg: #120A06;
-  --surface: rgba(28, 18, 12, 0.85);
-  --surface-hover: rgba(42, 28, 20, 0.95);
-  --surface-raised: #1E100A;
-  --border: #3A261A;
-  --border-accent: rgba(234, 81, 3, 0.25);
-  --text: #FFEED0;
-  --text-secondary: #D4C0A0;
-  --text-tertiary: #8A7A6A;
-  --accent: #EA5103;
-  --accent-secondary: #EA5103;
-  --accent-soft: rgba(234, 81, 3, 0.2);
-  --accent-muted: #FFEED0;
-  --accent-muted-soft: rgba(255, 238, 208, 0.12);
-  --success: #6B9050;
-  --warning: #C48530;
+  /* Dark — Deep Void with Neon Accents (Linear/Stripe inspired) */
+  --bg: #030305;
+  --surface: rgba(255, 255, 255, 0.02);
+  --surface-hover: rgba(255, 255, 255, 0.05);
+  --surface-raised: rgba(255, 255, 255, 0.07);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-accent: rgba(234, 81, 3, 0.4);
+  --text: #F0F0F5;
+  --text-secondary: #A0A0B0;
+  --text-tertiary: #5A5A70;
+  --accent: #FF6B2C;
+  --accent-secondary: #FF8F5C;
+  --accent-soft: rgba(234, 81, 3, 0.15);
+  --accent-muted: #22D3EE;
+  --accent-muted-soft: rgba(34, 211, 238, 0.12);
+  --success: #4ADE80;
+  --warning: #FBBF24;
 }
 
 @theme inline {
@@ -130,26 +130,77 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    background-attachment: fixed;
+  }
+
+  /* Light theme ambient orbs */
+  :root body {
     background-image: radial-gradient(at 0% 0%, rgba(234, 81, 3, 0.05) 0px, transparent 50%),
                       radial-gradient(at 100% 0%, rgba(234, 81, 3, 0.03) 0px, transparent 50%),
                       radial-gradient(at 100% 100%, rgba(123, 160, 91, 0.05) 0px, transparent 50%),
                       radial-gradient(at 0% 100%, rgba(212, 149, 58, 0.05) 0px, transparent 50%);
-    background-attachment: fixed;
+  }
+
+  /* Dark theme — deep ambient glow orbs */
+  .dark body {
+    background-image:
+      radial-gradient(ellipse 80% 50% at 20% -10%, rgba(234, 81, 3, 0.15), transparent),
+      radial-gradient(ellipse 60% 40% at 80% 0%, rgba(34, 211, 238, 0.08), transparent),
+      radial-gradient(ellipse 50% 60% at 100% 100%, rgba(234, 81, 3, 0.08), transparent),
+      radial-gradient(ellipse 40% 40% at 0% 100%, rgba(139, 92, 246, 0.06), transparent);
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-surface backdrop-blur-xl border border-white/40 shadow-[0_8px_32px_0_rgba(26,14,9,0.06)];
+    @apply bg-surface backdrop-blur-xl border border-white/40;
+    box-shadow: 0 8px 32px 0 rgba(26, 14, 9, 0.06);
   }
 
   .dark .glass-card {
-    border-color: rgba(58, 38, 26, 0.6);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(40px) saturate(1.2);
+    -webkit-backdrop-filter: blur(40px) saturate(1.2);
+    border-color: rgba(255, 255, 255, 0.06);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+      0 8px 32px 0 rgba(0, 0, 0, 0.4);
   }
 
   .neon-glow {
-    @apply shadow-[0_0_20px_rgba(234,81,3,0.3)];
+    box-shadow: 0 0 20px rgba(234, 81, 3, 0.3);
+  }
+
+  .dark .neon-glow {
+    box-shadow: 0 0 30px rgba(234, 81, 3, 0.5), 0 0 60px rgba(234, 81, 3, 0.2);
+  }
+
+  /* Glow border — animated gradient border for featured cards */
+  .glow-border {
+    position: relative;
+  }
+
+  .glow-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(234, 81, 3, 0.5), rgba(34, 211, 238, 0.3), rgba(234, 81, 3, 0.5));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  .glow-border:hover::before {
+    opacity: 1;
+  }
+
+  .dark .glow-border::before {
+    opacity: 0.4;
   }
 
   .card-tech {
@@ -175,6 +226,10 @@
     pointer-events: none;
   }
 
+  .dark .card-glow::before {
+    background: radial-gradient(circle at 50% 0%, rgba(234, 81, 3, 0.08) 0%, transparent 50%);
+  }
+
   .ai-active-glow {
     animation: ai-active-glow 2s ease-in-out infinite;
   }
@@ -194,6 +249,10 @@
   .pulse-btn-wrapper:hover {
     transform: scale(1.07);
     box-shadow: 0 0 24px rgba(234, 81, 3, 0.25);
+  }
+
+  .dark .pulse-btn-wrapper:hover {
+    box-shadow: 0 0 40px rgba(234, 81, 3, 0.4);
   }
 
   .pulse-btn-float {

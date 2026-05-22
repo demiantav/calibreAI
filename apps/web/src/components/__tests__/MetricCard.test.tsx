@@ -10,18 +10,18 @@ describe('MetricCard', () => {
     expect(screen.getByText('150,000')).toBeInTheDocument()
   })
 
-  it('should render positive trend with success color', () => {
+  it('should render positive trend with emerald color', () => {
     render(<MetricCard label="Growth" value={12} trend={15} />)
     expect(screen.getByText('+15%')).toBeInTheDocument()
     const trendEl = screen.getByText('+15%')
-    expect(trendEl.className).toContain('text-success')
+    expect(trendEl.className).toContain('text-emerald-400')
   })
 
   it('should render negative trend with red color', () => {
     render(<MetricCard label="Drop" value={5} trend={-8} />)
     expect(screen.getByText('-8%')).toBeInTheDocument()
     const trendEl = screen.getByText('-8%')
-    expect(trendEl.className).toContain('text-red-500')
+    expect(trendEl.className).toContain('text-red-400')
   })
 
   it('should render icon when provided', () => {

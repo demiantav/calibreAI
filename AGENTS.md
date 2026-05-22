@@ -4,6 +4,8 @@
 
 Sprint 9 (Production Hardening + Responsive MVP): poner Calibre listo para producción — rate limiting, health checks, graceful shutdown, responsive design mobile, datos reales en UI.
 
+Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark theme profundo con glassmorphism real, glow/bloom, y alta jerarquía tipográfica (referencias: Linear.app, Stripe, Hypefluency).
+
 ## Constraints & Preferences
 
 - Backend en TypeScript con Express + Supabase + Gmail API + Gemini 2.0 Flash
@@ -86,9 +88,10 @@ Sprint 9 (Production Hardening + Responsive MVP): poner Calibre listo para produ
 
 - **Total tests**: 263 (187 backend + 76 frontend)
 - **Test files**: 22 (10 backend + 12 frontend)
-- **Build**: pasa con 0 errores
-- **TypeScript**: `pnpm typecheck` pasa
+- **Build**: pasa con 0 errores (frontend + backend)
+- **TypeScript**: `pnpm typecheck` pasa, `pnpm --filter calibre-dashboard build` pasa
 - **createMockFetch**: implementado en `test-utils.tsx` con soporte para múltiples URLs, secuencias de respuestas, network errors, delay simulation y assertions (`called`, `callCount`, `lastCall`)
+- **framer-motion mock**: extendido con `motion.h1`, `h2`, `h3`, `p`, `svg`, `path`, `rect`, `g`, `defs`, `linearGradient`, `stop`, `line`, `text`, `link` para soportar rediseño
 
 ## Completed (Sprint 8 — Frontend Testing + runPulseCheck)
 
@@ -116,6 +119,32 @@ Sprint 9 (Production Hardening + Responsive MVP): poner Calibre listo para produ
 - **AgentIndicator real**: `Layout` fetchea logs y pasa counts dinámicos (re-fetch tras pulse)
 - **Typography mobile**: paddings reducidos (`p-4 lg:p-10`), font sizes adaptativos, flex-wrap en stats
 
+## Completed (Sprint 9.5 — Premium Visual Pass)
+
+### Dashboard Redesign — "Creator Studio"
+- **Hero Section prominente**: nombre del creador en headline enorme (7xl), avatar con anillo orgánico SVG + glow orb, engagement rate como métrica hero (texto 8xl)
+- **Growth Chart**: componente SVG puro con área bajo la curva, gradiente naranja, línea fina, puntos interactivos con tooltip hover — estilo Mathical
+- **Daily Brief editorial**: sección prominente con texto grande (2xl-3xl), sin card container, lectura tipo artículo/reporte
+- **Rates como barras horizontales**: `RateBar` con gradiente animado de ancho, labels editoriales, comparativa con market avg
+- **Timeline vertical elegante**: `Timeline` con línea conectora, iconos coloreados por tipo, fechas relativas, hover expand
+- **Layout asimétrico**: 7-col + 5-col grid (no bento uniforme), pending pitches como card naranja prominente
+- **Eliminado bento grid genérico**: reemplazado por secciones diferenciadas con tratamientos visuales propios
+
+### Tema Visual Premium
+- **Dark theme profundo**: `--bg: #030305`, `--surface: rgba(255,255,255,0.02)`, glassmorphism real con `blur(40px)`
+- **Contraste tipográfico radical**: `--text: #F0F0F5` (blanco frío), `--text-secondary: #A0A0B0`, `--text-tertiary: #5A5A70` (labels)
+- **Acento secundario frío**: cyan `#22D3EE` para badges secundarios y gradientes (contraste con naranja `#FF6B2C`)
+- **Ambient glow orbs**: 4 gradientes radiales en `body` (naranja + cyan + púrpura) crean profundidad de fondo
+- **Glow/bloom real**: `.neon-glow` duplica intensidad en dark (`0 0 30px rgba(234,81,3,0.5)`); `.glow-border` genera borde luminoso animado en cards
+- **CountUp animation**: hook `useCountUp` + integrado en `MetricCard` — números animan de 0 al valor (1800ms)
+- **Tipografía jerárquica**: labels `uppercase tracking-[0.15em] font-semibold`, números `tabular-nums`, body `font-normal`
+
+### PulseButton Transform
+- **Botón como pieza central**: gradiente cónico rotatorio (naranja/emerald/rojo según estado), glow pulsante, anillo orgánico SVG en idle
+- **Estados fluidos**: idle (sparkles rotando + glow orb), pulsing (3 ripple rings + dots loader + breathing scale), success (check + emerald glow), error (X shake + red glow)
+- **Label tooltip**: "Pulse" aparece debajo del botón en idle
+- **Transiciones suaves**: AnimatePresence con spring physics entre estados
+
 ## Next Steps (Sprint 10)
 
 1. **Landing Page**: Presencia pública en inglés para Google for Startups
@@ -137,11 +166,17 @@ Sprint 9 (Production Hardening + Responsive MVP): poner Calibre listo para produ
 - `src/shared/config.ts`: Proxy lazy para env validation
 - `src/infrastructure/supabase/supabase-client.ts`: Proxy lazy para createClient
 - `src/infrastructure/mcp/mcp-manager.ts`: Proxy lazy, spawn postergado, clase exportada para testing
-- `src/infrastructure/mcp/__tests__/mcp-manager.test.ts`: 37 tests unitarios (constructor, handleStdOut, handleStdErr, handleClose, handleError, callTool, healthCheck, shutdown, singleton)
+- `src/infrastructure/mcp/__tests__/mcp-manager.test.ts`: 37 tests unitarios
 - `src/domains/agent-core/heartbeat/pulse.ts`: sendMessageWithRetry iterativo
 - `src/__tests__/api.integration.test.ts`: 15 tests API con supertest
 - `tsconfig.test.json`: config separada para typecheck de tests
 - `vitest.config.ts`: config raíz backend
 - `apps/web/vite.config.ts`: config frontend con test settings
-- `apps/web/src/components/__tests__/PulseButton.test.tsx`: 7 tests frontend
-- `apps/web/src/test-setup.ts`: setup de @testing-library/jest-dom
+- `apps/web/src/styles/globals.css`: tema dark premium con glow orbs, glassmorphism, `.glow-border`
+- `apps/web/src/pages/Dashboard.tsx`: rediseño asimétrico audaz — hero, growth chart, rates, timeline
+- `apps/web/src/components/GrowthChart.tsx`: gráfico SVG puro con área, gradiente, tooltip hover
+- `apps/web/src/components/RateBar.tsx`: barras horizontales de rango con gradiente animado
+- `apps/web/src/components/Timeline.tsx`: timeline vertical con iconos coloreados, fechas relativas
+- `apps/web/src/components/PulseButton.tsx`: botón central con gradiente cónico, glow, anillo SVG, estados fluidos
+- `apps/web/src/components/MetricCard.tsx`: cards de métricas con count-up animation, hover glow
+- `apps/web/src/test-setup.tsx`: setup + mock centralizado de framer-motion con todos los elementos SVG/HTML
