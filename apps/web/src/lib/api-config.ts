@@ -7,15 +7,15 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:80
 
 /**
  * Get the default headers for API requests.
- * Includes x-api-key when available in localStorage.
+ * Includes JWT Authorization token when available in localStorage.
  */
 export function getApiHeaders(): HeadersInit {
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
-  const apiKey = typeof window !== 'undefined' ? localStorage.getItem('calibre-api-key') : null;
-  if (apiKey) {
-    headers['x-api-key'] = apiKey;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('calibre-jwt') : null;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
   return headers;
 }
