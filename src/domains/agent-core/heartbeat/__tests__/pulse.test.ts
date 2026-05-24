@@ -295,7 +295,7 @@ describe('runDegradedMode', () => {
       }],
     })
 
-    await runDegradedMode('test-user', 'UC-test')
+    await runDegradedMode('test-user', 'UC-test', true)
 
     // Only the brand email triggers a pitch
     expect(mockGenerateAndDraftPitch).toHaveBeenCalledTimes(1)
@@ -310,6 +310,27 @@ describe('runDegradedMode', () => {
     expect(insertCall.content.text).toContain('Nike')
     expect(insertCall.content.text).toContain('1 oportunidad')
     expect(insertCall.insights).toContain('1 pitches')
+  })
+
+  it('skips pitch generation when autoPitchEnabled is false', async () => {
+    mockListEmails.mockReset()
+    mockListEmails.mockResolvedValueOnce({
+      content: [{
+        text: JSON.stringify([
+          { id: 'g1', subject: 'Colaboración', snippet: 'marca', from: '"Nike" <nike@test.com>' },
+        ]),
+      }],
+    })
+
+    await runDegradedMode('test-user', 'UC-test', false)
+
+    // No pitches should be generated
+    expect(mockGenerateAndDraftPitch).not.toHaveBeenCalled()
+
+    const insertCall = mockSupabaseInsert.mock.calls[0]?.[0]?.[0]
+    expect(insertCall.type).toBe('agent_summary')
+    expect(insertCall.content.text).toContain('No se detectaron nuevas oportunidades')
+    expect(insertCall.insights).toContain('0 pitches')
   })
 })
 
@@ -460,7 +481,7 @@ describe('runPulseCheck', () => {
     })
 
     expect(mockRunDegradedMode).toHaveBeenCalledTimes(1)
-    expect(mockRunDegradedMode).toHaveBeenCalledWith('test-user', 'UC-test')
+    expect(mockRunDegradedMode).toHaveBeenCalledWith('test-user', 'UC-test', false)
     expect(mockSupabaseInsert).not.toHaveBeenCalled()
   })
 
@@ -573,7 +594,53 @@ describe('runPulseCheck', () => {
     const firstCallArg = chatSendMessage.mock.calls[0]?.[0]
     expect(firstCallArg).toContain('UC-prompt-test')
     expect(firstCallArg).toContain('getPreviousInsights')
-    expect(firstCallArg).toContain('listEmails')
     expect(firstCallArg).toContain('calculateSponsorshipValue')
+  })
+
+  it('should omit pitch instructions when autoPitchEnabled is false', async () => {
+    const chatSendMessage = vi.fn().mockResolvedValue(
+      createMockResponse({
+        functionCalls: [],
+        text: 'Done',
+      })
+    )
+
+    await runPulseCheck('test-user', 'UC-prompt-test', {
+      startChat: () => ({ sendMessage: chatSendMessage }),
+      executeToolCall: mockExecuteToolCall,
+      supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
+      runDegradedMode: mockRunDegradedMode,
+      config: { CREATOR_NAME: 'TestCreator', YOUTUBE_CHANNEL_ID: 'UC-prompt-test', AUTHENTICATED_USER_EMAIL: '' } as any,
+      sendMessageWithRetry: async (chat: any, msg: any) => chat.sendMessage(msg),
+    })
+
+    const firstCallArg = chatSendMessage.mock.calls[0]?.[0]
+    expect(firstCallArg).not.toContain('listEmails')
+    expect(firstCallArg).not.toContain('generateAndDraftPitch')
+    expect(firstCallArg).toContain('NO revises emails ni generes pitches')
+  })
+
+  it('should include pitch instructions when autoPitchEnabled is true', async () => {
+    const chatSendMessage = vi.fn().mockResolvedValue(
+      createMockResponse({
+        functionCalls: [],
+        text: 'Done',
+      })
+    )
+
+    await runPulseCheck('test-user', 'UC-prompt-test', {
+      startChat: () => ({ sendMessage: chatSendMessage }),
+      executeToolCall: mockExecuteToolCall,
+      supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
+      runDegradedMode: mockRunDegradedMode,
+      config: { CREATOR_NAME: 'TestCreator', YOUTUBE_CHANNEL_ID: 'UC-prompt-test', AUTHENTICATED_USER_EMAIL: '' } as any,
+      sendMessageWithRetry: async (chat: any, msg: any) => chat.sendMessage(msg),
+      autoPitchEnabled: true,
+    })
+
+    const firstCallArg = chatSendMessage.mock.calls[0]?.[0]
+    expect(firstCallArg).toContain('listEmails')
+    expect(firstCallArg).toContain('generateAndDraftPitch')
+    expect(firstCallArg).not.toContain('NO revises emails ni generes pitches')
   })
 })
