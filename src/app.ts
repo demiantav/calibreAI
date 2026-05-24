@@ -107,10 +107,10 @@ app.get('/pulse', async (req, res) => {
     return res.status(401).json({ error: 'Usuario no autenticado' });
   }
 
-  // Get user's channel ID
+  // Get user's channel ID and auto-pitch preference
   const { data: user } = await supabase
     .from('users')
-    .select('youtube_channel_id, youtube_channel_name')
+    .select('youtube_channel_id, youtube_channel_name, auto_pitch_enabled')
     .eq('id', userId)
     .single();
 
@@ -118,10 +118,10 @@ app.get('/pulse', async (req, res) => {
     return res.status(400).json({ error: 'Canal de YouTube no configurado. Completa el onboarding primero.' });
   }
 
-  console.log(`[API] Disparando ciclo del agente para usuario ${userId}, canal ${user.youtube_channel_id}...`);
+  console.log(`[API] Disparando ciclo del agente para usuario ${userId}, canal ${user.youtube_channel_id}, auto-pitch: ${user.auto_pitch_enabled}...`);
   res.json({ message: "Ciclo del agente iniciado. Revisa la consola o los logs en Supabase." });
 
-  runPulseCheck(userId, user.youtube_channel_id).catch((err) => {
+  runPulseCheck(userId, user.youtube_channel_id, { autoPitchEnabled: user.auto_pitch_enabled ?? false }).catch((err) => {
     console.error("[API] Error no capturado en ciclo del agente:", err);
   });
 });

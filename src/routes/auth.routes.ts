@@ -21,6 +21,10 @@ const youtubeUrlSchema = z.object({
   channelUrl: z.string().url(),
 });
 
+const updateMeSchema = z.object({
+  auto_pitch_enabled: z.boolean(),
+}).partial();
+
 // POST /auth/register
 router.post('/register', async (req: Request, res: Response) => {
   try {
@@ -68,6 +72,45 @@ router.get('/me', async (req: Request, res: Response) => {
     res.json(user);
   } catch (error: any) {
     res.status(401).json({ error: error.message || 'Token inválido' });
+  }
+});
+
+// PATCH /auth/me
+router.patch('/me', async (req: Request, res: Response) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      res.status(401).json({ error: 'No token provided' });
+      return;
+    }
+    const payload = authService.verifyToken(token);
+    const body = updateMeSchema.safeParse(req.body);
+    if (!body.success) {
+      res.status(400).json({ error: 'Datos inválidos', details: body.error.issues });
+      return;
+    }
+
+    const updated = await userRepository.update(payload.userId, body.data);
+    if (!updated) {
+      res.status(404).json({ error: 'Usuario no encontrado' });
+      return;
+    }
+
+    res.json({
+      id: updated.id,
+      email: updated.email,
+      youtube_channel_id: updated.youtube_channel_id,
+      youtube_channel_name: updated.youtube_channel_name,
+      onboarding_completed: updated.onboarding_completed,
+      onboarding_step: updated.onboarding_step,
+      auto_pitch_enabled: updated.auto_pitch_enabled,
+    });
+  } catch (error: any) {
+    if (error instanceof UnauthorizedError) {
+      res.status(401).json({ error: error.message });
+      return;
+    }
+    res.status(500).json({ error: 'Error al actualizar usuario', details: error.message });
   }
 });
 

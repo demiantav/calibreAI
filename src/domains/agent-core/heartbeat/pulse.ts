@@ -23,7 +23,7 @@ const sendMessageWithRetry = async (chat: any, message: any, retries = 3): Promi
   }
 };
 
-export const runDegradedMode = async (userId: string, channelId: string) => {
+export const runDegradedMode = async (userId: string, channelId: string, autoPitchEnabled = false) => {
   console.log("[Calibre] Ejecutando modo degradado (sin orquestación de Gemini)...");
 
   let metrics: any = null;
@@ -56,52 +56,56 @@ export const runDegradedMode = async (userId: string, channelId: string) => {
     });
     console.log(`[Calibre] ✅ Media Kit: ${updateResult.status}`);
 
-    // 4. List emails
-    try {
-      const emails: any = await functionsImplementations.listEmails({ maxResults: 10, _userId: userId });
-      let emailList: any[] = [];
+    // 4. List emails & generate pitches (only if auto-pitch is enabled)
+    if (autoPitchEnabled) {
       try {
-        emailList = emails?.content?.[0]?.text ? JSON.parse(emails.content[0].text) : [];
-      } catch (e) {
-        console.warn('[Calibre] Error parseando lista de emails:', e);
-        emailList = [];
-      }
-      console.log(`[Calibre] ✅ ${emailList.length} emails listados`);
-
-      for (const email of emailList) {
-        const subject = email.subject || '';
-        const snippet = email.snippet || '';
-        const rawFrom = email.from || '';
-
-        if (!/marca|colaboraci[oó]n|patrocinio|sponsor|partner|deals?|propuesta|presupuesto|partnership|collaboration|sponsorship|inquiry|business|opportunity|advertise|promote|brand|marketing|influencer|ambassador|reach.?out/i.test(subject + ' ' + snippet)) continue;
-
-        const { data: already } = await supabase
-          .from('processed_emails')
-          .select('gmail_id')
-          .eq('gmail_id', email.id)
-          .eq('user_id', userId)
-          .maybeSingle();
-
-        if (already) {
-          console.log(`[Calibre] ⏭️ Email ya procesado: ${subject}`);
-          continue;
-        }
-
+        const emails: any = await functionsImplementations.listEmails({ maxResults: 10, _userId: userId });
+        let emailList: any[] = [];
         try {
-          const pitchResult = await functionsImplementations.generateAndDraftPitch({
-            creatorName: config.CREATOR_NAME,
-            gmailId: email.id,
-            _userId: userId,
-          });
-          const brandName = rawFrom.replace(/^"?(.*?)"?\s*<.*$/, '$1').trim() || 'Marca';
-          pitchBrands.push(brandName);
-          console.log(`[Calibre] ✅ Pitch generado para ${brandName}`);
-        } catch (pitchError) {
-          console.warn(`[Calibre] ⚠️ Error generando pitch:`, pitchError);
+          emailList = emails?.content?.[0]?.text ? JSON.parse(emails.content[0].text) : [];
+        } catch (e) {
+          console.warn('[Calibre] Error parseando lista de emails:', e);
+          emailList = [];
         }
+        console.log(`[Calibre] ✅ ${emailList.length} emails listados`);
+
+        for (const email of emailList) {
+          const subject = email.subject || '';
+          const snippet = email.snippet || '';
+          const rawFrom = email.from || '';
+
+          if (!/marca|colaboraci[oó]n|patrocinio|sponsor|partner|deals?|propuesta|presupuesto|partnership|collaboration|sponsorship|inquiry|business|opportunity|advertise|promote|brand|marketing|influencer|ambassador|reach.?out/i.test(subject + ' ' + snippet)) continue;
+
+          const { data: already } = await supabase
+            .from('processed_emails')
+            .select('gmail_id')
+            .eq('gmail_id', email.id)
+            .eq('user_id', userId)
+            .maybeSingle();
+
+          if (already) {
+            console.log(`[Calibre] ⏭️ Email ya procesado: ${subject}`);
+            continue;
+          }
+
+          try {
+            const pitchResult = await functionsImplementations.generateAndDraftPitch({
+              creatorName: config.CREATOR_NAME,
+              gmailId: email.id,
+              _userId: userId,
+            });
+            const brandName = rawFrom.replace(/^"?(.*?)"?\s*<.*$/, '$1').trim() || 'Marca';
+            pitchBrands.push(brandName);
+            console.log(`[Calibre] ✅ Pitch generado para ${brandName}`);
+          } catch (pitchError) {
+            console.warn(`[Calibre] ⚠️ Error generando pitch:`, pitchError);
+          }
+        }
+      } catch (emailError: any) {
+        console.warn(`[Calibre] ⚠️ No se pudieron listar emails: ${emailError.message}`);
       }
-    } catch (emailError: any) {
-      console.warn(`[Calibre] ⚠️ No se pudieron listar emails: ${emailError.message}`);
+    } else {
+      console.log('[Calibre] ⏭️ Auto-pitch desactivado. Saltando generación de pitches.');
     }
 
     // 5. Sponsorship forecast
@@ -228,6 +232,7 @@ export interface PulseCheckDeps {
   runDegradedMode?: typeof runDegradedMode;
   config?: typeof config;
   sendMessageWithRetry?: typeof sendMessageWithRetry;
+  autoPitchEnabled?: boolean;
 }
 
 export const runPulseCheck = async (userId: string, channelId: string, deps?: PulseCheckDeps) => {
@@ -237,10 +242,16 @@ export const runPulseCheck = async (userId: string, channelId: string, deps?: Pu
   const _runDegradedMode = deps?.runDegradedMode || runDegradedMode;
   const _config = deps?.config || config;
   const _sendMessageWithRetry = deps?.sendMessageWithRetry || sendMessageWithRetry;
+  const _autoPitchEnabled = deps?.autoPitchEnabled ?? false;
 
   console.log(`[Calibre] Iniciando ciclo de razonamiento autónomo para usuario ${userId}, canal ${channelId}...`);
+  console.log(`[Calibre] Auto-pitch: ${_autoPitchEnabled ? 'ACTIVADO' : 'DESACTIVADO'}`);
 
   const chat = _startChat();
+
+  const pitchStep = _autoPitchEnabled
+    ? `5. Revisa los emails entrantes con "listEmails". Si encuentras correos de marcas o posibles colaboraciones, usa "generateAndDraftPitch" para crear un borrador de respuesta personalizado.`
+    : `5. NO revises emails ni generes pitches. El usuario tiene el auto-pitch desactivado.`;
 
   try {
     const result = await _sendMessageWithRetry(chat,
@@ -250,7 +261,7 @@ export const runPulseCheck = async (userId: string, channelId: string, deps?: Pu
        2. Usa "getPreviousInsights" para ver qué analizaste la última vez de este creador.
        3. Compara ambos datos. Si hay un crecimiento notable o un cambio de tendencia, menciónalo.
        4. Si el progreso es positivo, llama a "updateLiveMediaKit" para reflejar los nuevos hitos.
-       5. Revisa los emails entrantes con "listEmails". Si encuentras correos de marcas o posibles colaboraciones, usa "generateAndDraftPitch" para crear un borrador de respuesta personalizado.
+       ${pitchStep}
        6. Calcula el sponsorship value con "calculateSponsorshipValue" usando las métricas obtenidas y el nicho del creador (ej: "desarrollo web"). Esto estima las tarifas de patrocinio actuales.`
     );
 
@@ -295,7 +306,7 @@ export const runPulseCheck = async (userId: string, channelId: string, deps?: Pu
   } catch (error: any) {
     if (error.status === 429) {
       console.warn("[Calibre] Gemini no disponible por cuota. Cambiando a modo degradado...");
-      await _runDegradedMode(userId, channelId);
+      await _runDegradedMode(userId, channelId, _autoPitchEnabled);
     } else {
       console.error("[Calibre] Error crítico en el bucle autónomo:", error);
     }

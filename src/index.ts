@@ -12,18 +12,28 @@ const server = app.listen(port, () => {
   console.log(`[Calibre] -> Mira los resultados en: http://localhost:${port}/logs`);
 
   setTimeout(async () => {
-    console.log('[Calibre] Auto-pulse: iniciando ciclo del agente...');
+    console.log('[Calibre] Auto-pulse: iniciando ciclos para usuarios con auto-pitch activado...');
     try {
       const { supabase } = await import('./infrastructure/supabase/supabase-client.js');
-      const { data: legacyUser } = await supabase
+      const { data: activeUsers } = await supabase
         .from('users')
         .select('id, youtube_channel_id')
-        .limit(1)
-        .single();
-      if (legacyUser?.youtube_channel_id) {
-        runPulseCheck(legacyUser.id, legacyUser.youtube_channel_id);
-      } else {
-        console.log('[Calibre] Auto-pulse: no hay usuario con canal configurado, saltando.');
+        .eq('auto_pitch_enabled', true)
+        .not('youtube_channel_id', 'is', null);
+
+      if (!activeUsers || activeUsers.length === 0) {
+        console.log('[Calibre] Auto-pulse: no hay usuarios con auto-pitch activado y canal configurado, saltando.');
+        return;
+      }
+
+      console.log(`[Calibre] Auto-pulse: ${activeUsers.length} usuario(s) encontrados.`);
+      for (const user of activeUsers) {
+        console.log(`[Calibre] Auto-pulse: disparando ciclo para usuario ${user.id}, canal ${user.youtube_channel_id}...`);
+        runPulseCheck(user.id, user.youtube_channel_id, { autoPitchEnabled: true }).catch((err) => {
+          console.error(`[Calibre] Auto-pulse error para usuario ${user.id}:`, err);
+        });
+        // Stagger pulses to avoid rate limits
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
     } catch (err) {
       console.error('[Calibre] Auto-pulse error:', err);
