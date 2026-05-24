@@ -14,5 +14,8 @@ export default defineConfig({
     exclude: ['node_modules', 'dist', 'apps'],
     clearMocks: true,
     restoreMocks: true,
+    env: {
+      NODE_ENV: 'test',
+    },
   },
 })

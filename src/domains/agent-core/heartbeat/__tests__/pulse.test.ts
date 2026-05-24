@@ -9,11 +9,23 @@ const mockSupabaseMaybeSingle = vi.hoisted(() =>
   vi.fn(() => Promise.resolve({ data: null, error: null })),
 )
 
+// Helper for chained eq() calls in mocks
+const createEqChain = () => {
+  const chain: any = {
+    maybeSingle: mockSupabaseMaybeSingle,
+    single: () => ({ data: null, error: null }),
+    eq: function() { return chain; },
+  };
+  return chain;
+};
+
 vi.mock('../../../../infrastructure/supabase/supabase-client.js', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: mockSupabaseMaybeSingle })) })),
+    from: vi.fn((table: string) => ({
+      select: vi.fn(() => createEqChain()),
       insert: mockSupabaseInsert,
+      update: vi.fn(() => createEqChain()),
+      upsert: vi.fn(() => Promise.resolve({ error: null })),
     })),
   },
 }))
@@ -207,7 +219,7 @@ describe('runDegradedMode', () => {
   })
 
   it('generates and persists summary when all tools succeed', async () => {
-    await runDegradedMode('UC-test')
+    await runDegradedMode('test-user', 'UC-test')
 
     const insertCall = mockSupabaseInsert.mock.calls[0]?.[0]?.[0]
     expect(insertCall.type).toBe('agent_summary')
@@ -227,7 +239,7 @@ describe('runDegradedMode', () => {
     mockGetYouTubeMetrics.mockReset()
     mockGetYouTubeMetrics.mockRejectedValueOnce(new Error('API error'))
 
-    await runDegradedMode('UC-test')
+    await runDegradedMode('test-user', 'UC-test')
 
     const errorCall = mockSupabaseInsert.mock.calls[0]?.[0]?.[0]
     expect(errorCall.type).toBe('agent_error')
@@ -254,7 +266,7 @@ describe('runDegradedMode', () => {
     mockCalculateSponsorshipValue.mockReset()
     mockCalculateSponsorshipValue.mockRejectedValueOnce(new Error('Gemini 429'))
 
-    await runDegradedMode('UC-test')
+    await runDegradedMode('test-user', 'UC-test')
 
     const insertCall = mockSupabaseInsert.mock.calls[0]?.[0]?.[0]
     expect(insertCall.type).toBe('agent_summary')
@@ -283,13 +295,14 @@ describe('runDegradedMode', () => {
       }],
     })
 
-    await runDegradedMode('UC-test')
+    await runDegradedMode('test-user', 'UC-test')
 
     // Only the brand email triggers a pitch
     expect(mockGenerateAndDraftPitch).toHaveBeenCalledTimes(1)
     expect(mockGenerateAndDraftPitch).toHaveBeenCalledWith({
       creatorName: 'TestCreator',
       gmailId: 'g1',
+      _userId: 'test-user',
     })
 
     const insertCall = mockSupabaseInsert.mock.calls[0]?.[0]?.[0]
@@ -343,7 +356,7 @@ describe('runPulseCheck', () => {
 
     mockExecuteToolCall.mockResolvedValue({ status: 'ok', metrics: { subs: 150000 } })
 
-    await runPulseCheck({
+    await runPulseCheck('test-user', 'UC-test', {
       startChat: () => ({ sendMessage: chatSendMessage }),
       executeToolCall: mockExecuteToolCall,
       supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
@@ -355,7 +368,7 @@ describe('runPulseCheck', () => {
     // First message + tool results message = 2 calls
     expect(chatSendMessage).toHaveBeenCalledTimes(2)
     expect(mockExecuteToolCall).toHaveBeenCalledTimes(1)
-    expect(mockExecuteToolCall).toHaveBeenCalledWith({ name: 'getYouTubeMetrics', args: { channelId: 'UC-test' } })
+    expect(mockExecuteToolCall).toHaveBeenCalledWith({ name: 'getYouTubeMetrics', args: { channelId: 'UC-test' } }, 'test-user')
 
     // Final summary persisted
     const insertCall = mockSupabaseInsert.mock.calls[0]?.[0]?.[0]
@@ -393,7 +406,7 @@ describe('runPulseCheck', () => {
       .mockResolvedValueOnce({ emails: [] })
       .mockResolvedValueOnce({ value: 5000 })
 
-    await runPulseCheck({
+    await runPulseCheck('test-user', 'UC-test', {
       startChat: () => ({ sendMessage: chatSendMessage }),
       executeToolCall: mockExecuteToolCall,
       supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
@@ -418,7 +431,7 @@ describe('runPulseCheck', () => {
       })
     )
 
-    await runPulseCheck({
+    await runPulseCheck('test-user', 'UC-test', {
       startChat: () => ({ sendMessage: chatSendMessage }),
       executeToolCall: mockExecuteToolCall,
       supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
@@ -437,7 +450,7 @@ describe('runPulseCheck', () => {
   it('should fallback to degraded mode on 429 error from first sendMessage', async () => {
     const chatSendMessage = vi.fn().mockRejectedValue({ status: 429, message: 'Quota exceeded' })
 
-    await runPulseCheck({
+    await runPulseCheck('test-user', 'UC-test', {
       startChat: () => ({ sendMessage: chatSendMessage }),
       executeToolCall: mockExecuteToolCall,
       supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
@@ -447,7 +460,7 @@ describe('runPulseCheck', () => {
     })
 
     expect(mockRunDegradedMode).toHaveBeenCalledTimes(1)
-    expect(mockRunDegradedMode).toHaveBeenCalledWith('UC-429-test')
+    expect(mockRunDegradedMode).toHaveBeenCalledWith('test-user', 'UC-test')
     expect(mockSupabaseInsert).not.toHaveBeenCalled()
   })
 
@@ -472,7 +485,7 @@ describe('runPulseCheck', () => {
       }
     }
 
-    await runPulseCheck({
+    await runPulseCheck('test-user', 'UC-test', {
       startChat: () => ({ sendMessage: chatSendMessage }),
       executeToolCall: mockExecuteToolCall,
       supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
@@ -492,7 +505,7 @@ describe('runPulseCheck', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const chatSendMessage = vi.fn().mockRejectedValue(new Error('Gemini internal error'))
 
-    await runPulseCheck({
+    await runPulseCheck('test-user', 'UC-test', {
       startChat: () => ({ sendMessage: chatSendMessage }),
       executeToolCall: mockExecuteToolCall,
       supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
@@ -521,7 +534,7 @@ describe('runPulseCheck', () => {
 
     mockExecuteToolCall.mockRejectedValueOnce(new Error('Gmail API error'))
 
-    await runPulseCheck({
+    await runPulseCheck('test-user', 'UC-test', {
       startChat: () => ({ sendMessage: chatSendMessage }),
       executeToolCall: mockExecuteToolCall,
       supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,
@@ -548,7 +561,7 @@ describe('runPulseCheck', () => {
       })
     )
 
-    await runPulseCheck({
+    await runPulseCheck('test-user', 'UC-prompt-test', {
       startChat: () => ({ sendMessage: chatSendMessage }),
       executeToolCall: mockExecuteToolCall,
       supabase: { from: () => ({ insert: mockSupabaseInsert }) } as any,

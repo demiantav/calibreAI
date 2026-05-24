@@ -38,6 +38,27 @@ vi.mock('@/lib/use-count-up', () => ({
   useCountUp: (value: number) => value,
 }))
 
+// Mock AuthContext for components that use useAuth
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: {
+      id: 'test-user-id',
+      email: 'test@example.com',
+      youtube_channel_id: 'UC8LeXCWOalN8SxlrPcG-PaQ',
+      youtube_channel_name: 'Test Creator',
+      onboarding_completed: true,
+      onboarding_step: 4,
+      auto_pitch_enabled: false,
+    },
+    isLoading: false,
+    isAuthenticated: true,
+    login: vi.fn(),
+    register: vi.fn(),
+    logout: vi.fn(),
+    refreshUser: vi.fn(),
+  }),
+}))
+
 
 
 // Mock localStorage for jsdom compatibility (ThemeProvider calls window.localStorage)

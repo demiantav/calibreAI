@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import jwt from 'jsonwebtoken'
 import type { Request, Response } from 'express'
 
-const mockConfig = vi.hoisted(() => ({ NODE_ENV: 'development', AUTH_API_KEY: '' }))
+const mockConfig = vi.hoisted(() => ({ NODE_ENV: 'development', JWT_SECRET: 'test-secret' }))
 
 vi.mock('../shared/config.js', () => ({
   config: mockConfig,
@@ -19,35 +20,29 @@ function mockRes(): { status: ReturnType<typeof vi.fn>; json: ReturnType<typeof 
   return { status, json }
 }
 
-describe('authMiddleware', () => {
+function generateTestToken() {
+  return jwt.sign({ userId: 'test-user', email: 'test@example.com' }, mockConfig.JWT_SECRET)
+}
+
+describe('jwtAuthMiddleware (via authMiddleware export)', () => {
   beforeEach(() => {
     mockConfig.NODE_ENV = 'development'
-    mockConfig.AUTH_API_KEY = ''
+    mockConfig.JWT_SECRET = 'test-secret'
   })
 
-  it('should call next() when no AUTH_API_KEY is configured', () => {
-    const req = mockReq({}) as Request
+  it('should call next() when valid Bearer token is provided', () => {
+    const token = generateTestToken()
+    const req = mockReq({ authorization: `Bearer ${token}` }) as Request
     const res = mockRes() as unknown as Response
     const next = vi.fn()
 
     authMiddleware(req, res, next)
 
     expect(next).toHaveBeenCalledTimes(1)
+    expect((req as any).user).toEqual({ userId: 'test-user', email: 'test@example.com' })
   })
 
-  it('should call next() when x-api-key matches', () => {
-    mockConfig.AUTH_API_KEY = 'secret-key'
-    const req = mockReq({ 'x-api-key': 'secret-key' }) as Request
-    const res = mockRes() as unknown as Response
-    const next = vi.fn()
-
-    authMiddleware(req, res, next)
-
-    expect(next).toHaveBeenCalledTimes(1)
-  })
-
-  it('should return 401 when x-api-key is missing', () => {
-    mockConfig.AUTH_API_KEY = 'secret-key'
+  it('should return 401 when Authorization header is missing', () => {
     const req = mockReq({}) as Request
     const { status, json } = mockRes()
     const res = { status, json } as unknown as Response
@@ -60,9 +55,8 @@ describe('authMiddleware', () => {
     expect(next).not.toHaveBeenCalled()
   })
 
-  it('should return 401 when x-api-key is wrong', () => {
-    mockConfig.AUTH_API_KEY = 'secret-key'
-    const req = mockReq({ 'x-api-key': 'wrong-key' }) as Request
+  it('should return 401 when token is invalid', () => {
+    const req = mockReq({ authorization: 'Bearer invalid-token' }) as Request
     const { status, json } = mockRes()
     const res = { status, json } as unknown as Response
     const next = vi.fn()
@@ -70,13 +64,12 @@ describe('authMiddleware', () => {
     authMiddleware(req, res, next)
 
     expect(status).toHaveBeenCalledWith(401)
-    expect(json).toHaveBeenCalledWith({ error: expect.stringContaining('No autorizado') })
+    expect(json).toHaveBeenCalledWith({ error: expect.stringContaining('token') })
     expect(next).not.toHaveBeenCalled()
   })
 
-  it('should call next() in test mode regardless of AUTH_API_KEY', () => {
+  it('should call next() in test mode regardless of token', () => {
     mockConfig.NODE_ENV = 'test'
-    mockConfig.AUTH_API_KEY = 'secret-key'
     const req = mockReq({}) as Request
     const res = mockRes() as unknown as Response
     const next = vi.fn()
