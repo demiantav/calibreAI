@@ -72,6 +72,32 @@ describe('Sidebar', () => {
     expect(screen.getByText('Pro Creator')).toBeInTheDocument()
   })
 
+  it('should render auto-pitch toggle', () => {
+    render(
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText('Auto-pitch')).toBeInTheDocument()
+    const toggle = screen.getByRole('switch', { name: 'Activar auto-pitch' })
+    expect(toggle).toBeInTheDocument()
+    expect(toggle).toHaveAttribute('aria-checked', 'false')
+  })
+
+  it('should render accessible auto-pitch toggle', () => {
+    render(
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>
+    )
+
+    const toggle = screen.getByRole('switch', { name: 'Activar auto-pitch' })
+    expect(toggle).toBeInTheDocument()
+    expect(toggle).toHaveAttribute('aria-checked', 'false')
+    expect(toggle).toHaveAttribute('aria-label', 'Activar auto-pitch')
+  })
+
   it('should render theme toggle button', () => {
     render(
       <MemoryRouter>

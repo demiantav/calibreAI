@@ -1,11 +1,12 @@
 import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, FileText, DollarSign, Sparkles, Moon, Sun, Menu, X, LogOut } from 'lucide-react';
+import { LayoutDashboard, ScrollText, FileText, DollarSign, Sparkles, Moon, Sun, Menu, X, LogOut, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/lib/theme';
 import { useApiFetch } from '@/hooks/use-api-fetch';
 import { useAuth } from '@/contexts/AuthContext';
+import { Switch } from '@/components/ui/toggle-switch';
 import type { LogEntry } from '@/lib/types';
 
 const navItems = [
@@ -37,7 +38,7 @@ export function Sidebar() {
   const pathname = useLocation().pathname;
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
 
   const { data: logs } = useApiFetch<LogEntry[]>(LOGS_ENDPOINT);
 
@@ -119,6 +120,28 @@ export function Sidebar() {
       </nav>
 
       <div className="px-4 pb-6 space-y-4">
+        {/* Auto-pitch toggle */}
+        <div className="px-4 flex items-center justify-between gap-3 py-2.5 rounded-[16px] bg-surface-hover/50 border border-border/30">
+          <div className="flex items-center gap-2 min-w-0">
+            <Zap className="w-4 h-4 text-accent shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-text truncate">Auto-pitch</p>
+              <p className="text-[10px] text-text-tertiary truncate hidden sm:block">Generar borradores automáticamente</p>
+            </div>
+          </div>
+          <Switch
+            checked={user?.auto_pitch_enabled ?? false}
+            onCheckedChange={async (checked) => {
+              try {
+                await updateUser({ auto_pitch_enabled: checked });
+              } catch {
+                // Error handled by AuthContext (rollback + re-fetch)
+              }
+            }}
+            aria-label="Activar auto-pitch"
+          />
+        </div>
+
         {/* Theme toggle */}
         <div className="px-4">
           <ThemeToggle />

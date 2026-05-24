@@ -18,6 +18,7 @@ interface AuthContextType {
   register: (email: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  updateUser: (updates: Partial<AuthUser>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -95,6 +96,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetchUser();
   };
 
+  const updateUser = async (updates: Partial<AuthUser>) => {
+    const token = getToken();
+    if (!token || !user) return;
+
+    // Optimistic update
+    setUser((prev) => (prev ? { ...prev, ...updates } : null));
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/me`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updates),
+      });
+
+      if (!res.ok) {
+        // Rollback: re-fetch from server to restore correct state
+        await fetchUser();
+        const data = await res.json();
+        throw new Error(data.error || 'Update failed');
+      }
+    } catch {
+      // On network error, also re-fetch to sync state
+      await fetchUser();
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -105,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         refreshUser,
+        updateUser,
       }}
     >
       {children}
