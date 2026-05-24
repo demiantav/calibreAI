@@ -22,15 +22,20 @@ function decodeRFC2047(input: string): string {
   });
 }
 
-async function fetchEmailByGmailId(gmailId: string): Promise<{ from: string; subject: string; snippet: string }> {
-  await ensureGmailAuth();
+async function fetchEmailByGmailId(gmailId: string, userId?: string): Promise<{ from: string; subject: string; snippet: string }> {
+  await ensureGmailAuth(userId);
   const detail = await gmail.users.messages.get({ userId: 'me', id: gmailId });
   const headers = detail.data.payload?.headers || [];
   const rawSubject = headers.find((h: any) => h.name === 'Subject')?.value || '';
   const from = headers.find((h: any) => h.name === 'From')?.value || '';
 
   // Safety: no generar pitch contra el propio usuario
-  if (from.includes(config.AUTHENTICATED_USER_EMAIL)) {
+  if (userId) {
+    const { data: user } = await supabase.from('users').select('email').eq('id', userId).single();
+    if (user?.email && from.includes(user.email)) {
+      throw new Error(`El email ${gmailId} es del propio usuario (${user.email}), saltando.`);
+    }
+  } else if (from.includes(config.AUTHENTICATED_USER_EMAIL)) {
     throw new Error(`El email ${gmailId} es del propio usuario (${config.AUTHENTICATED_USER_EMAIL}), saltando.`);
   }
 
@@ -50,14 +55,20 @@ export const functionsImplementations = {
     return await fetchYouTubeChannelStats(channelId);
   },
   
-  getPreviousInsights: async ({ creatorName }: { creatorName: string }) => {
+  getPreviousInsights: async ({ creatorName, _userId }: { creatorName: string; _userId?: string }) => {
     console.log(`[Tool Executor] Recuperando memoria para ${creatorName}...`);
-    const { data, error } = await supabase
+    let query = supabase
       .from('agent_logs')
       .select('content, insights, created_at')
       .eq('creator_name', creatorName)
       .order('created_at', { ascending: false })
-      .limit(3); // Traemos los últimos 3 recuerdos
+      .limit(3);
+
+    if (_userId) {
+      query = query.eq('user_id', _userId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("[Tool Executor] Error recuperando memoria:", error);
@@ -68,17 +79,16 @@ export const functionsImplementations = {
   
   updateLiveMediaKit: async (data: any) => {
     console.log(`[Tool Executor] Persistiendo Media Kit en Supabase para ${data.creatorName}...`);
-    
-    const { error } = await supabase
-      .from('agent_logs')
-      .insert([
-        { 
-          creator_name: data.creatorName, 
-          type: 'media_kit_update',
-          content: data.metrics,
-          insights: data.insights
-        }
-      ]);
+
+    const insertData: any = {
+      creator_name: data.creatorName,
+      type: 'media_kit_update',
+      content: data.metrics,
+      insights: data.insights,
+    };
+    if (data._userId) insertData.user_id = data._userId;
+
+    const { error } = await supabase.from('agent_logs').insert([insertData]);
 
     if (error) {
       console.error("[Tool Executor] Error al guardar en Supabase:", error);
@@ -89,18 +99,20 @@ export const functionsImplementations = {
   },
 
   // Herramientas de Gmail (usando Gmail API directa para evitar stdout contaminado del MCP)
-  listEmails: async (args: { maxResults?: number }) => {
+  listEmails: async (args: { maxResults?: number; _userId?: string }) => {
     console.warn('[Tool Executor] Usando Gmail API directa...');
-    await ensureGmailAuth();
+    await ensureGmailAuth(args._userId);
 
     try {
       const response = await gmail.users.messages.list({ userId: 'me', maxResults: args.maxResults || 5 });
       const messages = response.data.messages || [];
 
-      // Obtener IDs de emails ya procesados (dedup)
-      const { data: processed } = await supabase
-        .from('processed_emails')
-        .select('gmail_id');
+      // Obtener IDs de emails ya procesados (dedup) — filtrar por user_id si existe
+      let processedQuery = supabase.from('processed_emails').select('gmail_id');
+      if (args._userId) {
+        processedQuery = processedQuery.eq('user_id', args._userId);
+      }
+      const { data: processed } = await processedQuery;
       const processedSet = new Set(processed?.map(r => r.gmail_id) || []);
 
       const details = await Promise.all(
@@ -117,9 +129,16 @@ export const functionsImplementations = {
         })
       );
 
+      // Obtener email del usuario para filtrar self-emails
+      let userEmail: string | null = null;
+      if (args._userId) {
+        const { data: user } = await supabase.from('users').select('email').eq('id', args._userId).single();
+        userEmail = user?.email || null;
+      }
+
       // Filtrar emails ya procesados y del propio usuario
       const filtered = details.filter((msg: any) =>
-        !processedSet.has(msg.id) && !msg.from?.includes(config.AUTHENTICATED_USER_EMAIL)
+        !processedSet.has(msg.id) && !(userEmail && msg.from?.includes(userEmail)) && !msg.from?.includes(config.AUTHENTICATED_USER_EMAIL)
       );
       if (filtered.length < details.length) {
         console.log(`[Tool Executor] Filtrados ${details.length - filtered.length} emails ya procesados`);
@@ -160,28 +179,26 @@ export const functionsImplementations = {
   },
 
   // Auto-Pitch Engine
-  generateAndDraftPitch: async (args: { creatorName: string; pitchStyle?: string; gmailId: string }) => {
+  generateAndDraftPitch: async (args: { creatorName: string; pitchStyle?: string; gmailId: string; _userId?: string }) => {
     console.log(`[Tool Executor] Generando pitch para gmailId ${args.gmailId}...`);
 
     // --- DEDUP 1: Por gmailId en processed_emails ---
-    const { data: already } = await supabase
-      .from('processed_emails')
-      .select('gmail_id')
-      .eq('gmail_id', args.gmailId)
-      .maybeSingle();
+    let dedupQuery1 = supabase.from('processed_emails').select('gmail_id').eq('gmail_id', args.gmailId);
+    if (args._userId) dedupQuery1 = dedupQuery1.eq('user_id', args._userId);
+    const { data: already } = await dedupQuery1.maybeSingle();
     if (already) {
       console.log(`[Tool Executor] ⏭️ Email ya procesado, saltando: ${args.gmailId}`);
       return { status: "skipped", brandName: args.gmailId, message: "Email ya procesado anteriormente." };
     }
 
     // --- DEDUP 2: Por gmailId en agent_logs (respaldo) ---
-    const { data: existingPitch } = await supabase
+    let dedupQuery2 = supabase
       .from('agent_logs')
       .select('id')
       .eq('type', 'pitch_draft')
-      .filter('content->>gmailId', 'eq', args.gmailId)
-      .limit(1)
-      .maybeSingle();
+      .filter('content->>gmailId', 'eq', args.gmailId);
+    if (args._userId) dedupQuery2 = dedupQuery2.eq('user_id', args._userId);
+    const { data: existingPitch } = await dedupQuery2.limit(1).maybeSingle();
     if (existingPitch) {
       console.log(`[Tool Executor] ⏭️ Pitch ya existe en agent_logs para gmailId ${args.gmailId}, saltando...`);
       return { status: "skipped", brandName: args.gmailId, message: "Pitch ya existe para este gmailId." };
@@ -190,7 +207,7 @@ export const functionsImplementations = {
     // --- Obtener datos reales del email desde Gmail API ---
     let emailData: { from: string; subject: string; snippet: string };
     try {
-      emailData = await fetchEmailByGmailId(args.gmailId);
+      emailData = await fetchEmailByGmailId(args.gmailId, args._userId);
     } catch (err: any) {
       console.error(`[Tool Executor] Error obteniendo email ${args.gmailId}:`, err);
       throw new Error(`No se pudo obtener el email ${args.gmailId} de Gmail: ${err.message}`);
@@ -217,13 +234,15 @@ export const functionsImplementations = {
     });
     console.log(`[Tool Executor] Pitch generado: "${result.pitchSubject}"`);
 
-    // Marcar email como procesado (upsert)
+    // Marcar email como procesado (upsert) — con user_id
     try {
-      await supabase.from('processed_emails').upsert({
+      const upsertData: any = {
         gmail_id: args.gmailId,
         brand_email: brandEmail,
         processed_at: new Date().toISOString(),
-      }, { onConflict: 'gmail_id' });
+      };
+      if (args._userId) upsertData.user_id = args._userId;
+      await supabase.from('processed_emails').upsert(upsertData, { onConflict: 'gmail_id' });
     } catch (err) {
       console.error('[Tool Executor] Error marcando email como procesado:', err);
     }
@@ -240,9 +259,11 @@ export const functionsImplementations = {
 
 /**
  * Ejecuta una llamada a función solicitada por Gemini.
+ * Acepta userId opcional para aislamiento multi-tenant.
  */
-export const executeToolCall = async (call: { name: string; args: any }) => {
+export const executeToolCall = async (call: { name: string; args: any }, userId?: string) => {
   const fn = (functionsImplementations as any)[call.name];
   if (!fn) throw new Error(`Función ${call.name} no implementada`);
-  return await fn(call.args);
+  const enrichedArgs = userId ? { ...call.args, _userId: userId } : call.args;
+  return await fn(enrichedArgs);
 };

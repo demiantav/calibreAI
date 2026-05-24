@@ -23,7 +23,7 @@ const sendMessageWithRetry = async (chat: any, message: any, retries = 3): Promi
   }
 };
 
-export const runDegradedMode = async (channelId: string) => {
+export const runDegradedMode = async (userId: string, channelId: string) => {
   console.log("[Calibre] Ejecutando modo degradado (sin orquestación de Gemini)...");
 
   let metrics: any = null;
@@ -37,12 +37,13 @@ export const runDegradedMode = async (channelId: string) => {
     console.log(`[Calibre] ✅ Métricas obtenidas: ${metrics.subscriberCount} subs`);
 
     // 2. Insights previos
-    insights = await functionsImplementations.getPreviousInsights({ creatorName: config.CREATOR_NAME });
+    insights = await functionsImplementations.getPreviousInsights({ creatorName: config.CREATOR_NAME, _userId: userId });
     console.log(`[Calibre] ✅ Insights recuperados: ${Array.isArray(insights) ? insights.length : 0} registros`);
 
     // 3. Update Media Kit
     const updateResult = await functionsImplementations.updateLiveMediaKit({
       creatorName: config.CREATOR_NAME,
+      _userId: userId,
       metrics: {
         subscribers: metrics.subscriberCount,
         totalViews: metrics.totalViews,
@@ -57,7 +58,7 @@ export const runDegradedMode = async (channelId: string) => {
 
     // 4. List emails
     try {
-      const emails: any = await functionsImplementations.listEmails({ maxResults: 10 });
+      const emails: any = await functionsImplementations.listEmails({ maxResults: 10, _userId: userId });
       let emailList: any[] = [];
       try {
         emailList = emails?.content?.[0]?.text ? JSON.parse(emails.content[0].text) : [];
@@ -78,6 +79,7 @@ export const runDegradedMode = async (channelId: string) => {
           .from('processed_emails')
           .select('gmail_id')
           .eq('gmail_id', email.id)
+          .eq('user_id', userId)
           .maybeSingle();
 
         if (already) {
@@ -89,6 +91,7 @@ export const runDegradedMode = async (channelId: string) => {
           const pitchResult = await functionsImplementations.generateAndDraftPitch({
             creatorName: config.CREATOR_NAME,
             gmailId: email.id,
+            _userId: userId,
           });
           const brandName = rawFrom.replace(/^"?(.*?)"?\s*<.*$/, '$1').trim() || 'Marca';
           pitchBrands.push(brandName);
@@ -125,6 +128,7 @@ export const runDegradedMode = async (channelId: string) => {
   if (!metrics) {
     console.error("[Calibre] Modo degradado falló completamente — no se generará summary.");
     await supabase.from('agent_logs').insert([{
+      user_id: userId,
       creator_name: config.CREATOR_NAME,
       type: 'agent_error',
       content: { text: 'El modo degradado no pudo obtener métricas. Revisa la conexión con YouTube API.' },
@@ -203,6 +207,7 @@ export const runDegradedMode = async (channelId: string) => {
 
   // Guardar resumen
   await supabase.from('agent_logs').insert([{
+    user_id: userId,
     creator_name: config.CREATOR_NAME,
     type: 'agent_summary',
     content: { text: summary },
@@ -225,7 +230,7 @@ export interface PulseCheckDeps {
   sendMessageWithRetry?: typeof sendMessageWithRetry;
 }
 
-export const runPulseCheck = async (deps?: PulseCheckDeps) => {
+export const runPulseCheck = async (userId: string, channelId: string, deps?: PulseCheckDeps) => {
   const _startChat = deps?.startChat || model.startChat.bind(model);
   const _executeToolCall = deps?.executeToolCall || executeToolCall;
   const _supabase = deps?.supabase || supabase;
@@ -233,14 +238,13 @@ export const runPulseCheck = async (deps?: PulseCheckDeps) => {
   const _config = deps?.config || config;
   const _sendMessageWithRetry = deps?.sendMessageWithRetry || sendMessageWithRetry;
 
-  console.log("[Calibre] Iniciando ciclo de razonamiento autónomo (con auto-retry)...");
+  console.log(`[Calibre] Iniciando ciclo de razonamiento autónomo para usuario ${userId}, canal ${channelId}...`);
 
-  const channelId = _config.YOUTUBE_CHANNEL_ID;
   const chat = _startChat();
 
   try {
-    const result = await _sendMessageWithRetry(chat, 
-      `Calibre, revisa el estado del creador con ID "${channelId}". 
+    const result = await _sendMessageWithRetry(chat,
+      `Calibre, revisa el estado del creador con ID "${channelId}".
        PASOS OBLIGATORIOS:
        1. Consulta YouTube para ver las métricas actuales.
        2. Usa "getPreviousInsights" para ver qué analizaste la última vez de este creador.
@@ -257,7 +261,7 @@ export const runPulseCheck = async (deps?: PulseCheckDeps) => {
       const toolResults = [];
 
       for (const call of functionCalls) {
-        const result = await _executeToolCall({ name: call.name, args: call.args });
+        const result = await _executeToolCall({ name: call.name, args: call.args }, userId);
         toolResults.push({
           functionResponse: {
             name: call.name,
@@ -279,6 +283,7 @@ export const runPulseCheck = async (deps?: PulseCheckDeps) => {
 
     // Guardar resumen del agente como log
     await _supabase.from('agent_logs').insert([{
+      user_id: userId,
       creator_name: _config.CREATOR_NAME,
       type: 'agent_summary',
       content: { text: agentText },
@@ -290,7 +295,7 @@ export const runPulseCheck = async (deps?: PulseCheckDeps) => {
   } catch (error: any) {
     if (error.status === 429) {
       console.warn("[Calibre] Gemini no disponible por cuota. Cambiando a modo degradado...");
-      await _runDegradedMode(channelId);
+      await _runDegradedMode(userId, channelId);
     } else {
       console.error("[Calibre] Error crítico en el bucle autónomo:", error);
     }
