@@ -11,9 +11,23 @@ const server = app.listen(port, () => {
   console.log(`[Calibre] -> Ejecuta el agente en: http://localhost:${port}/pulse`);
   console.log(`[Calibre] -> Mira los resultados en: http://localhost:${port}/logs`);
 
-  setTimeout(() => {
+  setTimeout(async () => {
     console.log('[Calibre] Auto-pulse: iniciando ciclo del agente...');
-    runPulseCheck();
+    try {
+      const { supabase } = await import('./infrastructure/supabase/supabase-client.js');
+      const { data: legacyUser } = await supabase
+        .from('users')
+        .select('id, youtube_channel_id')
+        .limit(1)
+        .single();
+      if (legacyUser?.youtube_channel_id) {
+        runPulseCheck(legacyUser.id, legacyUser.youtube_channel_id);
+      } else {
+        console.log('[Calibre] Auto-pulse: no hay usuario con canal configurado, saltando.');
+      }
+    } catch (err) {
+      console.error('[Calibre] Auto-pulse error:', err);
+    }
   }, 5000);
 });
 

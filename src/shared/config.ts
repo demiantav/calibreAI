@@ -11,10 +11,12 @@ const envSchema = z.object({
   PORT: z.string().default("8080"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   AUTH_API_KEY: z.string().default(""),
+  JWT_SECRET: z.string().min(1).default("calibre-jwt-secret-change-in-production"),
   CREATOR_NAME: z.string().default("midudev"),
   YOUTUBE_CHANNEL_ID: z.string().default("UC8LeXCWOalN8SxlrPcG-PaQ"),
   AUTHENTICATED_USER_EMAIL: z.string().email().default("tavolarodemian06@gmail.com"),
   GMAIL_REDIRECT_URI: z.string().url().default("http://localhost:8080/auth/callback"),
+  FRONTEND_URL: z.string().url().default("http://localhost:5173"),
 });
 
 type EnvConfig = z.infer<typeof envSchema>;

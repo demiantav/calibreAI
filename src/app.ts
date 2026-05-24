@@ -1,13 +1,14 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import path from 'path';
 import { supabase } from './infrastructure/supabase/supabase-client.js';
 import { config } from './shared/config.js';
-import { getAuthUrl, oAuth2Client } from './infrastructure/gmail/gmail-client.js';
+import { oAuth2Client } from './infrastructure/gmail/gmail-client.js';
 import { mcpManager } from './infrastructure/mcp/mcp-manager.js';
 import { runPulseCheck } from './domains/agent-core/heartbeat/pulse.js';
-import { authMiddleware } from './shared/auth-middleware.js';
-import { createOAuthState, verifyOAuthState } from './shared/oauth-state.js';
+import { jwtAuthMiddleware } from './middleware/jwt-auth.middleware.js';
+import authRoutes from './routes/auth.routes.js';
 
 export const app = express();
 
@@ -39,22 +40,15 @@ if (config.NODE_ENV !== 'test') {
   app.use('/api/pitches/:id/send', strictLimiter)
 }
 
-app.use('/pulse', authMiddleware)
-app.use('/logs', authMiddleware)
-app.use('/api', authMiddleware)
+// Mount auth routes (public)
+app.use('/auth', authRoutes);
 
-// Auth Endpoints
-app.get('/auth/login', (req, res) => {
-  const state = createOAuthState();
-  const url = getAuthUrl(state);
-  res.redirect(url);
-});
-
+// Legacy OAuth callback — now uses oauth_sessions for multi-tenant
 app.get('/auth/callback', async (req, res) => {
   const { code, state } = req.query;
 
-  if (!state || typeof state !== 'string' || !verifyOAuthState(state)) {
-    return res.status(400).json({ error: 'Estado de autenticación inválido o expirado' });
+  if (!state || typeof state !== 'string') {
+    return res.status(400).json({ error: 'Estado de autenticación faltante' });
   }
 
   if (!code || typeof code !== 'string') {
@@ -62,43 +56,88 @@ app.get('/auth/callback', async (req, res) => {
   }
 
   try {
+    // Look up the oauth session to find which user initiated this
+    const { data: oauthSession, error: sessionError } = await supabase
+      .from('oauth_sessions')
+      .select('user_id')
+      .eq('state', state)
+      .single();
+
+    if (sessionError || !oauthSession) {
+      return res.status(400).json({ error: 'Sesión de autenticación inválida o expirada' });
+    }
+
     const { tokens } = await oAuth2Client.getToken(code);
     oAuth2Client.setCredentials(tokens);
     const expiryDate = new Date(tokens.expiry_date || Date.now() + 3600 * 1000);
 
-    const { error } = await supabase
-      .from('user_auth')
-      .upsert({
-        user_email: config.AUTHENTICATED_USER_EMAIL,
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        expires_at: expiryDate.toISOString()
-      }, { onConflict: 'user_email' });
+    // Save tokens to the users table for the specific user
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        gmail_access_token: tokens.access_token,
+        gmail_refresh_token: tokens.refresh_token,
+        gmail_expires_at: expiryDate.toISOString(),
+        onboarding_step: 3,
+      })
+      .eq('id', oauthSession.user_id);
 
-    if (error) throw error;
+    if (updateError) throw updateError;
 
-    res.json({ message: 'Autenticación exitosa y token guardado en Supabase' });
+    // Clean up the oauth session
+    await supabase.from('oauth_sessions').delete().eq('state', state);
+
+    // Redirect to onboarding step 3 on the frontend URL
+    res.redirect(`${config.FRONTEND_URL}/onboarding?step=3`);
   } catch (error) {
     console.error("Error en auth/callback:", error);
     res.status(500).json({ error: 'Error al procesar tokens', details: error });
   }
 });
 
+// Protected endpoints
+app.use('/pulse', jwtAuthMiddleware)
+app.use('/logs', jwtAuthMiddleware)
+app.use('/api', jwtAuthMiddleware)
+
 // Endpoint para disparar el agente manualmente
 app.get('/pulse', async (req, res) => {
-  console.log("[API] Disparando ciclo del agente...");
+  const userId = req.user?.userId;
+  if (!userId) {
+    return res.status(401).json({ error: 'Usuario no autenticado' });
+  }
+
+  // Get user's channel ID
+  const { data: user } = await supabase
+    .from('users')
+    .select('youtube_channel_id, youtube_channel_name')
+    .eq('id', userId)
+    .single();
+
+  if (!user?.youtube_channel_id) {
+    return res.status(400).json({ error: 'Canal de YouTube no configurado. Completa el onboarding primero.' });
+  }
+
+  console.log(`[API] Disparando ciclo del agente para usuario ${userId}, canal ${user.youtube_channel_id}...`);
   res.json({ message: "Ciclo del agente iniciado. Revisa la consola o los logs en Supabase." });
-  runPulseCheck().catch((err) => {
+
+  runPulseCheck(userId, user.youtube_channel_id).catch((err) => {
     console.error("[API] Error no capturado en ciclo del agente:", err);
   });
 });
 
 // Endpoint para ver los últimos logs del agente
 app.get('/logs', async (req, res) => {
+  const userId = req.user?.userId;
+  if (!userId) {
+    return res.status(401).json({ error: 'Usuario no autenticado' });
+  }
+
   const typeFilter = req.query.type as string | undefined;
   let query = supabase
     .from('agent_logs')
-    .select('*');
+    .select('*')
+    .eq('user_id', userId);
 
   if (typeFilter) {
     query = query.eq('type', typeFilter);
@@ -114,6 +153,11 @@ app.get('/logs', async (req, res) => {
 
 // Endpoint para enviar un pitch draft
 app.post('/api/pitches/:id/send', async (req, res) => {
+  const userId = req.user?.userId;
+  if (!userId) {
+    return res.status(401).json({ error: 'Usuario no autenticado' });
+  }
+
   const { id } = req.params;
   const { subject, content } = req.body;
 
@@ -126,6 +170,7 @@ app.post('/api/pitches/:id/send', async (req, res) => {
       .from('agent_logs')
       .select('*')
       .eq('id', id)
+      .eq('user_id', userId)
       .single();
 
     if (fetchError || !log) {
@@ -167,7 +212,8 @@ app.post('/api/pitches/:id/send', async (req, res) => {
         content: pitch,
         insights: `Pitch marcado como enviado a ${pitch.brandName} — Asunto: "${subject}"`,
       })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userId);
 
     if (preUpdateError) {
       console.error('[API] Error marcando pitch como enviado antes de enviar email:', preUpdateError);
@@ -230,6 +276,18 @@ app.get('/health', async (req, res) => {
     checks,
   });
 });
+
+// Catch-all: serve frontend SPA for non-API routes (production)
+if (config.NODE_ENV !== 'test') {
+  const frontendDist = path.resolve(process.cwd(), 'apps/web/dist');
+  app.use(express.static(frontendDist));
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/auth/') || req.path.startsWith('/api/') || req.path === '/health' || req.path === '/pulse' || req.path === '/logs') {
+      return next();
+    }
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+}
 
 // Global error handler (4 params = Express error middleware)
 app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
