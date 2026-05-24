@@ -268,14 +268,25 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 
 ### Stats Sprint 10
 - **Build backend**: ✅ 0 errores
-- **Build frontend**: ✅ 0 errores, JS bundle 637KB (+18KB por auth code), CSS 135KB (+2KB)
-- **Tests backend**: 164 passing, 22 skipped
-- **Tests frontend**: 76/76 passing
+- **Build frontend**: ✅ 0 errores, JS bundle 639KB (+20KB por auth + toggle), CSS 135KB (+2KB)
+- **Tests backend**: 171 passing, 22 skipped
+- **Tests frontend**: 78/78 passing
 
-## Next Steps (Sprint 11)
+## Completed (Sprint 11a — Auto-Pitch Toggle)
 
-1. **Landing Page**: Presencia pública en inglés para Google for Startups
-2. **Auto-Pitch toggle**: UI toggle en Dashboard + backend `auto_pitch_enabled` logic en `pulse.ts`
+- **Backend**: `PATCH /auth/me` endpoint con Zod validation para actualizar `auto_pitch_enabled`
+- **Backend**: `runPulseCheck` y `runDegradedMode` respetan `auto_pitch_enabled` — prompt dinámico y salteo de pitch generation
+- **Backend**: Auto-pulse corregido para multi-tenant — itera todos los usuarios con `auto_pitch_enabled=true` y canal configurado
+- **Frontend**: `updateUser` en `AuthContext` con update optimista + rollback en error
+- **Frontend**: Toggle "Auto-pitch" en Sidebar con label, descripción, switch accesible (`role="switch"`, `aria-checked`, `aria-label`)
+- **Frontend**: Componente `Switch` reutilizable en `toggle-switch.tsx` con focus-visible y estados naranja/gris
+- **Tests backend**: 4 tests para `PATCH /auth/me`, 2 tests para `runDegradedMode` (skip pitches cuando false), 2 tests para `runPulseCheck` (prompt dinámico)
+- **Tests frontend**: 2 tests para toggle (render + accesibilidad)
+
+## Next Steps (Sprint 11b — Email Digest)
+
+1. **Email digest diario**: Scheduler con `node-cron`, servicio de digest, HTML template, toggle en UI
+2. **Landing Page**: Presencia pública en inglés para Google for Startups
 3. **Multi-tenant Agency**: Una cuenta con múltiples creadores (tabla `creators` + `user_creators`)
 4. **Integration tests**: Re-escribir 22 tests de integración para nuevo flujo JWT
 
