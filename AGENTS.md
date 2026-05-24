@@ -222,11 +222,62 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 - **CSS bundle**: 133KB (stable)
 - **JS bundle**: 619KB (stable)
 
-## Next Steps (Sprint 10)
+## Completed (Sprint 10 — Multi-tenant Auth + Onboarding)
+
+### Backend
+- **Nueva tabla `users`**: reemplaza `user_auth` legacy. Campos: `email`, `password_hash`, `youtube_channel_id`, `youtube_channel_url`, `gmail_access_token`, `auto_pitch_enabled`, `onboarding_completed`, `onboarding_step`
+- **Tabla `oauth_sessions`**: state temporal para OAuth Gmail con TTL 10min
+- **JWT Auth**: `bcryptjs` + `jsonwebtoken`. Endpoints: `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `POST /auth/youtube`, `GET /auth/gmail/start`
+- **Auth middleware**: `jwtAuthMiddleware` reemplaza `x-api-key`. `declare global` para `req.user` en Express
+- **Data isolation**: `user_id` agregado a `agent_logs`, `media_kit_update`, `processed_emails`, `channel_metrics_cache`. Todas las queries filtran por `user_id`
+- **`pulse.ts` refactor**: `runPulseCheck(userId, channelId)` y `runDegradedMode(userId, channelId)` — reciben usuario y canal como parámetros
+- **`tool-executor.ts` refactor**: `executeToolCall(call, userId?)` pasa `_userId` en args. Funciones que persisten usan `user_id`
+- **`gmail-auth.ts` refactor**: `ensureGmailAuth(userId?)` busca tokens en tabla `users` por `userId`
+- **`/auth/callback` refactor**: usa `oauth_sessions` para lookup de `userId`, guarda tokens en `users`, redirige a `/onboarding?step=3`
+- **Custom errors**: `AppError`, `UnauthorizedError`, `ValidationError`, `ConflictError` en `src/shared/errors.ts`
+- **Repository pattern**: `UserRepository` abstrae queries de Supabase
+
+### Frontend
+- **AuthContext**: JWT en localStorage, `login/register/logout/refreshUser`. Auto-fetch `/auth/me` al montar
+- **ProtectedRoute**: redirige a `/login` si no autenticado, a `/onboarding` si onboarding incompleto
+- **LoginPage / RegisterPage**: forms con validación básica, error banners
+- **api-config.ts**: `Authorization: Bearer <token>` reemplaza `x-api-key`
+- **OnboardingPage**: progress bar de 3 steps — ConnectYouTube → ConnectGmail → FirstPulse
+- **ConnectYouTube step**: input URL → validación backend con YouTube API → preview nombre + subs → confirmar
+- **ConnectGmail step**: botón OAuth → estado de conexión → "Ya conecté" para reanudar
+- **FirstPulse step**: botón "Analizar" → polling de logs → redirect a Dashboard
+- **Sidebar**: muestra email del usuario + botón Logout
+- **App.tsx**: rutas `/login`, `/register`, `/onboarding` con AuthProvider envolviendo todo
+
+### Tests
+- **Backend**: 164/164 unit tests pasando, 22 integration tests skipped (legacy — requieren refactor para JWT)
+- **Frontend**: 76/76 tests pasando
+- **TypeScript**: 0 errores backend + frontend
+
+### Fixes durante testeo
+- **YouTube URL format**: `extractChannelId` ahora detecta handles (`@VictorAbarca`) vs channel IDs (`UC...`). La API usa `forHandle` o `id` según el tipo
+- **Supabase permissions**: Migraciones `002_fix_rls_permissions.sql` + `003_grant_service_role.sql` + `004_grant_all_permissions.sql` para evitar "permission denied for table users"
+- **OAuth redirect**: `/auth/callback` redirige a `FRONTEND_URL` (env var) en vez de path relativo
+- **SPA catch-all**: Express sirve `index.html` para rutas no-API (fix Express v5: usa `app.use()` en vez de `app.get('*')`)
+- **Onboarding sequence guard**: `OnboardingPage` impide saltear steps. `FirstPulse` redirige si no hay `youtube_channel_id`
+- **Dev skip Gmail**: Botón "Saltar Gmail (solo para testear)" en `ConnectGmail` (visible solo en `import.meta.env.DEV`)
+
+### Known Issues
+- **Gmail OAuth**: Google requiere que el usuario sea "test user" aprobado en Google Cloud Console mientras la app está en "Testing" mode. Para producción, hay que pasar a "Production" mode (requiere verificación de dominio)
+- **Integration tests**: 22 tests legacy skipped — requieren refactor para nuevo flujo JWT + mock de oauth_sessions
+
+### Stats Sprint 10
+- **Build backend**: ✅ 0 errores
+- **Build frontend**: ✅ 0 errores, JS bundle 637KB (+18KB por auth code), CSS 135KB (+2KB)
+- **Tests backend**: 164 passing, 22 skipped
+- **Tests frontend**: 76/76 passing
+
+## Next Steps (Sprint 11)
 
 1. **Landing Page**: Presencia pública en inglés para Google for Startups
-2. **Auto-Pitch opcional**: Toggle por creador (manual vs automático)
-3. **Multi-tenant (Agency)**: Una cuenta con múltiples creadores
+2. **Auto-Pitch toggle**: UI toggle en Dashboard + backend `auto_pitch_enabled` logic en `pulse.ts`
+3. **Multi-tenant Agency**: Una cuenta con múltiples creadores (tabla `creators` + `user_creators`)
+4. **Integration tests**: Re-escribir 22 tests de integración para nuevo flujo JWT
 
 ## Critical Context
 
