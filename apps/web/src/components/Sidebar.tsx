@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef, type ReactNode } from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, FileText, DollarSign, Sparkles, Moon, Sun, Menu, X } from 'lucide-react';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, ScrollText, FileText, DollarSign, Sparkles, Moon, Sun, Menu, X, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/lib/theme';
 import { useApiFetch } from '@/hooks/use-api-fetch';
+import { useAuth } from '@/contexts/AuthContext';
 import type { LogEntry } from '@/lib/types';
 
 const navItems = [
@@ -34,7 +35,9 @@ const LOGS_ENDPOINT = '/logs';
 
 export function Sidebar() {
   const pathname = useLocation().pathname;
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   const { data: logs } = useApiFetch<LogEntry[]>(LOGS_ENDPOINT);
 
@@ -125,7 +128,7 @@ export function Sidebar() {
         <div className="flex items-center gap-3 px-4 py-4 rounded-[20px] bg-surface-hover border border-border/50">
           <div className="relative shrink-0">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent to-accent-secondary flex items-center justify-center text-white text-sm font-black shadow-lg">
-              {creatorName ? creatorName.charAt(0).toUpperCase() : '?'}
+              {(user?.email || creatorName) ? (user?.email || creatorName || 'C').charAt(0).toUpperCase() : '?'}
             </div>
             <motion.div
               className="absolute -inset-1 rounded-xl bg-accent-muted/20 blur-sm -z-10"
@@ -134,13 +137,22 @@ export function Sidebar() {
             />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-text truncate">{creatorName ?? 'Creator'}</p>
+            <p className="text-sm font-semibold text-text truncate">{user?.email ?? creatorName ?? 'Creator'}</p>
             <p className="text-[10px] text-accent-muted font-semibold tracking-widest uppercase">Pro Creator</p>
             {subs != null && (
               <p className="text-[10px] text-text-tertiary font-medium mt-0.5">{formatSubs(subs)} Followers</p>
             )}
           </div>
         </div>
+
+        {/* Logout */}
+        <button
+          onClick={() => { logout(); navigate('/login'); }}
+          className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-text-tertiary hover:text-red-400 hover:bg-red-500/5 transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          Cerrar sesión
+        </button>
       </div>
     </>
   );

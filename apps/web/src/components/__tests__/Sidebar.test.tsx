@@ -67,8 +67,8 @@ describe('Sidebar', () => {
       </MemoryRouter>
     )
 
-    // Fallback data before fetch completes
-    expect(screen.getByText('Creator')).toBeInTheDocument()
+    // Mock user email displayed
+    expect(screen.getByText('test@example.com')).toBeInTheDocument()
     expect(screen.getByText('Pro Creator')).toBeInTheDocument()
   })
 
