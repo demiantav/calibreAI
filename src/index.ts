@@ -43,13 +43,13 @@ const server = app.listen(port, () => {
   }, 5000);
 
   // ── Daily Digest Scheduler ─────────────────────────────────────────────────
-  // Runs every day at 8:00 AM (America/Argentina, UTC-3)
+  // Runs every day at 8:00 AM (Europe/Rome)
   cron.schedule('0 8 * * *', async () => {
     console.log('[Calibre] Daily digest: iniciando envío de resúmenes...');
     await runDailyDigest();
     console.log('[Calibre] Daily digest: completado.');
   }, {
-    timezone: 'America/Argentina',
+    timezone: 'Europe/Rome',
   });
 
   console.log('[Calibre] Daily digest scheduler activado (8:00 AM America/Argentina)');
