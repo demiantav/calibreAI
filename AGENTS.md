@@ -318,13 +318,23 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 - **Tests backend**: 171 passing, 22 skipped
 - **Tests frontend**: 78/78 passing
 
-## Next Steps (Sprint 12)
+## Completed (Sprint 12 — Email Digest Daily)
 
-1. **Supabase visibility debug**: investigar por qué `agent_logs` insert no es visible en SELECT inmediato (posible RLS residual, schema issue, o timing)
-2. **Email digest diario**: Scheduler con `node-cron`, servicio de digest, HTML template, toggle en UI
-3. **Landing Page**: Presencia pública en inglés para Google for Startups
-4. **Multi-tenant Agency**: Una cuenta con múltiples creadores (tabla `creators` + `user_creators`)
-5. **Integration tests**: Re-escribir 22 tests de integración para nuevo flujo JWT
+### Features
+- **`node-cron` scheduler**: corre todos los días a las 8:00 AM (`Europe/Rome`). Itera usuarios con `email_digest_enabled=true` + `youtube_channel_id IS NOT NULL`. Stagger 5s entre usuarios.
+- **`DigestService`**: `generateAndSendDigest(user)` → dispara `runPulseCheck` para datos frescos → espera 3s → query logs últimas 24h → genera HTML responsive → envía vía Gmail MCP.
+- **HTML Template**: tabla-based layout compatible Gmail/Outlook. Secciones: header (logo + fecha), métricas snapshot (subs/views/engagement), Daily Brief, pitches pendientes, tarifas estimadas, CTA "Abrir Dashboard", footer.
+- **Gmail MCP `send_email`**: ahora acepta `html?: string`. Cuando se pasa, usa `Content-Type: text/html` en vez de `text/plain`.
+- **Subject mejorado**: `📊 Calibre · Daily Brief de {creatorName} · {fecha}` (ej: lunes, 25 de mayo).
+- **Sidebar toggle**: "Daily Digest" debajo de "Auto-pitch". Mismo patrón de switch accesible + update optimista.
+- **Migración**: `005_email_digest.sql` agrega `email_digest_enabled BOOLEAN DEFAULT false` a `users`.
+
+### Known Issues / Next Steps
+- **Timezone configurable**: ahora el digest corre a las 8am `Europe/Rome` (fijo). Futuro: guardar `timezone` del usuario (detectar del navegador) y correr cron cada hora filtrando `hora_local = 8am`.
+- **Supabase visibility debug**: investigar por qué `agent_logs` insert no es visible en SELECT inmediato (posible RLS residual, schema issue, o timing)
+- **Landing Page**: Presencia pública en inglés para Google for Startups
+- **Multi-tenant Agency**: Una cuenta con múltiples creadores (tabla `creators` + `user_creators`)
+- **Integration tests**: Re-escribir 22 tests de integración para nuevo flujo JWT
 
 ## Critical Context
 
