@@ -305,6 +305,19 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 - **Tests backend**: 171 passing, 22 skipped
 - **Tests frontend**: 78/78 passing
 
+## Completed (Sprint 11c — Auth Headers Fixes)
+
+### Bug Fixes
+- **`pulse-context.tsx` 401 fix**: `triggerPulse` hacía `fetch` a `/pulse` sin headers de autenticación (URL hardcodeada a `localhost:8080` sin `Authorization`). El backend retornaba 401 silenciosamente gracias a `.catch(() => {})` → el botón Pulse parecía funcionar pero el servidor nunca recibía el request real.
+- **`Dashboard.tsx` 401 fix**: El polling del Dashboard hacía `fetch` a `/logs` sin headers de autenticación. Retornaba 401 cada 3 segundos → nunca detectaba el `agent_summary` nuevo → safety timeout a los 60s disparaba `error` (X roja) aunque el backend había terminado exitosamente.
+- **Eliminado hardcodeo de `localhost:8080`**: `pulse-context.tsx` y `Dashboard.tsx` ahora usan `API_BASE_URL` desde `api-config.ts`.
+
+### Stats Sprint 11c
+- **Build backend**: ✅ 0 errores
+- **Build frontend**: ✅ 0 errores, JS 640KB, CSS 135KB
+- **Tests backend**: 171 passing, 22 skipped
+- **Tests frontend**: 78/78 passing
+
 ## Next Steps (Sprint 12)
 
 1. **Supabase visibility debug**: investigar por qué `agent_logs` insert no es visible en SELECT inmediato (posible RLS residual, schema issue, o timing)
@@ -347,5 +360,7 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 - `apps/web/src/components/ui/toggle-switch.tsx`: Switch accesible (role=switch, focus-visible, estados naranja/gris)
 - `apps/web/src/components/Sidebar.tsx`: sidebar con navegación, profile, auto-pitch toggle, logout
 - `apps/web/src/lib/api-config.ts`: getAuthHeaders() (GET/DELETE) + getJsonHeaders() (POST/PATCH/PUT) + API_BASE_URL
-- `apps/web/src/pages/onboarding/steps/FirstPulse.tsx`: análisis asíncrono, onboarding completa al instante sin polling
+- `apps/web/src/lib/pulse-context.tsx`: triggerPulse con JWT headers + lastPulseAt tracking
+- `apps/web/src/pages/Dashboard.tsx`: rediseño asimétrico audaz + polling de logs con auth headers
+- `apps/web/src/pages/onboarding/steps/FirstPulse.tsx`: análisis síncrono vía `/pulse?wait=true`
 - `apps/web/src/test-setup.tsx`: setup + mock centralizado de framer-motion con todos los elementos SVG/HTML

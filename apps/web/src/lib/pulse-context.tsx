@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { API_BASE_URL, getAuthHeaders } from '@/lib/api-config';
 
 export type PulseStatus = 'idle' | 'pulsing' | 'success' | 'error';
 
@@ -23,7 +24,9 @@ export function PulseProvider({ children }: { children: ReactNode }) {
   const triggerPulse = useCallback(async () => {
     setPulseStatus('pulsing');
     setLastPulseAt(Date.now());
-    await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}/pulse`).catch(() => {});
+    await fetch(`${API_BASE_URL}/pulse`, {
+      headers: getAuthHeaders(),
+    }).catch(() => {});
   }, []);
 
   return (

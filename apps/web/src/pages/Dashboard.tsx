@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom';
 import { usePulse } from '@/lib/pulse-context';
 import { RelativeTime } from '@/lib/use-relative-time';
 import { useApiFetch } from '@/hooks/use-api-fetch';
+import { API_BASE_URL, getAuthHeaders } from '@/lib/api-config';
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonMetric } from '@/components/ui/skeleton-card';
 import type { LogEntry, SponsorshipForecast, PitchDraft } from '@/lib/types';
@@ -39,7 +40,9 @@ export default function Dashboard() {
     const poll = async () => {
       if (guard.stopped) return;
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}${LOGS_ENDPOINT}`);
+        const res = await fetch(`${API_BASE_URL}${LOGS_ENDPOINT}`, {
+          headers: getAuthHeaders(),
+        });
         if (res.ok) {
           const data: LogEntry[] = await res.json();
 

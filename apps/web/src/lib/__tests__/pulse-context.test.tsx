@@ -32,7 +32,7 @@ describe('PulseProvider + usePulse', () => {
     })
 
     expect(result.current.pulseStatus).toBe('pulsing')
-    expect(fetchFn).toHaveBeenCalledWith('http://localhost:8080/pulse')
+    expect(fetchFn).toHaveBeenCalledWith('http://localhost:8080/pulse', expect.objectContaining({ headers: expect.any(Object) }))
   })
 
   it('should update pulseStatus when setPulseStatus is called', () => {
