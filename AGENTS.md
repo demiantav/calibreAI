@@ -344,6 +344,22 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 - `tsconfig.test.json` extiende tsconfig.json con `strictNullChecks: false` para mocks
 - Frontend tests corren con `pnpm --filter calibre-dashboard test`
 
+## In Progress (Sprint 12 — Contract Auditor)
+
+### Features Implemented
+- **`POST /api/contracts/audit`**: recibe PDF vía `multer` (memory storage), extrae texto con `pdf-parse` (PDFParse v2), dispara `auditContractUseCase` con Gemini.
+- **Fallback análisis**: si Gemini falla, usa análisis basado en lista de cláusulas abusivas conocidas (regex sobre texto del contrato).
+- **Persistencia**: resultado guardado en `agent_logs` con `type='contract_audit'` para historial.
+- **Resultado estructurado**: `riskLevel` (low/medium/high), `redFlags[]`, `suggestedNegotiationPoints[]`, `estimatedFairRate`, `summary`, `contractType`.
+- **Frontend `/contracts`**: drag & drop o click para subir PDF, visualización de resultado con badges de riesgo, lista de red flags, sugerencias de negociación, historial de análisis previos.
+- **Nav item**: "Contracts" con icono `FileCheck` en Sidebar.
+
+### ⚠️ Pending Verification
+- [ ] **End-to-end test**: subir un PDF real de contrato y verificar que el análisis se genera correctamente
+- [ ] **Fallback test**: verificar que el análisis regex funciona cuando Gemini no está disponible
+- [ ] **Historial test**: verificar que los análisis previos aparecen en la lista del frontend
+- [ ] **Error handling**: testear PDF corrupto, archivo muy grande, y texto no extraíble
+
 ## Relevant Files
 
 - `src/app.ts`: Express app con routes, global error handler y rate limiting
@@ -373,4 +389,6 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 - `apps/web/src/lib/pulse-context.tsx`: triggerPulse con JWT headers + lastPulseAt tracking
 - `apps/web/src/pages/Dashboard.tsx`: rediseño asimétrico audaz + polling de logs con auth headers
 - `apps/web/src/pages/onboarding/steps/FirstPulse.tsx`: análisis síncrono vía `/pulse?wait=true`
+- `apps/web/src/pages/Contracts.tsx`: upload de PDF + visualización de análisis + historial
 - `apps/web/src/test-setup.tsx`: setup + mock centralizado de framer-motion con todos los elementos SVG/HTML
+- `src/domains/contracts/use-cases/audit-contract.ts`: auditoría de contratos con Gemini + fallback regex
