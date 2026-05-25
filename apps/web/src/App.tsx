@@ -1,5 +1,6 @@
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 import { ThemeProvider } from '@/lib/theme';
 import { PulseProvider } from '@/lib/pulse-context';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -33,11 +34,31 @@ function AnimatedPage({ children }: { children: React.ReactNode }) {
   );
 }
 
+function OnboardingLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-bg flex flex-col">
+      {/* Top bar with logo */}
+      <header className="px-6 py-5 flex items-center justify-center">
+        <Link to="/" className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <span className="text-lg font-display font-black text-text tracking-tight">Calibre</span>
+        </Link>
+      </header>
+      <main className="flex-1 flex items-center justify-center px-5">
+        {children}
+      </main>
+    </div>
+  );
+}
+
 export default function App() {
   const location = useLocation();
   useKeyboardShortcuts();
 
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isOnboardingPage = location.pathname.startsWith('/onboarding');
 
   return (
     <AuthProvider>
@@ -49,12 +70,19 @@ export default function App() {
               <Route path="/register" element={<AnimatedPage><RegisterPage /></AnimatedPage>} />
             </Routes>
           </AnimatePresence>
+        ) : isOnboardingPage ? (
+          <OnboardingLayout>
+            <AnimatePresence mode="wait">
+              <Routes location={location} key={location.pathname}>
+                <Route path="/onboarding" element={<AnimatedPage><OnboardingPage /></AnimatedPage>} />
+              </Routes>
+            </AnimatePresence>
+          </OnboardingLayout>
         ) : (
           <PulseProvider>
             <Layout>
               <AnimatePresence mode="wait">
                 <Routes location={location} key={location.pathname}>
-                  <Route path="/onboarding" element={<AnimatedPage><OnboardingPage /></AnimatedPage>} />
                   <Route path="/" element={<ProtectedRoute><AnimatedPage><Dashboard /></AnimatedPage></ProtectedRoute>} />
                   <Route path="/logs" element={<ProtectedRoute><AnimatedPage><Logs /></AnimatedPage></ProtectedRoute>} />
                   <Route path="/pitches" element={<ProtectedRoute><AnimatedPage><Pitches /></AnimatedPage></ProtectedRoute>} />
