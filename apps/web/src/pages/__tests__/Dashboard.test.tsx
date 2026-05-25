@@ -95,8 +95,8 @@ describe('Dashboard', () => {
       expect(screen.getByText('midudev')).toBeInTheDocument()
     })
     expect(screen.getAllByText('150,000').length).toBeGreaterThanOrEqual(1)
-    // "followers" appears in the hero tagline with surrounding spaces
-    expect(screen.getByText(/followers/)).toBeInTheDocument()
+    // "Followers" appears in the MetricCard label
+    expect(screen.getByText('Followers')).toBeInTheDocument()
   })
 
   it('should render without crash when API returns empty', async () => {
