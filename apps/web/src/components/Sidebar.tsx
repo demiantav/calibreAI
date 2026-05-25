@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, FileText, DollarSign, Sparkles, Moon, Sun, Menu, X, LogOut, Zap } from 'lucide-react';
+import { LayoutDashboard, ScrollText, FileText, DollarSign, Sparkles, Moon, Sun, Menu, X, LogOut, Zap, Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/lib/theme';
@@ -139,6 +139,28 @@ export function Sidebar() {
               }
             }}
             aria-label="Activar auto-pitch"
+          />
+        </div>
+
+        {/* Daily Digest toggle */}
+        <div className="px-4 flex items-center justify-between gap-3 py-2.5 rounded-[16px] bg-surface-hover/50 border border-border/30">
+          <div className="flex items-center gap-2 min-w-0">
+            <Mail className="w-4 h-4 text-accent shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-text truncate">Daily Digest</p>
+              <p className="text-[10px] text-text-tertiary truncate hidden sm:block">Resumen diario por email</p>
+            </div>
+          </div>
+          <Switch
+            checked={user?.email_digest_enabled ?? false}
+            onCheckedChange={async (checked) => {
+              try {
+                await updateUser({ email_digest_enabled: checked });
+              } catch {
+                // Error handled by AuthContext (rollback + re-fetch)
+              }
+            }}
+            aria-label="Activar daily digest"
           />
         </div>
 

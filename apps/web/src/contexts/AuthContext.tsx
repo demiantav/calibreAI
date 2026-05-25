@@ -8,6 +8,7 @@ interface AuthUser {
   onboarding_completed: boolean;
   onboarding_step: number;
   auto_pitch_enabled: boolean;
+  email_digest_enabled: boolean;
 }
 
 interface AuthContextType {

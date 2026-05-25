@@ -25,6 +25,7 @@ const updateMeSchema = z.object({
   auto_pitch_enabled: z.boolean(),
   onboarding_completed: z.boolean(),
   onboarding_step: z.number().int().min(1).max(4),
+  email_digest_enabled: z.boolean(),
 }).partial();
 
 // POST /auth/register

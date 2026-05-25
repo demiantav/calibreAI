@@ -49,6 +49,7 @@ vi.mock('@/contexts/AuthContext', () => ({
       onboarding_completed: true,
       onboarding_step: 4,
       auto_pitch_enabled: false,
+      email_digest_enabled: false,
     },
     isLoading: false,
     isAuthenticated: true,
