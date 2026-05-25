@@ -119,6 +119,7 @@ export const runDegradedMode = async (userId: string, channelId: string, autoPit
         lastVideoComments: metrics.lastVideoComments,
         engagementRate: metrics.engagementRate,
         niche: 'desarrollo web',
+        _userId: userId,
       });
       console.log(`[Calibre] ✅ Sponsorship: mención $${forecast.mention.min}-$${forecast.mention.max} USD`);
     } catch (forecastError: any) {

@@ -162,7 +162,7 @@ export const functionsImplementations = {
   },
 
   // Sponsorship Forecasting
-  calculateSponsorshipValue: async (args: { creatorName: string; subscribers: number; totalViews: number; lastVideoViews: number; lastVideoLikes?: number; lastVideoComments?: number; engagementRate?: number; niche: string }) => {
+  calculateSponsorshipValue: async (args: { creatorName: string; subscribers: number; totalViews: number; lastVideoViews: number; lastVideoLikes?: number; lastVideoComments?: number; engagementRate?: number; niche: string; _userId?: string }) => {
     console.log(`[Tool Executor] Calculando sponsorship value para ${args.creatorName}...`);
     const forecast = await calculateSponsorshipUseCase({
       creatorName: args.creatorName,
@@ -173,6 +173,7 @@ export const functionsImplementations = {
       lastVideoComments: args.lastVideoComments,
       engagementRate: args.engagementRate,
       niche: args.niche,
+      userId: args._userId,
     });
     console.log(`[Tool Executor] Forecast: mención $${forecast.mention.min}-$${forecast.mention.max}`);
     return forecast;

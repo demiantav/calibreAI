@@ -18,6 +18,7 @@ interface SponsorshipInput {
   lastVideoComments?: number;
   engagementRate?: number;
   niche: string;
+  userId?: string;
 }
 
 export const calculateSponsorshipUseCase = async (input: SponsorshipInput): Promise<SponsorshipForecast> => {
@@ -81,14 +82,17 @@ export const calculateSponsorshipUseCase = async (input: SponsorshipInput): Prom
       };
     }
 
+    const insertData: any = {
+      creator_name: input.creatorName,
+      type: 'sponsorship_forecast',
+      content: forecast,
+      insights: `Sponsorship forecast para ${input.creatorName}: mención $${forecast.mention.min}-$${forecast.mention.max}, dedicado $${forecast.dedicated.min}-$${forecast.dedicated.max}. Engagement: ${engagementRate}%. ${forecast.marketContext}`,
+    };
+    if (input.userId) insertData.user_id = input.userId;
+
     const { error } = await supabase
       .from('agent_logs')
-      .insert([{
-        creator_name: input.creatorName,
-        type: 'sponsorship_forecast',
-        content: forecast,
-        insights: `Sponsorship forecast para ${input.creatorName}: mención $${forecast.mention.min}-$${forecast.mention.max}, dedicado $${forecast.dedicated.min}-$${forecast.dedicated.max}. Engagement: ${engagementRate}%. ${forecast.marketContext}`,
-      }]);
+      .insert([insertData]);
 
     if (error) {
       console.error("[Sponsorship Use Case] Error guardando forecast:", error);
