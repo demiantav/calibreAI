@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard';
 import Logs from './pages/Logs';
 import Pitches from './pages/Pitches';
 import Sponsorship from './pages/Sponsorship';
+import Contracts from './pages/Contracts';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import OnboardingPage from './pages/onboarding/OnboardingPage';
@@ -87,6 +88,7 @@ export default function App() {
                   <Route path="/logs" element={<ProtectedRoute><AnimatedPage><Logs /></AnimatedPage></ProtectedRoute>} />
                   <Route path="/pitches" element={<ProtectedRoute><AnimatedPage><Pitches /></AnimatedPage></ProtectedRoute>} />
                   <Route path="/sponsorship" element={<ProtectedRoute><AnimatedPage><Sponsorship /></AnimatedPage></ProtectedRoute>} />
+                  <Route path="/contracts" element={<ProtectedRoute><AnimatedPage><Contracts /></AnimatedPage></ProtectedRoute>} />
                 </Routes>
               </AnimatePresence>
             </Layout>

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, FileText, DollarSign, Sparkles, Moon, Sun, Menu, X, LogOut, Zap, Mail } from 'lucide-react';
+import { LayoutDashboard, ScrollText, FileText, DollarSign, Sparkles, Moon, Sun, Menu, X, LogOut, Zap, Mail, FileCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/lib/theme';
@@ -13,6 +13,7 @@ const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/logs', label: 'Activity', icon: ScrollText },
   { href: '/pitches', label: 'Pitches', icon: FileText },
+  { href: '/contracts', label: 'Contracts', icon: FileCheck },
   { href: '/sponsorship', label: 'Rates', icon: DollarSign },
 ];
 
