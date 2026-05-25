@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE_URL, getAuthHeaders } from '@/lib/api-config';
+
+const WAIT_TIMEOUT_MS = 120000; // 2 min safety timeout
 
 interface Props {
   onComplete: () => void;
@@ -9,10 +12,12 @@ interface Props {
 export default function FirstPulse({ onComplete }: Props) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState('');
+  const [elapsedLabel, setElapsedLabel] = useState('');
   const navigate = useNavigate();
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Guard: if user somehow got here without YouTube, redirect back
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+
   if (!user?.youtube_channel_id) {
     return (
       <div className="space-y-4 text-center">
@@ -30,58 +35,46 @@ export default function FirstPulse({ onComplete }: Props) {
   const handleAnalyze = async () => {
     setError('');
     setIsAnalyzing(true);
+    setElapsedLabel('');
+
+    const startTime = Date.now();
+    timerRef.current = setInterval(() => {
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      setElapsedLabel(`${elapsed}s`);
+    }, 1000);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), WAIT_TIMEOUT_MS);
+
     try {
-      const token = localStorage.getItem('calibre-jwt');
-      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}/pulse`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch(`${API_BASE_URL}/pulse?wait=true`, {
+        headers: getAuthHeaders(),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
+      clearInterval(timerRef.current!);
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Error al iniciar análisis');
 
-      // Start polling like Dashboard does
-      pollForResults();
+      await updateUser({ onboarding_completed: true, onboarding_step: 4 });
+      onComplete();
     } catch (err: any) {
-      setError(err.message);
+      clearTimeout(timeoutId);
+      clearInterval(timerRef.current!);
+
+      if (err.name === 'AbortError') {
+        setError('El análisis está tardando más de lo esperado. Podés ir al Dashboard mientras termina.');
+      } else {
+        setError(err.message || 'Error al iniciar análisis');
+      }
       setIsAnalyzing(false);
     }
   };
 
-  const pollForResults = () => {
-    let attempts = 0;
-    const maxAttempts = 60; // 60 * 2s = 2 minutes
-
-    const check = async () => {
-      attempts++;
-      if (attempts > maxAttempts) {
-        setIsAnalyzing(false);
-        // Even if not complete, go to dashboard
-        onComplete();
-        return;
-      }
-
-      try {
-        const token = localStorage.getItem('calibre-jwt');
-        const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}/logs?type=agent_summary`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const logs = await res.json();
-        if (Array.isArray(logs) && logs.length > 0) {
-          // Analysis complete!
-          setIsAnalyzing(false);
-          onComplete();
-          return;
-        }
-      } catch {
-        // Ignore polling errors
-      }
-
-      setTimeout(check, 2000);
-    };
-
-    check();
-  };
-
-  const handleSkip = () => {
+  const handleSkip = async () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    await updateUser({ onboarding_completed: true, onboarding_step: 4 });
     navigate('/');
   };
 
@@ -90,15 +83,26 @@ export default function FirstPulse({ onComplete }: Props) {
       <div className="text-center space-y-1">
         <h2 className="text-lg font-semibold text-text">Primer análisis</h2>
         <p className="text-sm text-text-secondary">
-          Vamos a analizar tu canal por primera vez. Esto puede tardar unos minutos.
+          Vamos a analizar tu canal por primera vez. Podés seguir al Dashboard mientras el análisis se ejecuta.
         </p>
       </div>
 
       {isAnalyzing ? (
         <div className="space-y-4 text-center py-4">
           <div className="w-12 h-12 mx-auto rounded-full border-4 border-accent/30 border-t-accent animate-spin" />
-          <p className="text-text-secondary">Analizando tu contenido...</p>
-          <p className="text-xs text-text-tertiary">Revisando métricas, emails y generando insights</p>
+          <p className="text-text-secondary">
+            Analizando tu canal
+            {elapsedLabel && <span className="text-text-tertiary"> · {elapsedLabel}</span>}
+          </p>
+          <p className="text-xs text-text-tertiary">Esto puede tomar unos segundos</p>
+          {parseInt(elapsedLabel) >= 15 && (
+            <button
+              onClick={handleSkip}
+              className="py-2 px-4 rounded-lg text-sm text-text-secondary hover:text-text transition-colors"
+            >
+              Ir al Dashboard ya →
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-4">

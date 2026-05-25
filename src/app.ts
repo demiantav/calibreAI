@@ -8,6 +8,7 @@ import { oAuth2Client } from './infrastructure/gmail/gmail-client.js';
 import { mcpManager } from './infrastructure/mcp/mcp-manager.js';
 import { runPulseCheck } from './domains/agent-core/heartbeat/pulse.js';
 import { jwtAuthMiddleware } from './middleware/jwt-auth.middleware.js';
+// Force tsx reload when auth.routes.ts changes
 import authRoutes from './routes/auth.routes.js';
 
 export const app = express();
@@ -101,6 +102,7 @@ app.use('/logs', jwtAuthMiddleware)
 app.use('/api', jwtAuthMiddleware)
 
 // Endpoint para disparar el agente manualmente
+// ?wait=true espera a que el análisis termine antes de responder (útil para onboarding)
 app.get('/pulse', async (req, res) => {
   const userId = req.user?.userId;
   if (!userId) {
@@ -118,12 +120,23 @@ app.get('/pulse', async (req, res) => {
     return res.status(400).json({ error: 'Canal de YouTube no configurado. Completa el onboarding primero.' });
   }
 
-  console.log(`[API] Disparando ciclo del agente para usuario ${userId}, canal ${user.youtube_channel_id}, auto-pitch: ${user.auto_pitch_enabled}...`);
-  res.json({ message: "Ciclo del agente iniciado. Revisa la consola o los logs en Supabase." });
+  const shouldWait = req.query.wait === 'true';
+  console.log(`[API] Disparando ciclo del agente para usuario ${userId}, canal ${user.youtube_channel_id}, auto-pitch: ${user.auto_pitch_enabled}, wait: ${shouldWait}...`);
 
-  runPulseCheck(userId, user.youtube_channel_id, { autoPitchEnabled: user.auto_pitch_enabled ?? false }).catch((err) => {
-    console.error("[API] Error no capturado en ciclo del agente:", err);
-  });
+  if (shouldWait) {
+    try {
+      await runPulseCheck(userId, user.youtube_channel_id, { autoPitchEnabled: user.auto_pitch_enabled ?? false });
+      res.json({ message: 'Ciclo del agente completado.' });
+    } catch (err: any) {
+      console.error('[API] Error en ciclo del agente (wait mode):', err.message || err);
+      res.status(500).json({ error: 'Error durante el análisis del canal.' });
+    }
+  } else {
+    res.json({ message: 'Ciclo del agente iniciado. Revisa la consola o los logs en Supabase.' });
+    runPulseCheck(userId, user.youtube_channel_id, { autoPitchEnabled: user.auto_pitch_enabled ?? false }).catch((err) => {
+      console.error('[API] Error no capturado en ciclo del agente:', err);
+    });
+  }
 });
 
 // Endpoint para ver los últimos logs del agente
