@@ -2,14 +2,19 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
+import multer from 'multer';
+import { PDFParse } from 'pdf-parse';
 import { supabase } from './infrastructure/supabase/supabase-client.js';
 import { config } from './shared/config.js';
 import { oAuth2Client } from './infrastructure/gmail/gmail-client.js';
 import { mcpManager } from './infrastructure/mcp/mcp-manager.js';
 import { runPulseCheck } from './domains/agent-core/heartbeat/pulse.js';
+import { auditContractUseCase } from './domains/contracts/use-cases/audit-contract.js';
 import { jwtAuthMiddleware } from './middleware/jwt-auth.middleware.js';
 // Force tsx reload when auth.routes.ts changes
 import authRoutes from './routes/auth.routes.js';
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 export const app = express();
 
@@ -288,6 +293,49 @@ app.get('/health', async (req, res) => {
     timestamp: new Date().toISOString(),
     checks,
   });
+});
+
+// Endpoint para auditar contratos
+app.post('/api/contracts/audit', jwtAuthMiddleware, upload.single('contract'), async (req, res) => {
+  const userId = req.user?.userId;
+  if (!userId) {
+    return res.status(401).json({ error: 'Usuario no autenticado' });
+  }
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'Se requiere un archivo PDF' });
+  }
+
+  try {
+    // Extract text from PDF
+    const parser = new PDFParse({ data: req.file.buffer });
+    const textResult = await parser.getText();
+    const contractText = textResult.text;
+
+    if (!contractText || contractText.trim().length < 50) {
+      return res.status(400).json({ error: 'No se pudo extraer texto suficiente del PDF' });
+    }
+
+    // Get user's channel name for context
+    const { data: user } = await supabase
+      .from('users')
+      .select('youtube_channel_name')
+      .eq('id', userId)
+      .single();
+
+    const creatorName = user?.youtube_channel_name || 'Creator';
+
+    const result = await auditContractUseCase({
+      contractText,
+      creatorName,
+      userId,
+    });
+
+    res.json(result);
+  } catch (error: any) {
+    console.error('[API] Error auditando contrato:', error);
+    res.status(500).json({ error: 'Error al analizar el contrato', details: error.message });
+  }
 });
 
 // Catch-all: serve frontend SPA for non-API routes (production)
