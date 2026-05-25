@@ -35,7 +35,7 @@ export default function OnboardingPage() {
   };
 
   const handleOnboardingComplete = () => {
-    navigate('/');
+    navigate('/', { replace: true });
   };
 
   return (

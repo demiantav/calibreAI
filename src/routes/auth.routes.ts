@@ -23,6 +23,8 @@ const youtubeUrlSchema = z.object({
 
 const updateMeSchema = z.object({
   auto_pitch_enabled: z.boolean(),
+  onboarding_completed: z.boolean(),
+  onboarding_step: z.number().int().min(1).max(4),
 }).partial();
 
 // POST /auth/register
@@ -77,6 +79,7 @@ router.get('/me', async (req: Request, res: Response) => {
 
 // PATCH /auth/me
 router.patch('/me', async (req: Request, res: Response) => {
+  console.log('[AuthRoutes] PATCH /me handler executed');
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) {
