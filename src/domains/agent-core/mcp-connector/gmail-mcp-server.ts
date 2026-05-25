@@ -57,8 +57,9 @@ server.tool(
     to: z.string().email(),
     subject: z.string(),
     body: z.string(),
+    html: z.string().optional().describe("HTML body for rich emails. When provided, the email is sent as text/html"),
   },
-  async ({ to, subject, body }) => {
+  async ({ to, subject, body, html }) => {
     await ensureGmailAuth();
 
     function encodeHeader(text: string): string {
@@ -67,8 +68,12 @@ server.tool(
       return `=?UTF-8?B?${bytes.toString('base64')}?=`;
     }
 
+    const isHtml = html && html.trim().length > 0;
+    const contentType = isHtml ? 'text/html' : 'text/plain';
+    const messageBody = isHtml ? html : body;
+
     const utf8Bytes = Buffer.from(
-      `To: ${to}\r\nSubject: ${encodeHeader(subject)}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${body}`,
+      `To: ${to}\r\nSubject: ${encodeHeader(subject)}\r\nContent-Type: ${contentType}; charset=UTF-8\r\n\r\n${messageBody}`,
       'utf-8'
     );
     const encodedMessage = utf8Bytes.toString('base64url');
@@ -79,7 +84,7 @@ server.tool(
     });
 
     return {
-      content: [{ type: "text", text: JSON.stringify({ success: true, to, subject }) }],
+      content: [{ type: "text", text: JSON.stringify({ success: true, to, subject, html: isHtml }) }],
     };
   }
 );

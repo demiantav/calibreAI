@@ -153,7 +153,7 @@ export const functionsImplementations = {
     }
   },
 
-  sendEmail: async (args: { to: string; subject: string; body: string }) => {
+  sendEmail: async (args: { to: string; subject: string; body: string; html?: string }) => {
     const isHealthy = await mcpManager.healthCheck();
     if (!isHealthy) {
       throw new Error("MCP Server is unhealthy. Cannot send email.");

@@ -220,7 +220,9 @@ export async function generateAndSendDigest(user: UserDigest): Promise<void> {
     const html = buildDigestHtml(user.youtube_channel_name || 'Creator', logs as LogEntry[]);
 
     // 5. Send email via MCP
-    const subject = `Daily Brief — ${new Date().toLocaleDateString('es-ES', { month: 'long', day: 'numeric' })}`;
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+    const subject = `📊 Calibre · Daily Brief de ${user.youtube_channel_name || 'Creator'} · ${dateStr}`;
 
     const isHealthy = await mcpManager.healthCheck();
     if (!isHealthy) {
@@ -235,7 +237,8 @@ export async function generateAndSendDigest(user: UserDigest): Promise<void> {
     await mcpManager.callTool('send_email', {
       to: user.email,
       subject,
-      body: html,
+      body: 'Resumen diario de tu canal. Abrí el email para ver el contenido completo.',
+      html,
     });
 
     console.log(`[DigestService] ✅ Digest enviado a ${user.email}`);
