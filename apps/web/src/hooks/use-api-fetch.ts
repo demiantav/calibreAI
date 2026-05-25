@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { API_BASE_URL, getApiHeaders } from '@/lib/api-config';
+import { API_BASE_URL, getAuthHeaders, getJsonHeaders } from '@/lib/api-config';
 
 export interface ApiState<T> {
   data: T | null;
@@ -29,10 +29,14 @@ export function useApiFetch<T>(
 
     try {
       const url = `${API_BASE_URL}${endpoint}`;
+      const method = (optionsRef.current?.method || 'GET').toUpperCase();
+      const authHeaders = ['POST', 'PATCH', 'PUT'].includes(method)
+        ? getJsonHeaders()
+        : getAuthHeaders();
       const mergedOptions: RequestInit = {
         ...optionsRef.current,
         headers: {
-          ...getApiHeaders(),
+          ...authHeaders,
           ...optionsRef.current?.headers,
         },
         signal: controller.signal,

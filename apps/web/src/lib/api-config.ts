@@ -6,16 +6,33 @@
 export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
 
 /**
- * Get the default headers for API requests.
- * Includes JWT Authorization token when available in localStorage.
+ * Get the default auth headers for API requests (no Content-Type).
+ * Use getJsonHeaders() for POST/PATCH/PUT requests that send a JSON body.
  */
-export function getApiHeaders(): HeadersInit {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
+export function getAuthHeaders(): HeadersInit {
+  const headers: HeadersInit = {};
   const token = typeof window !== 'undefined' ? localStorage.getItem('calibre-jwt') : null;
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
   return headers;
+}
+
+/**
+ * Get headers for requests with a JSON body (POST/PATCH/PUT).
+ * Includes Content-Type + JWT Authorization.
+ */
+export function getJsonHeaders(): HeadersInit {
+  return {
+    'Content-Type': 'application/json',
+    ...getAuthHeaders(),
+  };
+}
+
+/**
+ * @deprecated Use getAuthHeaders() for GET/DELETE, getJsonHeaders() for POST/PATCH/PUT.
+ * This alias avoids Content-Type on GET requests (which was causing CORS preflight edge cases).
+ */
+export function getApiHeaders(): HeadersInit {
+  return getAuthHeaders();
 }
