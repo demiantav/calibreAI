@@ -287,6 +287,7 @@ Dar al creador control sobre si Calibre genera borradores de respuesta automáti
 - **AuthContext `updateUser`**: Update optimista (`setUser` inmediato) + rollback vía `fetchUser()` en error
 - **Componente `Switch`**: `toggle-switch.tsx` — `<button role="switch">`, estados naranja/gris, focus-visible outline, `prefers-reduced-motion` friendly
 - **Sidebar toggle**: Debajo del profile card. Label "Auto-pitch" + descripción pequeña "Generar borradores automáticamente". Icono `Zap`. Touch target completo ≥ 44px vía padding del contenedor
+- **Onboarding fix**: `FirstPulse` ahora marca `onboarding_completed=true` vía `updateUser` tras análisis exitoso, timeout o skip
 
 ### Tests
 - **Backend**: 4 tests `PATCH /auth/me` (success, 401, 400, 404), 2 tests `runDegradedMode` (pitches cuando true, skip cuando false), 2 tests `runPulseCheck` (prompt con/sin instrucciones de pitch)
@@ -310,11 +311,12 @@ Dar al creador control sobre si Calibre genera borradores de respuesta automáti
 - **Tablas:** `users` (reemplaza `user_auth`), `oauth_sessions`, `agent_logs`, `processed_emails`, `brand_deals`, `channel_metrics_cache`
 - **Endpoints:**
   - Public: `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `POST /auth/youtube`, `GET /auth/gmail/start`, `GET /auth/callback`
-  - Protected: `GET /pulse`, `GET /logs`, `POST /api/pitches/:id/send`
+  - Protected: `PATCH /auth/me`, `GET /pulse`, `GET /logs`, `POST /api/pitches/:id/send`
   - System: `GET /health`
 - **Auth:** JWT (`jsonwebtoken` + `bcryptjs`) con `Authorization: Bearer <token>`. Gmail OAuth2 por usuario, tokens en tabla `users`
 - **Paleta:** acento naranja `#FF6B2C` (antes `#EA5103`). Acento secundario frío: cyan `#22D3EE`. Dark: `#030305` fondo / `#F0F0F5` texto / `#A0A0B0` secundario / `#5A5A70` terciario. Light: `#FFEED0` fondo / `#1A0E09` texto
 - **Layout:** Dashboard asimétrico (7-col + 5-col), secciones diferenciadas (hero, growth chart, rates bars, timeline), sidebar 260px flotante glass-card, profile bar con avatar ring orgánico SVG animado
+- **Componentes nuevos:** `Switch` (toggle-switch.tsx, accesible), auto-pitch toggle en Sidebar
 - **Canal test:** `UC8LeXCWOalN8SxlrPcG-PaQ` (midudev)
 - **Build backend:** 0 errores TypeScript
 - **Build frontend:** ~639KB JS (+20KB auth + toggle) / ~135KB CSS (+2KB)

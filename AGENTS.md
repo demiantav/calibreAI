@@ -86,8 +86,8 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 
 ## Test Stats
 
-- **Total tests**: 263 (187 backend + 76 frontend)
-- **Test files**: 22 (10 backend + 12 frontend)
+- **Total tests**: 249 (171 backend + 78 frontend)
+- **Test files**: 23 (11 backend + 12 frontend)
 - **Build**: pasa con 0 errores (frontend + backend)
 - **TypeScript**: `pnpm typecheck` pasa, `pnpm --filter calibre-dashboard build` pasa
 - **createMockFetch**: implementado en `test-utils.tsx` con soporte para múltiples URLs, secuencias de respuestas, network errors, delay simulation y assertions (`called`, `callCount`, `lastCall`)
@@ -280,15 +280,38 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 - **Frontend**: `updateUser` en `AuthContext` con update optimista + rollback en error
 - **Frontend**: Toggle "Auto-pitch" en Sidebar con label, descripción, switch accesible (`role="switch"`, `aria-checked`, `aria-label`)
 - **Frontend**: Componente `Switch` reutilizable en `toggle-switch.tsx` con focus-visible y estados naranja/gris
+- **Frontend**: Fix onboarding completion — `FirstPulse` ahora marca `onboarding_completed=true` vía `updateUser` tras análisis exitoso, timeout o skip
 - **Tests backend**: 4 tests para `PATCH /auth/me`, 2 tests para `runDegradedMode` (skip pitches cuando false), 2 tests para `runPulseCheck` (prompt dinámico)
 - **Tests frontend**: 2 tests para toggle (render + accesibilidad)
 
-## Next Steps (Sprint 11b — Email Digest)
+## Completed (Sprint 11b — Onboarding Bug Fixes + Auth Flow Verified)
 
-1. **Email digest diario**: Scheduler con `node-cron`, servicio de digest, HTML template, toggle en UI
-2. **Landing Page**: Presencia pública en inglés para Google for Startups
-3. **Multi-tenant Agency**: Una cuenta con múltiples creadores (tabla `creators` + `user_creators`)
-4. **Integration tests**: Re-escribir 22 tests de integración para nuevo flujo JWT
+### Bug Fixes
+- **Zod `updateMeSchema`**: agregados `onboarding_completed: z.boolean()` y `onboarding_step: z.number()` al schema de `PATCH /auth/me`. Antes solo aceptaba `auto_pitch_enabled` → `updateUser({ onboarding_completed: true })` era silenciosamente ignorado por Zod → `ProtectedRoute` redirigía a onboarding en loop infinito tras cada recarga.
+- **api-config Content-Type fix**: `getApiHeaders()` enviaba `Content-Type: application/json` en GET requests → causaba 404 en el navegador (CORS preflight innecesario). Ahora `getAuthHeaders()` (solo `Authorization`) para GET/DELETE y `getJsonHeaders()` (agrega `Content-Type`) para POST/PATCH/PUT. `useApiFetch` elige automáticamente según método HTTP.
+- **FirstPulse simplificado**: eliminado el polling frágil de 2 minutos que esperaba `agent_summary` en `/logs?type=agent_summary`. El insert en Supabase (`error: null`) no era visible en el `SELECT` posterior del mismo endpoint (mismo `user_id`, misma conexión service role). Ahora el onboarding se completa inmediatamente tras `/pulse` 200. El análisis corre en background y las métricas se cargan vía el polling existente del Dashboard.
+
+### Auth Flow Verificado (end-to-end)
+- Register → Login → JWT emitido (`expiresIn: 7d`) → Onboarding 3-step (YouTube → Gmail → FirstPulse) → Dashboard: flujo completo probado con usuario real.
+- `jwtAuthMiddleware` protege `/pulse`, `/logs`, `/api/*` correctamente. `ProtectedRoute` redirige a `/login` si no autenticado, a `/onboarding?step=X` si `onboarding_completed: false`.
+- `updateUser` optimistic + rollback validado: el update optimista permite navegar al Dashboard inmediatamente sin esperar la respuesta del server. Si el server falla, `fetchUser()` restaura el estado real.
+
+### Known Issues
+- **Supabase visibility gap**: `agent_summary` insertado con `error: null` en `runDegradedMode`/`runPulseCheck` no aparece en el `SELECT` posterior de `/logs` (mismo `user_id`, mismo cliente service role). Workaround: el onboarding ya no depende de detección en tiempo real. Requiere debuggear schema/RLS de `agent_logs`.
+
+### Stats Sprint 11b
+- **Build backend**: ✅ 0 errores
+- **Build frontend**: ✅ 0 errores, JS 639KB, CSS 135KB
+- **Tests backend**: 171 passing, 22 skipped
+- **Tests frontend**: 78/78 passing
+
+## Next Steps (Sprint 12)
+
+1. **Supabase visibility debug**: investigar por qué `agent_logs` insert no es visible en SELECT inmediato (posible RLS residual, schema issue, o timing)
+2. **Email digest diario**: Scheduler con `node-cron`, servicio de digest, HTML template, toggle en UI
+3. **Landing Page**: Presencia pública en inglés para Google for Startups
+4. **Multi-tenant Agency**: Una cuenta con múltiples creadores (tabla `creators` + `user_creators`)
+5. **Integration tests**: Re-escribir 22 tests de integración para nuevo flujo JWT
 
 ## Critical Context
 
@@ -301,21 +324,28 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 ## Relevant Files
 
 - `src/app.ts`: Express app con routes, global error handler y rate limiting
-- `src/index.ts`: solo startup (importa app.ts)
+- `src/index.ts`: startup + auto-pulse scheduler (itera usuarios con auto_pitch_enabled)
 - `src/shared/config.ts`: Proxy lazy para env validation
 - `src/infrastructure/supabase/supabase-client.ts`: Proxy lazy para createClient
 - `src/infrastructure/mcp/mcp-manager.ts`: Proxy lazy, spawn postergado, clase exportada para testing
 - `src/infrastructure/mcp/__tests__/mcp-manager.test.ts`: 37 tests unitarios
-- `src/domains/agent-core/heartbeat/pulse.ts`: sendMessageWithRetry iterativo
+- `src/domains/agent-core/heartbeat/pulse.ts`: sendMessageWithRetry iterativo, runPulseCheck/runDegradedMode con autoPitchEnabled
+- `src/routes/auth.routes.ts`: JWT auth routes + PATCH /auth/me para actualizar perfil
+- `src/routes/__tests__/auth.routes.test.ts`: tests de PATCH /auth/me
 - `src/__tests__/api.integration.test.ts`: 15 tests API con supertest
 - `tsconfig.test.json`: config separada para typecheck de tests
 - `vitest.config.ts`: config raíz backend
 - `apps/web/vite.config.ts`: config frontend con test settings
 - `apps/web/src/styles/globals.css`: tema dark premium con glow orbs, glassmorphism, `.glow-border`
+- `apps/web/src/contexts/AuthContext.tsx`: JWT auth context con updateUser optimista
 - `apps/web/src/pages/Dashboard.tsx`: rediseño asimétrico audaz — hero, growth chart, rates, timeline
 - `apps/web/src/components/GrowthChart.tsx`: gráfico SVG puro con área, gradiente, tooltip hover
 - `apps/web/src/components/RateBar.tsx`: barras horizontales de rango con gradiente animado
 - `apps/web/src/components/Timeline.tsx`: timeline vertical con iconos coloreados, fechas relativas
 - `apps/web/src/components/PulseButton.tsx`: botón central con gradiente cónico, glow, anillo SVG, estados fluidos
 - `apps/web/src/components/MetricCard.tsx`: cards de métricas con count-up animation, hover glow
+- `apps/web/src/components/ui/toggle-switch.tsx`: Switch accesible (role=switch, focus-visible, estados naranja/gris)
+- `apps/web/src/components/Sidebar.tsx`: sidebar con navegación, profile, auto-pitch toggle, logout
+- `apps/web/src/lib/api-config.ts`: getAuthHeaders() (GET/DELETE) + getJsonHeaders() (POST/PATCH/PUT) + API_BASE_URL
+- `apps/web/src/pages/onboarding/steps/FirstPulse.tsx`: análisis asíncrono, onboarding completa al instante sin polling
 - `apps/web/src/test-setup.tsx`: setup + mock centralizado de framer-motion con todos los elementos SVG/HTML
