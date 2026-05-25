@@ -32,7 +32,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen bg-bg selection:bg-accent/20 selection:text-accent">
       <Sidebar />
-      <main className="flex-1 ml-0 lg:ml-[300px] mr-0 lg:mr-4 my-0 lg:my-4 min-h-screen lg:min-h-[calc(100vh-2rem)] pt-14 lg:pt-4 px-4 lg:px-0">
+      <main className="flex-1 ml-0 lg:ml-[300px] mr-0 lg:mr-4 my-0 lg:my-4 min-h-screen lg:min-h-[calc(100vh-2rem)] pt-14 lg:pt-4 px-5 lg:px-8 xl:px-12">
         <AgentIndicator logsCount={logsCount} pitchCount={pitchCount} />
         {children}
       </main>

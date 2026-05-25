@@ -252,22 +252,7 @@ export function PulseButton({ onPulse, status }: PulseButtonProps) {
         </div>
       </motion.button>
 
-      {/* Label tooltip */}
-      <AnimatePresence>
-        {isIdle && (
-          <motion.div
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 5 }}
-            transition={{ delay: 0.5 }}
-            className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap"
-          >
-            <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider">
-              Pulse
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
     </div>
   );
 }

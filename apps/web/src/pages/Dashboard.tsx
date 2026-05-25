@@ -146,7 +146,7 @@ export default function Dashboard() {
     <motion.div className="min-h-screen" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
 
       {/* ========== HERO SECTION ========== */}
-      <section className="relative mb-16 lg:mb-24">
+      <section className="relative mb-6 lg:mb-8">
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8 lg:gap-12">
           {/* Left: Avatar + Name */}
           <div className="flex items-end gap-5 lg:gap-7">
@@ -190,87 +190,21 @@ export default function Dashboard() {
               >
                 {creatorName ?? 'Your Channel'}
               </motion.h1>
-              <motion.p
-                className="text-sm lg:text-base text-text-secondary mt-2 font-normal"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                {hasMetrics ? (
-                  <>
-                    Creator &middot; {realSubs!.toLocaleString()} followers &middot; {engDisplay}% engagement
-                  </>
-                ) : (
-                  'Run a Pulse to load your channel metrics'
-                )}
-              </motion.p>
             </div>
           </div>
 
-          {/* Right: Hero Metric */}
-          {hasMetrics && (
-            <motion.div
-              className="lg:text-right"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-            >
-              <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-[0.15em] mb-1">Engagement Rate</p>
-              <p className="text-6xl lg:text-8xl font-display font-black text-accent tracking-tighter tabular-nums leading-none">
-                {engDisplay}<span className="text-3xl lg:text-5xl text-accent/60">%</span>
-              </p>
-            </motion.div>
-          )}
+
         </div>
       </section>
 
-      {/* ========== DAILY BRIEF ========== */}
-      {latestSummary && (
-        <motion.section
-          className="mb-16 lg:mb-24"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-            <span className="text-[11px] font-semibold text-accent uppercase tracking-[0.15em]">Daily Brief</span>
-            <span className="text-[11px] text-text-tertiary">
-              <RelativeTime iso={latestSummary?.created_at} />
-            </span>
-          </div>
-
-          <div className="max-w-4xl">
-            <p className="text-xl lg:text-2xl xl:text-3xl font-normal text-text leading-[1.5] lg:leading-[1.45]">
-              {(latestSummary.content as { text: string })?.text || latestSummary.insights}
-            </p>
-          </div>
-
-          <div className="mt-8 h-px bg-gradient-to-r from-border via-border to-transparent max-w-2xl" />
-        </motion.section>
-      )}
-
-      {/* ========== GROWTH CHART ========== */}
-      {hasMetrics && (
-        <motion.section
-          className="mb-16 lg:mb-24"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <GrowthChart />
-        </motion.section>
-      )}
-
       {/* ========== METRICS ROW ========== */}
-      <section className="mb-16 lg:mb-24">
+      <section className="mb-10 lg:mb-14">
         {hasMetrics ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-            <MetricCard label="Followers" value={realSubs!} icon={Users} accent />
+            <MetricCard label="Followers" value={realSubs!} icon={Users} />
             <MetricCard label="Total Views" value={realViews!} icon={Eye} />
-            <MetricCard label="Engagement" value={realEngagement!} suffix="%" icon={Activity} />
-            <MetricCard label="Min. Rate" value={forecastContent?.mention?.min ?? 0} prefix="$" icon={DollarSign} accent />
+            <MetricCard label="Engagement" value={realEngagement!} suffix="%" icon={Activity} accent />
+            <MetricCard label="Min. Rate" value={forecastContent?.mention?.min ?? 0} prefix="$" icon={DollarSign} />
           </div>
         ) : (
           <div className="rounded-[24px] p-8 bg-surface border border-border text-center">
@@ -281,11 +215,67 @@ export default function Dashboard() {
         )}
       </section>
 
+      {/* ========== DAILY BRIEF ========== */}
+      {latestSummary && (
+        <motion.section
+          className="mb-10 lg:mb-14"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+        >
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-[11px] font-semibold text-text-tertiary uppercase tracking-[0.15em]">Daily Brief</span>
+            <span className="text-[11px] text-text-tertiary">
+              <RelativeTime iso={latestSummary?.created_at} />
+            </span>
+          </div>
+
+          <div className="flex gap-4 max-w-4xl">
+            {/* Agent Avatar */}
+            <div className="shrink-0">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-accent-muted flex items-center justify-center text-white text-sm font-bold shadow-lg">
+                C
+              </div>
+            </div>
+
+            {/* Chat Bubble */}
+            <div className="flex-1">
+              <div className="relative rounded-2xl rounded-tl-sm bg-surface-raised border border-border p-5 lg:p-6">
+                <div className="absolute -left-1.5 top-0 w-3 h-3 bg-surface-raised border-l border-b border-border rotate-45" />
+                <div className="space-y-3">
+                  {((latestSummary.content as { text: string })?.text || latestSummary.insights || '')
+                    .split('\n')
+                    .filter((line) => line.trim().length > 0)
+                    .map((paragraph, i) => (
+                      <p key={i} className="text-base lg:text-lg text-text leading-relaxed">
+                        {paragraph}
+                      </p>
+                    ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.section>
+      )}
+
+      {/* ========== GROWTH CHART ========== */}
+      {hasMetrics && (
+        <motion.section
+          className="mb-10 lg:mb-14"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <GrowthChart />
+        </motion.section>
+      )}
+
       {/* ========== TWO-COLUMN ASYMMETRIC LAYOUT ========== */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 mb-16 lg:mb-24">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 mb-10 lg:mb-14">
 
         {/* LEFT COLUMN */}
-        <div className="lg:col-span-7 space-y-12 lg:space-y-16">
+        <div className="lg:col-span-7 space-y-8 lg:space-y-10">
 
           {/* Rates */}
           {forecastContent ? (
@@ -356,7 +346,7 @@ export default function Dashboard() {
         </div>
 
         {/* RIGHT COLUMN */}
-        <div className="lg:col-span-5 space-y-8 lg:mt-12">
+        <div className="lg:col-span-5 space-y-6 lg:mt-8">
 
           {/* Pending Pitches */}
           {pendingPitches.length > 0 && (
@@ -430,8 +420,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ========== PULSE STATUS ========== */}
-      {(isLoading || isPulsing) && (
+      {/* ========== LOADING STATUS ========== */}
+      {isLoading && (
         <motion.div
           role="status"
           aria-live="polite"
@@ -440,11 +430,7 @@ export default function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
         >
           <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-          {isPulsing ? (
-            <><Sparkles className="w-3.5 h-3.5 text-accent" /> Pulse in progress...</>
-          ) : (
-            'Loading data...'
-          )}
+          Loading data...
         </motion.div>
       )}
     </motion.div>
