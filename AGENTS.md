@@ -343,6 +343,11 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 - `src/app.ts` contiene las rutas Express, `src/index.ts` solo hace `app.listen()`
 - `tsconfig.test.json` extiende tsconfig.json con `strictNullChecks: false` para mocks
 - Frontend tests corren con `pnpm --filter calibre-dashboard test`
+- **Rama activa**: `feature/mvp-testing` — contiene fixes de bugs encontrados durante testing manual
+- **Scripts útiles**:
+  - `scripts/clean-database.sql` — reset total de DB para testing desde cero
+  - `MANUAL_TESTING.md` — checklist de 12 flujos end-to-end
+- **Límite beta**: máximo 5 usuarios activos. Para escalar necesita job queue (BullMQ) + rate limiting por usuario
 
 ## In Progress (Sprint 12 — Contract Auditor)
 
@@ -426,12 +431,72 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 - **Tests backend**: 173 passing, 22 skipped
 - **Tests frontend**: 78/78 passing
 
+## In Progress (Sprint 14 — MVP Testing + Pre-Launch Fixes)
+
+### Bugs encontrados y fixeados durante testing manual
+
+#### BUG-1: SendPitchModal 401 Unauthorized (CRÍTICO)
+- **Problema**: `fetch` a `/api/pitches/:id/send` usaba URL hardcodeada `localhost:8080` y no enviaba header `Authorization`
+- **Fix**: Usar `API_BASE_URL` + `getJsonHeaders()` desde `api-config.ts`
+- **Archivo**: `apps/web/src/components/SendPitchModal.tsx`
+
+#### BUG-2: Audience Insights channelId → videoId (CRÍTICO)
+- **Problema**: Gemini pasaba `channelId` (ej: `UC8LeXCWOalN8SxlrPcG-PaQ`) a `getAudienceInsights`, que luego lo usaba como `videoId` en YouTube Comments API → error "video not found"
+- **Fix**: 
+  - Agregar `lastVideoId` a `RealYouTubeMetrics` y retornarlo desde `getRealYouTubeMetrics`
+  - En `pulse.ts`, interceptar llamada a `getAudienceInsights` y reemplazar `channelId` por `lastVideoId` real
+  - Invalidar cache entries que no tengan `lastVideoId` (migración de schema)
+- **Archivos**: `src/infrastructure/youtube/metrics-service.ts`, `src/domains/agent-core/heartbeat/pulse.ts`, `src/infrastructure/youtube/metrics-cache.ts`, `src/domains/content-pipeline/tools/youtube-mock.ts`
+
+#### BUG-3: Sidebar sin scroll — botón Logout invisible
+- **Problema**: El sidebar tenía `overflow-hidden` sin scroll. En pantallas con poca altura (o con muchos elementos como toggles + reconnect banner + profile), el botón de "Cerrar sesión" quedaba recortado fuera de la pantalla
+- **Fix**: Cambiar `overflow-hidden` → `overflow-y-auto` en desktop y mobile sidebar. Agregar wrapper `flex flex-col min-h-full` para distribución correcta
+- **Archivo**: `apps/web/src/components/Sidebar.tsx`
+
+#### BUG-4: Tests de copy en español fallando
+- **Problema**: Sprint 13b tradujo toda la UI al español, pero 6 tests seguían buscando textos en inglés
+- **Fix**: Actualizar textos en tests: "AI Agent Active" → "Calibre activo", "Activity" → "Actividad", "Pitches" → "Propuestas", "Rates" → "Tarifas", "Daily Brief" → "Resumen del día", "No forecast yet" → "Aún no hay tarifas estimadas"
+- **Archivos**: 5 archivos de test en `apps/web/src/**/__tests__`
+
+### Mejoras implementadas durante testing
+
+#### Gmail Email Discovery mejorado
+- **Antes**: `maxResults: 5`, sin filtro de lectura, orden aleatorio
+- **Ahora**: 
+  - `maxResults: 20` (más margen)
+  - `q: 'is:unread newer_than:30d'` (solo no leídos, máximo 30 días de antigüedad)
+  - Orden: más nuevo primero (captura propuestas frescas y con deadlines vigentes)
+- **Rationale**: Las marcas esperan respuesta en 7-14 días. Propuestas de >30 días probablemente ya cerraron con otro creador
+- **Archivo**: `src/domains/agent-core/reasoning/tool-executor.ts`
+
+### Scripts creados
+- **`scripts/clean-database.sql`**: Limpia TODA la base de datos (users, logs, processed_emails, channel_metrics_cache, oauth_sessions) para testing desde cero. **No usar en producción.**
+- **`MANUAL_TESTING.md`**: Checklist completo de 12 flujos para testing manual end-to-end
+
+### Documentación de limitaciones para Beta
+- **Límite de usuarios: 5 máximo** con arquitectura actual
+- **Gemini API**: 500 requests/day. 50 usuarios = quota excedida inmediatamente
+- **Sin job queue**: No hay cola de procesamiento (BullMQ/pgboss). Si falla un pulse, no hay retry ni backoff
+- **Auto-pulse en startup**: Al reiniciar el servidor, ejecuta pulse para TODOS los usuarios con `auto_pitch_enabled=true` simultáneamente
+- **Para escalar a 50+ usuarios (post-MVP)**: Necesita job queue, rate limiting por usuario, stagger en startup, worker separado, monitoreo de quota
+
+### Stats Sprint 14 (parcial — testing en progreso)
+- **Build backend**: ✅ 0 errores
+- **Build frontend**: ✅ 0 errores, JS 662KB, CSS 136KB
+- **Tests backend**: 173 passing, 22 skipped
+- **Tests frontend**: 78/78 passing
+- **TypeScript**: 0 errores backend + frontend
+- **Rama**: `feature/mvp-testing`
+
+---
+
 ## Known Issues / Next Steps
 - **Timezone configurable**: ahora el digest corre a las 8am `Europe/Rome` (fijo). Futuro: guardar `timezone` del usuario (detectar del navegador) y correr cron cada hora filtrando `hora_local = 8am`.
 - **Landing Page**: Presencia pública en inglés para Google for Startups (repo aparte)
 - **Multi-tenant Agency**: Una cuenta con múltiples creadores (tabla `creators` + `user_creators`)
 - **Integration tests**: Re-escribir 22 tests de integración para nuevo flujo JWT
 - **TikTok/Instagram**: Post-MVP. Evaluado: TikTok primero (menor fricción de onboarding)
+- **Scalability (post-MVP)**: Job queue (BullMQ), rate limiting per user, staggered startup, separate worker process
 
 ## Relevant Files
 
