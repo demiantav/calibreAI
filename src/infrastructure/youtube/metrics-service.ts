@@ -7,6 +7,7 @@ export interface RealYouTubeMetrics {
   lastVideoViews: number;
   lastVideoLikes: number;
   lastVideoComments: number;
+  lastVideoId: string;
   channelName: string;
   engagementRate: number;
 }
@@ -173,6 +174,7 @@ export const getRealYouTubeMetrics = async (channelId: string): Promise<RealYouT
       lastVideoViews: best.views,
       lastVideoLikes: best.likes,
       lastVideoComments: best.comments,
+      lastVideoId: best.id,
       channelName,
       engagementRate,
     };

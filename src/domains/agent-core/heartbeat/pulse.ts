@@ -277,11 +277,36 @@ export const runPulseCheck = async (userId: string, channelId: string, deps?: Pu
     let response = result.response;
     let functionCalls = response.functionCalls();
 
+    let lastVideoId: string | undefined;
+    let lastVideoTitle: string | undefined;
+
     while (functionCalls && functionCalls.length > 0) {
       const toolResults = [];
 
       for (const call of functionCalls) {
-        const result = await _executeToolCall({ name: call.name, args: call.args }, userId);
+        let args = call.args;
+
+        // Capture last video info from getYouTubeMetrics result
+        if (call.name === 'getYouTubeMetrics') {
+          // Will capture after execution
+        }
+
+        // Fix getAudienceInsights if Gemini passes channelId instead of videoId
+        if (call.name === 'getAudienceInsights') {
+          const vid = args?.videoId;
+          if (lastVideoId && (!vid || vid.startsWith('UC'))) {
+            args = { ...args, videoId: lastVideoId, videoTitle: lastVideoTitle || args?.videoTitle };
+            console.log(`[Calibre] Corrigiendo videoId para getAudienceInsights: ${lastVideoId}`);
+          }
+        }
+
+        const result = await _executeToolCall({ name: call.name, args }, userId);
+
+        if (call.name === 'getYouTubeMetrics' && result?.lastVideoId) {
+          lastVideoId = result.lastVideoId;
+          lastVideoTitle = result.lastVideoTitle;
+        }
+
         toolResults.push({
           functionResponse: {
             name: call.name,

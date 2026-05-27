@@ -16,7 +16,11 @@ export const getCachedMetrics = async (channelId: string): Promise<RealYouTubeMe
     const age = Date.now() - new Date(data.cached_at).getTime();
     if (age > CACHE_TTL_MS) return null;
 
-    return data.data as unknown as RealYouTubeMetrics;
+    const metrics = data.data as unknown as RealYouTubeMetrics;
+    // Invalidate cache if it lacks lastVideoId (schema was updated)
+    if (!metrics.lastVideoId) return null;
+
+    return metrics;
   } catch (e) {
     console.warn('[Metrics Cache] Error leyendo caché:', e);
     return null;

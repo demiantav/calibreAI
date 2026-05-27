@@ -11,6 +11,7 @@ export const getMockYouTubeMetrics = async (channelId?: string): Promise<RealYou
         lastVideoViews: 250000,
         lastVideoLikes: 42000,
         lastVideoComments: 3800,
+        lastVideoId: 'dQw4w9WgXcQ',
         channelName: channelId?.includes('UC') ? 'midudev' : 'Tech Latino',
         engagementRate: 2.86,
       });
