@@ -32,7 +32,7 @@ describe('Layout', () => {
 
   it('should render AgentIndicator and PulseButton', () => {
     renderLayout(<Layout><div>child</div></Layout>)
-    expect(screen.getByText('AI Agent Active')).toBeInTheDocument()
+    expect(screen.getByText('Calibre activo')).toBeInTheDocument()
     expect(screen.getAllByRole('button').length).toBeGreaterThanOrEqual(2)
   })
 

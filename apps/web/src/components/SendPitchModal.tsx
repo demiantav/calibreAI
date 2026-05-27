@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { X, Send, Sparkles, Mail, ChevronDown, MessageSquare } from 'lucide-react';
+import { API_BASE_URL, getJsonHeaders } from '@/lib/api-config';
 import type { PitchDraft } from '@/lib/types';
 
 interface SendPitchModalProps {
@@ -37,9 +38,9 @@ export default function SendPitchModal({ pitch, pitchId, onClose, onSent }: Send
     setIsSending(true);
     setSendError(null);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}/api/pitches/${pitchId}/send`, {
+      const res = await fetch(`${API_BASE_URL}/api/pitches/${pitchId}/send`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getJsonHeaders(),
         body: JSON.stringify({ subject, content }),
       });
       if (!res.ok) throw new Error(`Failed to send: ${res.status} ${res.statusText}`);

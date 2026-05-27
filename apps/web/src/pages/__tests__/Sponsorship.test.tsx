@@ -49,7 +49,7 @@ describe('Sponsorship', () => {
     render(<Sponsorship />)
 
     await vi.waitFor(() => {
-      expect(screen.getByText('No forecast yet')).toBeInTheDocument()
+      expect(screen.getByText('Aún no hay tarifas estimadas')).toBeInTheDocument()
     })
     expect(screen.getByText('Sponsorship Rates')).toBeInTheDocument()
   })

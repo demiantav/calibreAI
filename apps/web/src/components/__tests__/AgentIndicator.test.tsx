@@ -4,13 +4,13 @@ import { AgentIndicator } from '@/components/AgentIndicator'
 import { MemoryRouter } from 'react-router-dom'
 
 describe('AgentIndicator', () => {
-  it('should render "AI Agent Active" text', () => {
+  it('should render "Calibre activo" text', () => {
     render(
       <MemoryRouter>
         <AgentIndicator />
       </MemoryRouter>
     )
-    expect(screen.getByText('AI Agent Active')).toBeInTheDocument()
+    expect(screen.getByText('Calibre activo')).toBeInTheDocument()
   })
 
   it('should render counts with default zero values', () => {

@@ -72,7 +72,7 @@ describe('Dashboard', () => {
     renderWithProviders(<Dashboard />)
 
     await vi.waitFor(() => {
-      expect(screen.getByText('Daily Brief')).toBeInTheDocument()
+      expect(screen.getByText('Resumen del día')).toBeInTheDocument()
     })
     expect(screen.getByText('Resumen diario')).toBeInTheDocument()
   })

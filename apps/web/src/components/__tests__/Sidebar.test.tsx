@@ -17,9 +17,9 @@ describe('Sidebar', () => {
     )
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
-    expect(screen.getByText('Activity')).toBeInTheDocument()
-    expect(screen.getByText('Pitches')).toBeInTheDocument()
-    expect(screen.getByText('Rates')).toBeInTheDocument()
+    expect(screen.getByText('Actividad')).toBeInTheDocument()
+    expect(screen.getByText('Propuestas')).toBeInTheDocument()
+    expect(screen.getByText('Tarifas')).toBeInTheDocument()
   })
 
   it('should render theme toggle', () => {
@@ -40,7 +40,7 @@ describe('Sidebar', () => {
       </MemoryRouter>
     )
 
-    const pitchesLink = screen.getByText('Pitches').closest('a')
+    const pitchesLink = screen.getByText('Propuestas').closest('a')
     expect(pitchesLink).toHaveClass('text-accent')
   })
 
