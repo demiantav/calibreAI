@@ -105,11 +105,12 @@ export const functionsImplementations = {
     await ensureGmailAuth(args._userId);
 
     try {
-      // Leer hasta 20 emails no leidos, ordenados por fecha (mas reciente primero desde la API)
+      // Leer hasta 20 emails no leidos de los ultimos 30 dias
+      // Los mas nuevos primero (default de la API) para capturar propuestas frescas y activas
       const response = await gmail.users.messages.list({
         userId: 'me',
         maxResults: args.maxResults || 20,
-        q: 'is:unread',
+        q: 'is:unread newer_than:30d',
       });
       const messages = response.data.messages || [];
 
@@ -126,19 +127,14 @@ export const functionsImplementations = {
           const detail = await gmail.users.messages.get({ userId: 'me', id: msg.id! });
           const headers = detail.data.payload?.headers || [];
           const rawSubject = headers.find((h: any) => h.name === 'Subject')?.value || '';
-          const dateHeader = headers.find((h: any) => h.name === 'Date')?.value || '';
           return {
             id: msg.id,
             snippet: detail.data.snippet,
             subject: decodeRFC2047(rawSubject),
             from: headers.find((h: any) => h.name === 'From')?.value,
-            date: dateHeader ? new Date(dateHeader).getTime() : Date.now(),
           };
         })
       );
-
-      // Ordenar por fecha ascendente (mas viejo primero) para no perder propuestas antiguas
-      details.sort((a: any, b: any) => a.date - b.date);
 
       // Obtener email del usuario para filtrar self-emails
       let userEmail: string | null = null;
