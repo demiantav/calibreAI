@@ -26,6 +26,7 @@ const sampleMetrics = {
   lastVideoViews: 250000,
   lastVideoLikes: 42000,
   lastVideoComments: 3800,
+  lastVideoId: 'dQw4w9WgXcQ',
   channelName: 'Test Creator',
   engagementRate: 2.86,
 }
