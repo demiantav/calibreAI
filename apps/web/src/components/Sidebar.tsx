@@ -78,7 +78,7 @@ export function Sidebar() {
   const isActive = (href: string) => pathname === href;
 
   const sidebarContent = (
-    <>
+    <div className="flex flex-col min-h-full">
       <div className="px-8 pt-10 pb-8">
         <Link to="/" className="flex items-center gap-3 group" onClick={() => setIsOpen(false)}>
           <motion.div
@@ -236,7 +236,7 @@ export function Sidebar() {
           Cerrar sesión
         </button>
       </div>
-    </>
+    </div>
   );
 
   return (
@@ -252,7 +252,7 @@ export function Sidebar() {
       </button>
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex fixed left-4 top-4 bottom-4 w-[260px] rounded-[24px] flex-col z-40 overflow-hidden bg-surface border border-border shadow-lg">
+      <aside className="hidden lg:flex fixed left-4 top-4 bottom-4 w-[260px] rounded-[24px] flex-col z-40 overflow-y-auto bg-surface border border-border shadow-lg">
         {sidebarContent}
       </aside>
 
@@ -272,7 +272,7 @@ export function Sidebar() {
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: -280, opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="lg:hidden fixed left-0 top-0 bottom-0 w-[280px] rounded-r-[24px] flex-col z-50 overflow-hidden bg-surface border-r border-border shadow-xl"
+              className="lg:hidden fixed left-0 top-0 bottom-0 w-[280px] rounded-r-[24px] flex-col z-50 overflow-y-auto bg-surface border-r border-border shadow-xl"
             >
               <MobileSidebarDrawer onClose={() => setIsOpen(false)}>
                 {sidebarContent}

@@ -31,10 +31,10 @@ TRUNCATE TABLE users RESTART IDENTITY CASCADE;
 -- ============================================================
 -- Verification (optional - run these to confirm cleanup)
 -- ============================================================
--- SELECT COUNT(*) FROM users;
--- SELECT COUNT(*) FROM agent_logs;
--- SELECT COUNT(*) FROM processed_emails;
--- SELECT COUNT(*) FROM channel_metrics_cache;
--- SELECT COUNT(*) FROM oauth_sessions;
+SELECT COUNT(*) FROM users;
+SELECT COUNT(*) FROM agent_logs;
+SELECT COUNT(*) FROM processed_emails;
+SELECT COUNT(*) FROM channel_metrics_cache;
+SELECT COUNT(*) FROM oauth_sessions;
 
 -- All counts should return 0.
