@@ -177,6 +177,35 @@ router.post('/youtube', async (req: Request, res: Response) => {
   }
 });
 
+// GET /auth/gmail/status
+router.get('/gmail/status', async (req: Request, res: Response) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      res.status(401).json({ error: 'No token provided' });
+      return;
+    }
+    const payload = authService.verifyToken(token);
+    const user = await userRepository.findById(payload.userId);
+    if (!user) {
+      res.status(404).json({ error: 'Usuario no encontrado' });
+      return;
+    }
+
+    const hasToken = !!user.gmail_access_token;
+    const hasRefreshToken = !!user.gmail_refresh_token;
+
+    res.json({
+      connected: hasToken && hasRefreshToken,
+      hasAccessToken: hasToken,
+      hasRefreshToken: hasRefreshToken,
+      expiresAt: user.gmail_expires_at,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Error al verificar estado de Gmail', details: error.message });
+  }
+});
+
 // GET /auth/gmail/start
 router.get('/gmail/start', async (req: Request, res: Response) => {
   try {

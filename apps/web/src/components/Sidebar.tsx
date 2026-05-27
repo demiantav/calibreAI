@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, type ReactNode } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ScrollText, FileText, DollarSign, Sparkles, Moon, Sun, Menu, X, LogOut, Zap, Mail, FileCheck } from 'lucide-react';
+import { LayoutDashboard, ScrollText, FileText, DollarSign, Sparkles, Moon, Sun, Menu, X, LogOut, Zap, Mail, FileCheck, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/lib/theme';
@@ -42,10 +42,27 @@ export function Sidebar() {
   const { user, logout, updateUser } = useAuth();
 
   const { data: logs } = useApiFetch<LogEntry[]>(LOGS_ENDPOINT);
+  const { data: gmailStatus } = useApiFetch<{ connected: boolean; hasAccessToken: boolean; hasRefreshToken: boolean }>('/auth/gmail/status');
 
   const analysis = logs?.find((log: LogEntry) => log.type === 'media_kit_update');
   const creatorName = analysis?.creator_name;
   const subs = analysis?.content?.subscribers as number | undefined;
+
+  const handleReconnectGmail = async () => {
+    const token = localStorage.getItem('calibre-jwt');
+    if (!token) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}/auth/gmail/start`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      console.error('Error starting Gmail OAuth:', err);
+    }
+  };
 
   // Close sidebar when route changes (mobile)
   useEffect(() => {
@@ -169,6 +186,25 @@ export function Sidebar() {
         <div className="px-4">
           <ThemeToggle />
         </div>
+
+        {/* Gmail reconnect warning */}
+        {gmailStatus && !gmailStatus.connected && (
+          <div className="px-4 py-3 rounded-[16px] bg-amber-500/10 border border-amber-500/20 space-y-2">
+            <div className="flex items-center gap-2 text-amber-400">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <p className="text-xs font-semibold">Gmail desconectado</p>
+            </div>
+            <p className="text-[10px] text-text-secondary leading-relaxed">
+              El token de Gmail expiró. Re-conecta tu cuenta para usar auto-pitch.
+            </p>
+            <button
+              onClick={handleReconnectGmail}
+              className="w-full py-2 px-3 rounded-lg bg-amber-500/20 text-amber-400 text-xs font-semibold hover:bg-amber-500/30 transition-colors"
+            >
+              Re-conectar Gmail
+            </button>
+          </div>
+        )}
 
         {/* Profile */}
         <div className="flex items-center gap-3 px-4 py-4 rounded-[20px] bg-surface-hover border border-border/50">

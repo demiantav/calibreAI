@@ -6,10 +6,14 @@ import { calibreTools } from "./tools-definition.js";
 const genAI = new GoogleGenerativeAI(config.GEMINI_API_KEY);
 
 const baseModel = genAI.getGenerativeModel({ 
-  model: "gemini-flash-latest",
+  model: "gemini-3.1-flash-lite",
   systemInstruction: "Eres Calibre, un agente autónomo para creadores de contenido. Tu objetivo es monitorizar el rendimiento del creador y mantener su Live Media Kit actualizado. Tienes acceso a herramientas para consultar YouTube, gestionar el Media Kit, leer/enviar correos electrónicos vía Gmail, y generar pitches personalizados para marcas. Cuando revises el email del creador y encuentres correos de marcas potenciales, usa generateAndDraftPitch para crear un borrador de respuesta personalizado. No envías los pitches automáticamente, solo generas los drafts.",
   tools: [{ functionDeclarations: calibreTools }]
 });
+
+// ── Request tracking ─────────────────────────────────────────────────────────
+let requestCount = 0;
+export const getGeminiStats = () => ({ totalRequests: requestCount, lastRequestAt: lastRequestTime ? new Date(lastRequestTime).toISOString() : null });
 
 // ── Rate limiting queue ───────────────────────────────────────────────────
 // Gemini Flash free tier: 60 RPM / 1,000 RPD
@@ -27,7 +31,9 @@ async function throttle<T>(fn: () => Promise<T>): Promise<T> {
       console.log(`[Gemini Queue] Throttling ${delay}ms to respect rate limits`);
       await new Promise(r => setTimeout(r, delay));
     }
+    requestCount++;
     lastRequestTime = Date.now();
+    console.log(`[Gemini] Request #${requestCount} at ${new Date().toISOString()}`);
     return fn();
   });
 }

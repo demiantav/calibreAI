@@ -536,7 +536,11 @@ describe('runPulseCheck', () => {
     })
 
     expect(mockRunDegradedMode).not.toHaveBeenCalled()
-    expect(mockSupabaseInsert).not.toHaveBeenCalled()
+    expect(mockSupabaseInsert).toHaveBeenCalledTimes(1)
+    const errorCall = mockSupabaseInsert.mock.calls[0]?.[0]?.[0]
+    expect(errorCall.type).toBe('agent_error')
+    expect(errorCall.content.text).toBe('Gemini internal error')
+    expect(errorCall.user_id).toBe('test-user')
     expect(consoleSpy).toHaveBeenCalledWith(
       '[Calibre] Error crítico en el bucle autónomo:',
       expect.any(Error)
@@ -545,7 +549,7 @@ describe('runPulseCheck', () => {
     consoleSpy.mockRestore()
   })
 
-  it('should propagate executeToolCall errors to console.error and skip persistence', async () => {
+  it('should propagate executeToolCall errors to console.error and persist agent_error', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const chatSendMessage = vi.fn()
       // Round 1: getYouTubeMetrics
@@ -564,12 +568,16 @@ describe('runPulseCheck', () => {
       sendMessageWithRetry: async (chat: any, msg: any) => chat.sendMessage(msg),
     })
 
-    // Error is logged as critical, no summary persisted
+    // Error is logged as critical and persisted as agent_error
     expect(consoleSpy).toHaveBeenCalledWith(
       '[Calibre] Error crítico en el bucle autónomo:',
       expect.any(Error)
     )
-    expect(mockSupabaseInsert).not.toHaveBeenCalled()
+    expect(mockSupabaseInsert).toHaveBeenCalledTimes(1)
+    const errorCall = mockSupabaseInsert.mock.calls[0]?.[0]?.[0]
+    expect(errorCall.type).toBe('agent_error')
+    expect(errorCall.content.text).toBe('Gmail API error')
+    expect(errorCall.user_id).toBe('test-user')
 
     consoleSpy.mockRestore()
   })

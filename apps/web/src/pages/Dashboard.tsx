@@ -24,15 +24,34 @@ const POLL_TIMEOUT_MS = 60000;
 
 export default function Dashboard() {
   const [isPulsing, setIsPulsing] = useState(false);
+  const [pulseError, setPulseError] = useState('');
+  const [gmailError, setGmailError] = useState('');
   const pollingRef = useRef<{ stopped: boolean; timeoutId: ReturnType<typeof setTimeout> | null }>({ stopped: false, timeoutId: null });
 
   const { lastPulseAt, setPulseStatus } = usePulse();
   const { data: logs, isLoading, error, refetch } = useApiFetch<LogEntry[]>(LOGS_ENDPOINT);
 
+  const handleReconnectGmail = async () => {
+    const token = localStorage.getItem('calibre-jwt');
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/gmail/start`, {
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      console.error('Error starting Gmail OAuth:', err);
+    }
+  };
+
   useEffect(() => {
     if (!lastPulseAt) return;
 
     setIsPulsing(true);
+    setPulseError('');
     const guard = pollingRef.current;
     guard.stopped = false;
     guard.timeoutId = null;
@@ -56,6 +75,37 @@ export default function Dashboard() {
             if (guard.timeoutId) clearTimeout(guard.timeoutId);
             setIsPulsing(false);
             setPulseStatus('success');
+            setPulseError('');
+            refetch();
+            return;
+          }
+
+          const newError = data.find(
+            (log) =>
+              log.type === 'agent_error' &&
+              new Date(log.created_at).getTime() > lastPulseAt
+          );
+          if (newError) {
+            guard.stopped = true;
+            if (guard.timeoutId) clearTimeout(guard.timeoutId);
+            setIsPulsing(false);
+            setPulseStatus('error');
+            setPulseError((newError.content as any)?.text || 'Error en el análisis');
+            refetch();
+            return;
+          }
+
+          const gmailAuthError = data.find(
+            (log) =>
+              log.type === 'gmail_auth_error' &&
+              new Date(log.created_at).getTime() > lastPulseAt
+          );
+          if (gmailAuthError) {
+            guard.stopped = true;
+            if (guard.timeoutId) clearTimeout(guard.timeoutId);
+            setIsPulsing(false);
+            setPulseStatus('error');
+            setGmailError((gmailAuthError.content as any)?.text || 'Gmail desconectado');
             refetch();
             return;
           }
@@ -214,6 +264,38 @@ export default function Dashboard() {
           </div>
         )}
       </section>
+
+      {/* ========== PULSE ERROR ========== */}
+      {pulseError && (
+        <motion.div
+          className="mb-6 lg:mb-8 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <p className="font-semibold mb-1">Error en el análisis</p>
+          <p className="text-text-secondary">{pulseError}</p>
+        </motion.div>
+      )}
+
+      {/* ========== GMAIL AUTH ERROR ========== */}
+      {gmailError && (
+        <motion.div
+          className="mb-6 lg:mb-8 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <p className="font-semibold mb-1">Gmail desconectado</p>
+          <p className="text-text-secondary mb-3">{gmailError}</p>
+          <button
+            onClick={handleReconnectGmail}
+            className="px-4 py-2 rounded-xl bg-amber-500/20 text-amber-400 text-sm font-semibold hover:bg-amber-500/30 transition-colors"
+          >
+            Re-conectar Gmail
+          </button>
+        </motion.div>
+      )}
 
       {/* ========== DAILY BRIEF ========== */}
       {latestSummary && (

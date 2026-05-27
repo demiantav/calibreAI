@@ -2,6 +2,7 @@ import { model } from "../reasoning/gemini-client.js";
 import { executeToolCall, functionsImplementations } from "../reasoning/tool-executor.js";
 import { supabase } from "../../../infrastructure/supabase/supabase-client.js";
 import { config } from "../../../shared/config.js";
+import { GmailAuthError } from "../../../shared/gmail-auth.js";
 
 const sendMessageWithRetry = async (chat: any, message: any, retries = 3): Promise<any> => {
   let attempt = 0;
@@ -14,10 +15,16 @@ const sendMessageWithRetry = async (chat: any, message: any, retries = 3): Promi
       }
       attempt++;
       const retryDetail = error.errorDetails?.find((d: any) => d.retryInfo?.retryDelay);
-      const waitTime = retryDetail
-        ? parseFloat(retryDetail.retryInfo.retryDelay) * 1000
-        : 15000;
-      console.log(`[Calibre] Cuota excedida. Esperando ${Math.round(waitTime/1000)}s para reintentar... (${retries - attempt + 1} intentos restantes)`);
+      
+      // Si no hay retryDelay en el error, significa que la cuota diaria se agotó
+      // (no es throttling temporal). No tiene sentido esperar y reintentar.
+      if (!retryDetail) {
+        console.warn('[Calibre] Cuota diaria agotada (sin retryDelay). No se reintentará.');
+        throw error;
+      }
+      
+      const waitTime = parseFloat(retryDetail.retryInfo.retryDelay) * 1000;
+      console.log(`[Calibre] Throttling temporal. Esperando ${Math.round(waitTime/1000)}s para reintentar... (${retries - attempt + 1} intentos restantes)`);
       await new Promise(resolve => setTimeout(resolve, Math.min(waitTime, 30000)));
     }
   }
@@ -305,11 +312,37 @@ export const runPulseCheck = async (userId: string, channelId: string, deps?: Pu
     });
 
   } catch (error: any) {
+    const errorMessage = error?.message || error?.toString() || 'Error desconocido';
+    
     if (error.status === 429) {
       console.warn("[Calibre] Gemini no disponible por cuota. Cambiando a modo degradado...");
       await _runDegradedMode(userId, channelId, _autoPitchEnabled);
+    } else if (error instanceof GmailAuthError) {
+      console.error("[Calibre] Error de autenticación de Gmail:", error.message);
+      
+      // Persist Gmail auth error with specific type so frontend can show re-connect CTA
+      await _supabase.from('agent_logs').insert([{
+        user_id: userId,
+        creator_name: _config.CREATOR_NAME,
+        type: 'gmail_auth_error',
+        content: { text: errorMessage },
+        insights: `Gmail desconectado: ${errorMessage.slice(0, 200)}`,
+      }]).then(({ error: insertErr }) => {
+        if (insertErr) console.warn('[Calibre] No se pudo guardar el error de Gmail:', insertErr);
+      });
     } else {
       console.error("[Calibre] Error crítico en el bucle autónomo:", error);
+      
+      // Persist error so frontend can detect it
+      await _supabase.from('agent_logs').insert([{
+        user_id: userId,
+        creator_name: _config.CREATOR_NAME,
+        type: 'agent_error',
+        content: { text: errorMessage, stack: error?.stack },
+        insights: `Error en pulse: ${errorMessage.slice(0, 200)}`,
+      }]).then(({ error: insertErr }) => {
+        if (insertErr) console.warn('[Calibre] No se pudo guardar el error:', insertErr);
+      });
     }
   }
 };

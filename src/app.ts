@@ -10,6 +10,7 @@ import { oAuth2Client } from './infrastructure/gmail/gmail-client.js';
 import { mcpManager } from './infrastructure/mcp/mcp-manager.js';
 import { runPulseCheck } from './domains/agent-core/heartbeat/pulse.js';
 import { auditContractUseCase } from './domains/contracts/use-cases/audit-contract.js';
+import { getGeminiStats } from './domains/agent-core/reasoning/gemini-client.js';
 import { jwtAuthMiddleware } from './middleware/jwt-auth.middleware.js';
 // Force tsx reload when auth.routes.ts changes
 import authRoutes from './routes/auth.routes.js';
@@ -249,6 +250,13 @@ app.post('/api/pitches/:id/send', async (req, res) => {
     console.error('[API] Error enviando pitch:', error);
     res.status(500).json({ error: 'Error al enviar el pitch', details: error.message });
   }
+});
+
+app.get('/metrics/gemini', (req, res) => {
+  res.json({
+    ...getGeminiStats(),
+    note: 'Check Google AI Studio for remaining quota'
+  });
 });
 
 app.get('/health', async (req, res) => {
