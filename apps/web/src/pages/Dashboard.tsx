@@ -4,6 +4,7 @@ import { MetricCard } from '@/components/MetricCard';
 import { GrowthChart } from '@/components/GrowthChart';
 import { RateBar } from '@/components/RateBar';
 import { Timeline } from '@/components/Timeline';
+import { AudienceInsights } from '@/components/AudienceInsights';
 import {
   Users, Eye, DollarSign, ArrowRight, Activity,
   MessageSquare, BarChart3, Sparkles, TrendingUp
@@ -139,6 +140,7 @@ export default function Dashboard() {
   const latestPitch = logs?.find((log) => log.type === 'pitch_draft');
   const forecastContent = logs?.find((log) => log.type === 'sponsorship_forecast')?.content as SponsorshipForecast | undefined;
   const latestSummary = logs?.find((log) => log.type === 'agent_summary');
+  const audienceInsights = logs?.find((log) => log.type === 'audience_insights')?.content as import('@/components/AudienceInsights').AudienceInsightsData | undefined;
 
   const pendingPitches = logs?.filter(
     (log) => log.type === 'pitch_draft' && (log.content as PitchDraft)?.status === 'draft_ready'
@@ -338,6 +340,11 @@ export default function Dashboard() {
             </div>
           </div>
         </motion.section>
+      )}
+
+      {/* ========== AUDIENCE INSIGHTS ========== */}
+      {audienceInsights && (
+        <AudienceInsights data={audienceInsights} />
       )}
 
       {/* ========== GROWTH CHART ========== */}

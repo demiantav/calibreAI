@@ -270,7 +270,8 @@ export const runPulseCheck = async (userId: string, channelId: string, deps?: Pu
        3. Compara ambos datos. Si hay un crecimiento notable o un cambio de tendencia, menciónalo.
        4. Si el progreso es positivo, llama a "updateLiveMediaKit" para reflejar los nuevos hitos.
        ${pitchStep}
-       6. Calcula el sponsorship value con "calculateSponsorshipValue" usando las métricas obtenidas y el nicho del creador (ej: "desarrollo web"). Esto estima las tarifas de patrocinio actuales.`
+       6. Calcula el sponsorship value con "calculateSponsorshipValue" usando las métricas obtenidas y el nicho del creador (ej: "desarrollo web"). Esto estima las tarifas de patrocinio actuales.
+       7. Usa "getAudienceInsights" con el ID del último video y su título para analizar los comentarios. Extrae sentimiento, temas recurrentes, preguntas frecuentes y sugerencias de contenido para el creador.`
     );
 
     let response = result.response;

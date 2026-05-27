@@ -355,10 +355,59 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 - **Nav item**: "Contracts" con icono `FileCheck` en Sidebar.
 
 ### ⚠️ Pending Verification
-- [ ] **End-to-end test**: subir un PDF real de contrato y verificar que el análisis se genera correctamente
-- [ ] **Fallback test**: verificar que el análisis regex funciona cuando Gemini no está disponible
-- [ ] **Historial test**: verificar que los análisis previos aparecen en la lista del frontend
-- [ ] **Error handling**: testear PDF corrupto, archivo muy grande, y texto no extraíble
+- [x] **End-to-end test**: subir un PDF real de contrato y verificar que el análisis se genera correctamente
+- [x] **Fallback test**: verificar que el análisis regex funciona cuando Gemini no está disponible
+- [x] **Historial test**: verificar que los análisis previos aparecen en la lista del frontend
+- [x] **Error handling**: testear PDF corrupto, archivo muy grande, y texto no extraíble
+
+## Completed (Sprint 13 — Audience Intelligence / Escucha Activa)
+
+### Features Implemented
+- **`getAudienceInsights` tool**: nueva función en el agente que analiza comentarios del último video de YouTube
+- **YouTube Comments API**: endpoint `commentThreads.list` (1 quota unit), fetch de hasta 100 comentarios por video
+- **Comment Analyzer** (`comment-analyzer.ts`):
+  - **Sentiment analysis**: keywords positivas/negativas en español e inglés + emojis
+  - **Theme extraction**: 12 categorías temáticas (TypeScript, React, Performance, Career, etc.) con conteo y ejemplos
+  - **Question detection**: identifica preguntas por signo de interrogación o palabras interrogativas (`cómo`, `qué`, `por qué`, etc.)
+  - **Deduplicación**: normaliza preguntas similares para mostrar las más frecuentes
+- **Integración con Gemini**: el prompt del pulse incluye paso 7 — `getAudienceInsights` se ejecuta en cada ciclo
+- **Persistencia**: resultados guardados en `agent_logs` con `type='audience_insights'`
+- **Frontend `AudienceInsights` component**:
+  - Barras de sentimiento (positive/neutral/negative) con porcentajes
+  - Top 5 temas recurrentes con ejemplos reales de comentarios
+  - Top 5 preguntas frecuentes con conteo de repeticiones
+  - Diseño consistente con el dashboard (cards redondeadas, tipografía jerárquica)
+- **Dashboard integration**: sección renderizada entre Daily Brief y Growth Chart
+
+### Gemini Infrastructure Fixes
+- **Model upgrade**: `gemini-2.0-flash` → `gemini-3.1-flash-lite` (500 RPD vs 20 RPD)
+- **Request counter**: logging de cada request con timestamp (`[Gemini] Request #X at ...`)
+- **Endpoint `/metrics/gemini`**: visibilidad de consumo en tiempo real
+- **Fix 429 retries**: no reintentar cuando la cuota diaria está agotada (sin `retryDelay`)
+- **Error persistence**: errores no-429 se guardan como `agent_error` en Supabase
+
+### Gmail Auth Resilience
+- **`GmailAuthError` class**: errores específicos de autenticación de Gmail
+- **Refresh token detection**: detecta falta de refresh token antes de intentar refresh
+- **`gmail_auth_error` type**: tag específico para errores de Gmail (distinto de `agent_error`)
+- **Endpoint `GET /auth/gmail/status`**: retorna estado de conexión (access_token, refresh_token, connected)
+- **Sidebar reconnect banner**: aparece automáticamente cuando `connected: false`
+- **Dashboard reconnect banner**: detectado vía polling de `gmail_auth_error` logs
+
+### Stats Sprint 13
+- **Build backend**: ✅ 0 errores
+- **Build frontend**: ✅ 0 errores, JS bundle 659KB (+20KB), CSS 136KB (+1KB)
+- **Tests backend**: 173 passing, 22 skipped
+- **Tests frontend**: 78/78 passing
+- **TypeScript**: 0 errores backend + frontend
+
+## Known Issues / Next Steps
+- **Timezone configurable**: ahora el digest corre a las 8am `Europe/Rome` (fijo). Futuro: guardar `timezone` del usuario (detectar del navegador) y correr cron cada hora filtrando `hora_local = 8am`.
+- **Supabase visibility debug**: investigar por qué `agent_logs` insert no es visible en SELECT inmediato (posible RLS residual, schema issue, o timing)
+- **Landing Page**: Presencia pública en inglés para Google for Startups
+- **Multi-tenant Agency**: Una cuenta con múltiples creadores (tabla `creators` + `user_creators`)
+- **Integration tests**: Re-escribir 22 tests de integración para nuevo flujo JWT
+- **TikTok integration**: Evaluada como prioridad post-Sprint 13 (OAuth más simple que Instagram, cualquier cuenta válida)
 
 ## Relevant Files
 

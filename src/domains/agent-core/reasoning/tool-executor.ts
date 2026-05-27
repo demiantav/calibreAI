@@ -6,6 +6,7 @@ import { calculateSponsorshipUseCase } from "../../brand-deals/use-cases/calcula
 import { gmail } from "../../../infrastructure/gmail/gmail-client.js";
 import { ensureGmailAuth } from "../../../shared/gmail-auth.js";
 import { config } from "../../../shared/config.js";
+import { fetchVideoComments, analyzeComments } from "../../audience-intelligence/comment-analyzer.js";
 
 function normalizeEmail(email: string): string {
   return email.replace(/.*<([^>]+)>.*/, '$1').replace(/["']/g, '').trim().toLowerCase();
@@ -255,6 +256,31 @@ export const functionsImplementations = {
       pitchContent: result.pitchContent,
       message: `Borrador de pitch para ${result.draft.brandName} generado y guardado. Revisa los logs para ver el contenido completo.`,
     };
+  },
+
+  // Audience Intelligence
+  getAudienceInsights: async (args: { videoId: string; videoTitle: string; _userId?: string }) => {
+    console.log(`[Tool Executor] Analizando comentarios para video ${args.videoId}...`);
+    const comments = await fetchVideoComments(args.videoId, 100);
+    const analysis = analyzeComments(args.videoId, args.videoTitle, comments);
+    console.log(`[Tool Executor] Comentarios analizados: ${analysis.totalComments} total, ${analysis.topThemes.length} temas, ${analysis.topQuestions.length} preguntas`);
+
+    // Persist analysis
+    const insertData: any = {
+      creator_name: config.CREATOR_NAME,
+      type: 'audience_insights',
+      content: analysis,
+      insights: `Análisis de audiencia para "${args.videoTitle}": ${analysis.totalComments} comentarios, sentimiento ${JSON.stringify(analysis.sentiment)}, ${analysis.topThemes.length} temas, ${analysis.topQuestions.length} preguntas`,
+    };
+    if (args._userId) insertData.user_id = args._userId;
+
+    try {
+      await supabase.from('agent_logs').insert([insertData]);
+    } catch (err: any) {
+      console.warn('[Tool Executor] No se pudo guardar audience_insights:', err);
+    }
+
+    return analysis;
   }
 };
 

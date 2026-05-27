@@ -111,5 +111,23 @@ export const calibreTools: FunctionDeclaration[] = [
       },
       required: ["creatorName", "subscribers", "totalViews", "lastVideoViews", "niche"],
     },
-  }
+  },
+  {
+    name: "getAudienceInsights",
+    description: "Analiza los comentarios del último video del creador para extraer sentimiento, temas recurrentes, preguntas frecuentes y sugerencias de contenido.",
+    parameters: {
+      type: SchemaType.OBJECT,
+      properties: {
+        videoId: {
+          type: SchemaType.STRING,
+          description: "El ID del último video de YouTube (ej: dQw4w9WgXcQ)",
+        },
+        videoTitle: {
+          type: SchemaType.STRING,
+          description: "El título del video para contexto",
+        },
+      },
+      required: ["videoId", "videoTitle"],
+    },
+  },
 ];

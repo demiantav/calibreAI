@@ -1,7 +1,7 @@
 export interface LogEntry {
   id: string;
   creator_name: string;
-  type: 'media_kit_update' | 'pitch_draft' | 'sponsorship_forecast' | 'agent_summary' | 'agent_error' | 'gmail_auth_error' | 'contract_audit';
+  type: 'media_kit_update' | 'pitch_draft' | 'sponsorship_forecast' | 'agent_summary' | 'agent_error' | 'gmail_auth_error' | 'audience_insights' | 'contract_audit';
   content: any;
   insights: string;
   created_at: string;
