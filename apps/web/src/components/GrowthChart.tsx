@@ -25,8 +25,8 @@ export function GrowthChart({ data, height = 280, accentColor = '#FF6B2C' }: Gro
         </div>
         <div className="rounded-[24px] border border-border bg-surface flex flex-col items-center justify-center" style={{ height }}>
           <TrendingUp className="w-8 h-8 text-text-tertiary mb-3" />
-          <p className="text-sm font-semibold text-text-secondary">No growth data yet</p>
-          <p className="text-xs text-text-tertiary mt-1">Run a Pulse to track your engagement over time</p>
+          <p className="text-sm font-semibold text-text-secondary">Aún no hay datos de crecimiento</p>
+          <p className="text-xs text-text-tertiary mt-1">Analizá tu canal para trackear tu engagement</p>
         </div>
       </div>
     );

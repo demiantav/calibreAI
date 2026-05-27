@@ -27,7 +27,7 @@ export function AgentIndicator({ logsCount = 0, pitchCount = 0 }: AgentIndicator
           />
         </div>
         <span className="text-xs sm:text-sm font-semibold text-text-secondary group-hover:text-text transition-colors">
-          AI Agent Active
+          Calibre activo
         </span>
         <span className="w-px h-3 bg-border hidden sm:block" />
         <span className="text-[10px] sm:text-xs font-medium text-text-tertiary hidden sm:inline">

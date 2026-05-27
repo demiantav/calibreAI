@@ -43,7 +43,7 @@ export default function OnboardingPage() {
       <div className="w-full max-w-lg space-y-8">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold text-text">Configuración de Calibre</h1>
+          <h1 className="text-2xl font-bold text-text">Empecemos</h1>
           <p className="text-text-secondary">Paso {currentStep} de 3</p>
         </div>
 

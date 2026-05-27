@@ -5,6 +5,7 @@ import { GrowthChart } from '@/components/GrowthChart';
 import { RateBar } from '@/components/RateBar';
 import { Timeline } from '@/components/Timeline';
 import { AudienceInsights } from '@/components/AudienceInsights';
+import { SuggestedAction } from '@/components/SuggestedAction';
 import {
   Users, Eye, DollarSign, ArrowRight, Activity,
   MessageSquare, BarChart3, Sparkles, TrendingUp
@@ -261,8 +262,8 @@ export default function Dashboard() {
         ) : (
           <div className="rounded-[24px] p-8 bg-surface border border-border text-center">
             <Sparkles className="w-8 h-8 text-text-tertiary mx-auto mb-3" />
-            <p className="text-base font-semibold text-text mb-1">No metrics yet</p>
-            <p className="text-sm text-text-secondary">Run a Pulse to analyze your channel and see your stats here.</p>
+            <p className="text-base font-semibold text-text mb-1">Aún no hay métricas</p>
+            <p className="text-sm text-text-secondary">Analizá tu canal para ver tus estadísticas.</p>
           </div>
         )}
       </section>
@@ -308,7 +309,7 @@ export default function Dashboard() {
           transition={{ delay: 0.3, duration: 0.6 }}
         >
           <div className="flex items-center gap-3 mb-4">
-            <span className="text-[11px] font-semibold text-text-tertiary uppercase tracking-[0.15em]">Daily Brief</span>
+            <span className="text-[11px] font-semibold text-text-tertiary uppercase tracking-[0.15em]">Resumen del día</span>
             <span className="text-[11px] text-text-tertiary">
               <RelativeTime iso={latestSummary?.created_at} />
             </span>
@@ -340,6 +341,15 @@ export default function Dashboard() {
             </div>
           </div>
         </motion.section>
+      )}
+
+      {/* ========== ACCIÓN SUGERIDA ========== */}
+      {latestSummary && (
+        <SuggestedAction
+          pendingPitchesCount={pendingPitches.length}
+          latestSummary={latestSummary}
+          lastPulseAt={lastPulseAt}
+        />
       )}
 
       {/* ========== AUDIENCE INSIGHTS ========== */}
@@ -412,7 +422,7 @@ export default function Dashboard() {
             <div className="rounded-[24px] p-8 bg-surface border border-border text-center">
               <DollarSign className="w-8 h-8 text-text-tertiary mx-auto mb-3" />
               <p className="text-base font-semibold text-text mb-1">No rates yet</p>
-              <p className="text-sm text-text-secondary">Run a Pulse to generate sponsorship rate forecasts.</p>
+              <p className="text-sm text-text-secondary">Analizá tu canal para generar pronósticos de tarifas.</p>
             </div>
           )}
 

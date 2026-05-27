@@ -401,13 +401,37 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 - **Tests frontend**: 78/78 passing
 - **TypeScript**: 0 errores backend + frontend
 
+## Completed (Sprint 13b — Copy + Acciones Sugeridas)
+
+### UX Copy Improvements
+- **PulseButton**: label visible "Analizar" + aria-label en español
+- **AgentIndicator**: "AI Agent Active" → "Calibre activo"
+- **Sidebar nav**: "Activity" → "Actividad", "Pitches" → "Propuestas", "Contracts" → "Contratos", "Rates" → "Tarifas"
+- **Daily Brief**: título cambiado a "Resumen del día"
+- **Empty states**: "No metrics yet" → "Aún no hay métricas. Analizá tu canal para ver tus estadísticas."
+- **Onboarding**: "Configuración de Calibre" → "Empecemos"
+- **Sponsorship empty**: "No forecast yet" → "Aún no hay tarifas estimadas"
+- **GrowthChart empty**: "No growth data yet" → "Aún no hay datos de crecimiento"
+
+### Acción Sugerida (SuggestedAction)
+- Nuevo componente que muestra una acción concreta después del Daily Brief
+- **Prioridad 1**: Pitches pendientes → "Tenés X propuestas esperando revisión" + link a /pitches
+- **Prioridad 2**: Engagement bajó → sugerencia de publicar contenido más interactivo
+- **Prioridad 3**: Más de 24h sin pulse → recordatorio de mantener métricas al día
+- Hace el producto accionable, no solo informativo
+
+### Stats Sprint 13b
+- **Build backend**: ✅ 0 errores
+- **Build frontend**: ✅ 0 errores, JS bundle 662KB (+3KB), CSS 136KB (+0KB)
+- **Tests backend**: 173 passing, 22 skipped
+- **Tests frontend**: 78/78 passing
+
 ## Known Issues / Next Steps
 - **Timezone configurable**: ahora el digest corre a las 8am `Europe/Rome` (fijo). Futuro: guardar `timezone` del usuario (detectar del navegador) y correr cron cada hora filtrando `hora_local = 8am`.
-- **Supabase visibility debug**: investigar por qué `agent_logs` insert no es visible en SELECT inmediato (posible RLS residual, schema issue, o timing)
-- **Landing Page**: Presencia pública en inglés para Google for Startups
+- **Landing Page**: Presencia pública en inglés para Google for Startups (repo aparte)
 - **Multi-tenant Agency**: Una cuenta con múltiples creadores (tabla `creators` + `user_creators`)
 - **Integration tests**: Re-escribir 22 tests de integración para nuevo flujo JWT
-- **TikTok integration**: Evaluada como prioridad post-Sprint 13 (OAuth más simple que Instagram, cualquier cuenta válida)
+- **TikTok/Instagram**: Post-MVP. Evaluado: TikTok primero (menor fricción de onboarding)
 
 ## Relevant Files
 

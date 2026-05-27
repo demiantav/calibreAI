@@ -126,7 +126,7 @@ export function PulseButton({ onPulse, status }: PulseButtonProps) {
       <motion.button
         whileTap={isIdle ? { scale: 0.9 } : {}}
         onClick={isIdle ? onPulse : undefined}
-        aria-label={isIdle ? 'Run AI pulse analysis' : isPulsing ? 'Analysis in progress' : showSuccess ? 'Analysis complete' : showError ? 'Analysis failed' : 'Pulse button'}
+        aria-label={isIdle ? 'Analizar canal' : isPulsing ? 'Análisis en progreso' : showSuccess ? 'Análisis completo' : showError ? 'Análisis falló' : 'Botón de análisis'}
         className="relative w-16 h-16 rounded-full flex items-center justify-center cursor-pointer"
         animate={{
           scale: isPulsing ? [1, 1.1, 1] : 1,
@@ -252,7 +252,16 @@ export function PulseButton({ onPulse, status }: PulseButtonProps) {
         </div>
       </motion.button>
 
-
+      {/* Label tooltip */}
+      {isIdle && (
+        <motion.div
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs font-semibold text-text-secondary whitespace-nowrap"
+        >
+          Analizar
+        </motion.div>
+      )}
     </div>
   );
 }

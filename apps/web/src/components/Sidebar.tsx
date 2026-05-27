@@ -11,10 +11,10 @@ import type { LogEntry } from '@/lib/types';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/logs', label: 'Activity', icon: ScrollText },
-  { href: '/pitches', label: 'Pitches', icon: FileText },
-  { href: '/contracts', label: 'Contracts', icon: FileCheck },
-  { href: '/sponsorship', label: 'Rates', icon: DollarSign },
+  { href: '/logs', label: 'Actividad', icon: ScrollText },
+  { href: '/pitches', label: 'Propuestas', icon: FileText },
+  { href: '/contracts', label: 'Contratos', icon: FileCheck },
+  { href: '/sponsorship', label: 'Tarifas', icon: DollarSign },
 ];
 
 /* Social links hidden until profiles are connected

@@ -48,8 +48,8 @@ export default function Sponsorship() {
         </header>
         <div className="rounded-[28px] p-8 lg:p-10 bg-surface border border-border text-center">
           <Sparkles className="w-10 h-10 text-text-tertiary mx-auto mb-4" />
-          <p className="text-lg font-semibold text-text mb-2">No forecast yet</p>
-          <p className="text-sm text-text-secondary max-w-md mx-auto">Run a Pulse to analyze your channel and generate personalized sponsorship rate forecasts.</p>
+          <p className="text-lg font-semibold text-text mb-2">Aún no hay tarifas estimadas</p>
+          <p className="text-sm text-text-secondary max-w-md mx-auto">Analizá tu canal para generar pronósticos personalizados de tarifas de patrocinio.</p>
         </div>
       </motion.div>
     );
