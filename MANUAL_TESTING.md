@@ -10,8 +10,19 @@
 
 - [ ] Backend corriendo (`pnpm --filter calibre-api dev` o equivalente)
 - [ ] Frontend corriendo (`pnpm --filter calibre-dashboard dev`)
-- [ ] Base de datos limpia (opcional: crear usuario nuevo para testear onboarding de cero)
 - [ ] Gmail OAuth en Testing mode (tokens pueden estar vencidos — útil para testear reconnect)
+- [ ] **Base de datos limpia** (ver abajo)
+
+### Limpiar la base de datos (Testing desde cero)
+
+Para testear el onboarding completo con un usuario nuevo:
+
+1. Ir a **Supabase SQL Editor**
+2. Copiar y ejecutar el contenido de `scripts/clean-database.sql`
+3. Verificar que `SELECT COUNT(*) FROM users;` retorna `0`
+4. Reiniciar el backend para que limpie la caché en memoria
+
+> ⚠️ **ATENCIÓN:** Este script borra TODOS los usuarios, logs, emails procesados y métricas cacheadas. No usar en producción.
 
 ---
 
@@ -224,6 +235,36 @@
 
 ---
 
+## Limitaciones conocidas para Beta
+
+### Límite de usuarios: 5 max
+
+La arquitectura actual **no escala** más allá de ~5 usuarios activos:
+
+| Limitación | Detalle |
+|-----------|---------|
+| **Gemini API** | 500 requests/day. Cada pulse = 3-4 requests. 50 usuarios = quota excedida inmediatamente. |
+| **Auto-pulse en startup** | Al reiniciar el servidor, ejecuta pulse para TODOS los usuarios con `auto_pitch_enabled=true` simultáneamente. |
+| **Sin job queue** | No hay cola de procesamiento (BullMQ/pgboss). Si falla un pulse, no hay retry ni backoff. |
+| **YouTube API** | 10,000 units/day. 50 usuarios × 4 units = 200/day. Aún manejable, pero sin margen. |
+
+### Recomendación para beta cerrada
+
+- **Max 5 usuarios** en el plan actual.
+- **Auto-pitch desactivado por defecto** — que sea opt-in.
+- **Daily Digest solo** — evitar auto-pulse en startup.
+
+### Para escalar a 50+ usuarios (post-MVP)
+
+Necesita arquitectura con:
+1. **Job Queue** (BullMQ / Bull / pgboss)
+2. **Rate limiting por usuario** (1 pulse cada 6h)
+3. **Stagger en startup** (1 usuario cada 60s, no todos juntos)
+4. **Worker separado** del servidor HTTP
+5. **Monitoreo de quota** (alerta al 80% de Gemini/YouTube)
+
+---
+
 ## Resultado Esperado
 
 | Flujo | Estado |
@@ -245,3 +286,4 @@
 
 - Si un test falla, anotar el paso exacto, el error observado, y los logs de la consola del navegador y/o terminal del backend.
 - Priorizar los flujos marcados con :star: (criticos) antes de los opcionales.
+- Documentar cualquier bug encontrado en un issue de GitHub o en este archivo bajo "Bugs encontrados durante testing".
