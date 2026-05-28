@@ -222,84 +222,85 @@ describe('selectBestVideo', () => {
     expect(selectBestVideo([v])).toBe(v)
   })
 
-  it('should pick the short with most engagement when only shorts exist', () => {
-    const lowEng = makeVideo({
-      id: 'short-low',
-      duration: 'PT15S',
-      publishedAt: '2026-05-20T11:00:00Z',
-      views: 5000,
-      likes: 10,
-      comments: 2,
-    })
-    const highEng = makeVideo({
-      id: 'short-high',
+  it('should pick the most recent short when only shorts exist', () => {
+    const newer = makeVideo({
+      id: 'short-newer',
       duration: 'PT30S',
-      publishedAt: '2026-05-20T10:00:00Z',
+      publishedAt: '2026-05-20T11:00:00Z',
       views: 1000,
       likes: 50,
       comments: 20,
     })
-    expect(selectBestVideo([lowEng, highEng])!.id).toBe('short-high')
+    const older = makeVideo({
+      id: 'short-older',
+      duration: 'PT15S',
+      publishedAt: '2026-05-20T10:00:00Z',
+      views: 5000,
+      likes: 10,
+      comments: 2,
+    })
+    expect(selectBestVideo([newer, older])!.id).toBe('short-newer')
   })
 
-  it('should pick the first mature non-short (> 24h) over recent ones', () => {
-    const mature = makeVideo({
-      id: 'mature',
-      publishedAt: '2026-05-18T12:00:00Z',
-      views: 5000,
-    })
+  it('should pick the most recent non-short even when a mature one exists', () => {
     const recent = makeVideo({
       id: 'recent',
       publishedAt: '2026-05-20T10:00:00Z',
       views: 10000,
     })
-    expect(selectBestVideo([recent, mature])!.id).toBe('mature')
+    const mature = makeVideo({
+      id: 'mature',
+      publishedAt: '2026-05-18T12:00:00Z',
+      views: 5000,
+    })
+    expect(selectBestVideo([recent, mature])!.id).toBe('recent')
   })
 
-  it('should pick the non-short with most views among those > 1h (no mature)', () => {
-    const lowViews = makeVideo({
-      id: 'three-hours-low',
+  it('should pick the most recent non-short when no mature videos exist', () => {
+    // YouTube API returns videos ordered by date desc (newest first)
+    const newer = makeVideo({
+      id: 'one-hour-newer',
+      publishedAt: '2026-05-20T11:00:00Z',
+      views: 200,
+    })
+    const older = makeVideo({
+      id: 'three-hours-older',
       publishedAt: '2026-05-20T09:00:00Z',
       views: 1000,
     })
-    const highViews = makeVideo({
-      id: 'five-hours-high',
-      publishedAt: '2026-05-20T07:00:00Z',
-      views: 20000,
-    })
-    expect(selectBestVideo([lowViews, highViews])!.id).toBe('five-hours-high')
+    expect(selectBestVideo([newer, older])!.id).toBe('one-hour-newer')
   })
 
-  it('should pick the non-short with most views when all are < 1h old', () => {
-    const lowViews = makeVideo({
-      id: 'recent-low',
-      publishedAt: '2026-05-20T11:30:00Z',
-      views: 500,
-    })
-    const highViews = makeVideo({
-      id: 'recent-high',
+  it('should pick the most recent non-short even when all are < 1h old', () => {
+    const newer = makeVideo({
+      id: 'recent-newer',
       publishedAt: '2026-05-20T11:45:00Z',
       views: 3000,
     })
-    expect(selectBestVideo([lowViews, highViews])!.id).toBe('recent-high')
+    const older = makeVideo({
+      id: 'recent-older',
+      publishedAt: '2026-05-20T11:30:00Z',
+      views: 500,
+    })
+    expect(selectBestVideo([newer, older])!.id).toBe('recent-newer')
   })
 
-  it('should fall back to shorts when no non-shorts exist', () => {
-    const short1 = makeVideo({
-      id: 's1',
-      duration: 'PT15S',
-      publishedAt: '2026-05-20T11:00:00Z',
-      likes: 5,
-      comments: 1,
-    })
-    const short2 = makeVideo({
+  it('should fall back to the most recent short when no non-shorts exist', () => {
+    const newer = makeVideo({
       id: 's2',
       duration: 'PT30S',
-      publishedAt: '2026-05-20T10:00:00Z',
+      publishedAt: '2026-05-20T11:00:00Z',
       likes: 20,
       comments: 10,
     })
-    expect(selectBestVideo([short1, short2])!.id).toBe('s2')
+    const older = makeVideo({
+      id: 's1',
+      duration: 'PT15S',
+      publishedAt: '2026-05-20T10:00:00Z',
+      likes: 5,
+      comments: 1,
+    })
+    expect(selectBestVideo([newer, older])!.id).toBe('s2')
   })
 
   it('should ignore shorts when deciding among non-shorts', () => {
@@ -319,18 +320,18 @@ describe('selectBestVideo', () => {
     expect(selectBestVideo([short, mature])!.id).toBe('mature')
   })
 
-  it('should return the first mature when multiple exist with same maturity', () => {
-    const mature1 = makeVideo({
+  it('should return the most recent non-short regardless of maturity', () => {
+    const older = makeVideo({
       id: 'mature-1',
       publishedAt: '2026-05-17T12:00:00Z',
       views: 100,
     })
-    const mature2 = makeVideo({
+    const newer = makeVideo({
       id: 'mature-2',
       publishedAt: '2026-05-18T12:00:00Z',
       views: 999999,
     })
-    expect(selectBestVideo([mature1, mature2])!.id).toBe('mature-1')
+    expect(selectBestVideo([newer, older])!.id).toBe('mature-2')
   })
 
   it('should correctly handle boundary where hoursSince is exactly 24 (not > 24)', () => {
@@ -344,8 +345,9 @@ describe('selectBestVideo', () => {
       publishedAt: '2026-05-20T10:00:00Z',
       views: 50000,
     })
-    // exactly24h is not > 24, so it falls to step 2 (> 1h), where recentHigh wins by views
-    expect(selectBestVideo([exactly24h, recentHigh])!.id).toBe('recent-2h')
+    // exactly24h is not > 24, so no mature videos. Falls to most recent non-short.
+    // The array order determines recency: exactly24h is first (older), recentHigh is second (newer)
+    expect(selectBestVideo([exactly24h, recentHigh])!.id).toBe('exactly-24h')
   })
 
   it('should treat videos with Infinity duration (malformed) as non-shorts', () => {
@@ -371,16 +373,17 @@ describe('selectBestVideo', () => {
       duration: 'PT15S',
       publishedAt: '2026-05-20T11:00:00Z',
     })
-    const mature = makeVideo({
-      id: 'mature',
-      publishedAt: '2026-05-17T12:00:00Z',
-      views: 200,
-    })
     const recentLow = makeVideo({
       id: 'recent-low',
       publishedAt: '2026-05-20T08:00:00Z',
       views: 500,
     })
-    expect(selectBestVideo([short, recentLow, mature])!.id).toBe('mature')
+    const mature = makeVideo({
+      id: 'mature',
+      publishedAt: '2026-05-17T12:00:00Z',
+      views: 200,
+    })
+    // Most recent non-short is recent-low (08:00 today), mature is older
+    expect(selectBestVideo([short, recentLow, mature])!.id).toBe('recent-low')
   })
 })

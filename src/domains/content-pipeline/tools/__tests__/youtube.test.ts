@@ -39,6 +39,7 @@ const sampleMetrics = {
   lastVideoComments: 3800,
   channelName: 'Test Creator',
   engagementRate: 2.86,
+  algorithmVersion: 'v3',
 }
 
 const mockMetrics = {
@@ -50,6 +51,7 @@ const mockMetrics = {
   lastVideoComments: 3800,
   channelName: 'midudev',
   engagementRate: 2.86,
+  algorithmVersion: 'v3',
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────────

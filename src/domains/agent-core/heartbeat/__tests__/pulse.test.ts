@@ -191,6 +191,7 @@ function baseMetrics(overrides: Record<string, any> = {}) {
     lastVideoComments: 1200,
     engagementRate: 6.5,
     channelName: 'TestChannel',
+    algorithmVersion: 'v3',
     ...overrides,
   }
 }

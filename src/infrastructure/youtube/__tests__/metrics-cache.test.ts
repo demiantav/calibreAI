@@ -29,6 +29,7 @@ const sampleMetrics = {
   lastVideoId: 'dQw4w9WgXcQ',
   channelName: 'Test Creator',
   engagementRate: 2.86,
+  algorithmVersion: 'v3',
 }
 
 // ─── getCachedMetrics ───────────────────────────────────────────────────────────
