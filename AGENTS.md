@@ -73,6 +73,28 @@ Resumen de features completadas pre-Sprint 14:
 - `maxResults: 100` (aumentado de 20) para capturar más emails
 - `q: 'newer_than:30d'` (solo emails de últimos 30 días)
 
+### Done (Sprint 14e — Threading Fixes End-to-End)
+
+#### BUG-5 Fix (Conversation Threading Robustness)
+
+**Root cause**: `generateAndDraftPitch` deduplicaba por `threadId` en `agent_logs`, pero pitches antiguos (pre-threading fix) no tenían `threadId` guardado en `content`, y reply emails no se guardaban en `processed_emails`.
+
+**Fixes**:
+- **DEDUP 2a**: Buscar `thread_id` en `processed_emails` (no solo en `agent_logs`). Si ANY email del thread ya fue procesado → es un reply.
+- **Always save reply**: Cuando se detecta un reply (thread ya procesado), el email se guarda en `processed_emails` de todos modos, evitando re-procesamiento en cada pulse.
+- **Only update if sent**: Solo marca como `responded` si `status === 'sent'` (no si ya está `responded`).
+- **Celebrated UI**: `DealDetailSheet` muestra "¡La marca respondió!" con icono `PartyPopper`, fondo verde `bg-success/10`, animación de entrada, y fallback para deals sin snippet.
+
+#### BUG-6 Fix (Send Pitch as Reply — Thread Preservation)
+
+**Root cause**: El pitch se enviaba como email NUEVO (sin `threadId`), creando un nuevo Gmail thread. Cuando la marca respondía, el reply tenía un `threadId` diferente al guardado en el draft, rompiendo la deduplicación.
+
+**Fixes**:
+- **MCP `send_email` tool**: Ahora acepta `threadId` opcional y lo pasa a `gmail.users.messages.send` en `requestBody.threadId`
+- **`POST /api/pitches/:id/send`**: Pasa `pitch.threadId` al MCP cuando envía
+- **Resultado**: El pitch se envía como reply dentro del mismo thread. La respuesta de la marca tiene el mismo `threadId` y el dedup funciona correctamente.
+- **Verified end-to-end**: Flujo completo probado manualmente — reply de marca detectado, pitch marcado como `responded`, snippet visible en UI.
+
 ### Blocked
 
 - **runPulseCheck**: bucle Gemini + function calling con 3+ dependencias externas vivas (Gemini chat, tool executor, Supabase)
@@ -82,6 +104,7 @@ Resumen de features completadas pre-Sprint 14:
 - **Gmail OAuth**: Google requiere que el usuario sea "test user" aprobado en Google Cloud Console mientras la app está en "Testing" mode. Para producción, hay que pasar a "Production" mode (requiere verificación de dominio)
 - **Integration tests**: 22 tests legacy skipped — requieren refactor para nuevo flujo JWT + mock de oauth_sessions
 - **Supabase visibility gap**: `agent_summary` insertado en `runDegradedMode`/`runPulseCheck` no aparece en el `SELECT` posterior de `/logs` (mismo `user_id`, mismo cliente service role). Workaround: el onboarding ya no depende de detección en tiempo real
+- **Threading edge case**: Si el usuario responde al email original antes de que Calibre envíe el pitch (raro), el threadId del reply del usuario puede crear un nuevo thread en Gmail. Solución: enviar pitch rápidamente o usar `In-Reply-To` / `References` headers para threading más robusto.
 
 ## Key Decisions
 
@@ -95,6 +118,9 @@ Resumen de features completadas pre-Sprint 14:
 - Temporal API para relative time (+158KB bundle, trade-off aceptado)
 - Pipeline Visual: 3 columnas (Draft/Sent/Responded) sin "New" — auto-pitch genera pitches inmediatamente
 - Conversation threading por `threadId`: evita duplicados cuando la marca responde al mismo hilo
+- Send pitch as reply within same `threadId`: critical for dedup to work end-to-end. Gmail creates new thread if `threadId` not passed
+- Fallback dedup: `threadId` → `gmailId` → `processed_emails.thread_id` — covers old pitches without stored `threadId`
+- Always save reply emails to `processed_emails` even when skipping pitch generation
 
 ## Test Stats
 
@@ -115,9 +141,10 @@ Resumen de features completadas pre-Sprint 14:
 ## Next Steps / Roadmap
 
 ### Pre-Launch (antes de beta)
-- [ ] **Testing manual end-to-end**: ejecutar `MANUAL_TESTING.md` checklist completo
+- [x] **Testing manual end-to-end**: ejecutar `MANUAL_TESTING.md` checklist completo
 - [ ] **Landing Page**: Presencia pública en inglés para Google for Startups (repo aparte)
 - [ ] **Integration tests**: Re-escribir 22 tests de integración para nuevo flujo JWT
+- [ ] **Threading edge case**: Evaluar headers `In-Reply-To` / `References` para threading más robusto en Gmail
 
 ### Post-MVP
 - [ ] **Brand Identity / Agent Persona**: Definir nombre, tono de voz, visual identity del agente de Calibre
@@ -155,3 +182,5 @@ Resumen de features completadas pre-Sprint 14:
 - `migrations/008_thread_id.sql`: agrega `thread_id` a `processed_emails`
 - `scripts/clean-database.sql`: reset total de DB para testing desde cero
 - `MANUAL_TESTING.md`: checklist de 12 flujos end-to-end
+- `src/domains/agent-core/mcp-connector/gmail-mcp-server.ts`: MCP server con tools `list_emails` y `send_email` (con `threadId` para reply)
+- `apps/web/src/components/DealDetailSheet.tsx`: Sheet lateral con pitch editable, timeline, "¡La marca respondió!" celebration UI
