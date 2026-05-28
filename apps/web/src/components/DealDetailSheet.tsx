@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X,
   Send,
   Eye,
   CheckCircle2,
@@ -13,7 +12,6 @@ import {
   ArrowRight,
   Edit3,
   Save,
-  Building2,
 } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { API_BASE_URL, getJsonHeaders } from '@/lib/api-config';
@@ -95,32 +93,21 @@ export default function DealDetailSheet({
       >
         {/* ═════ HEADER ═════ */}
         <header className="shrink-0 px-6 pt-6 pb-5 border-b border-border/60">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-4 min-w-0">
-              {/* Avatar */}
-              <div className="w-14 h-14 rounded-2xl bg-surface-raised border border-border flex items-center justify-center text-xl font-bold text-accent shrink-0">
-                {deal.brandName.charAt(0).toUpperCase()}
-              </div>
-
-              <div className="min-w-0">
-                <h2 className="text-lg font-bold text-text truncate leading-tight">
-                  {deal.brandName}
-                </h2>
-                <div className="flex items-center gap-1.5 mt-1 text-sm text-text-secondary">
-                  <Mail className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{deal.brandEmail}</span>
-                </div>
-              </div>
+          <div className="flex items-center gap-4 min-w-0 pr-10">
+            {/* Avatar */}
+            <div className="w-14 h-14 rounded-2xl bg-surface-raised border border-border flex items-center justify-center text-xl font-bold text-accent shrink-0">
+              {deal.brandName.charAt(0).toUpperCase()}
             </div>
 
-            {/* Close */}
-            <button
-              onClick={onClose}
-              aria-label="Cerrar panel"
-              className="w-10 h-10 rounded-xl bg-surface-raised border border-border flex items-center justify-center text-text-secondary hover:text-text hover:bg-surface-hover transition-colors shrink-0"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold text-text truncate leading-tight">
+                {deal.brandName}
+              </h2>
+              <div className="flex items-center gap-1.5 mt-1 text-sm text-text-secondary">
+                <Mail className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{deal.brandEmail}</span>
+              </div>
+            </div>
           </div>
 
           {/* Status row */}
