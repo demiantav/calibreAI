@@ -1,7 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, Eye, CheckCircle2, CircleDot, Mail, ChevronDown, MessageSquare, Clock, ArrowRight } from 'lucide-react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import {
+  X,
+  Send,
+  Eye,
+  CheckCircle2,
+  CircleDot,
+  Mail,
+  ChevronDown,
+  MessageSquare,
+  Clock,
+  ArrowRight,
+  Edit3,
+  Save,
+  Building2,
+} from 'lucide-react';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { API_BASE_URL, getJsonHeaders } from '@/lib/api-config';
 import type { UnifiedDeal, DealStatus } from '@/lib/types';
 
@@ -12,28 +26,47 @@ interface DealDetailSheetProps {
   onSent: () => void;
 }
 
-export default function DealDetailSheet({ deal, onClose, onStatusChange, onSent }: DealDetailSheetProps) {
+/* ------------------------------------------------------------------ */
+
+export default function DealDetailSheet({
+  deal,
+  onClose,
+  onStatusChange,
+  onSent,
+}: DealDetailSheetProps) {
   const [showOriginal, setShowOriginal] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
-  // Reset state when deal changes
+  /* editable pitch state */
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedSubject, setEditedSubject] = useState('');
+  const [editedContent, setEditedContent] = useState('');
+
+  /* reset everything when deal changes */
   useEffect(() => {
     setShowOriginal(false);
     setSendError(null);
+    setIsEditing(false);
+    if (deal) {
+      setEditedSubject(deal.subject || '');
+      setEditedContent(deal.content || '');
+    }
   }, [deal?.id]);
 
-  if (!deal) return null;
+  const handleSend = useCallback(async () => {
+    if (!deal?.logId) return;
+    const subject = isEditing ? editedSubject : (deal.subject || '');
+    const content = isEditing ? editedContent : (deal.content || '');
+    if (!subject || !content) return;
 
-  const handleSend = async () => {
-    if (!deal.logId || !deal.subject || !deal.content) return;
     setIsSending(true);
     setSendError(null);
     try {
       const res = await fetch(`${API_BASE_URL}/api/pitches/${deal.logId}/send`, {
         method: 'POST',
         headers: getJsonHeaders(),
-        body: JSON.stringify({ subject: deal.subject, content: deal.content }),
+        body: JSON.stringify({ subject, content }),
       });
       if (!res.ok) throw new Error(`Failed to send: ${res.status}`);
       onSent();
@@ -43,176 +76,299 @@ export default function DealDetailSheet({ deal, onClose, onStatusChange, onSent 
     } finally {
       setIsSending(false);
     }
-  };
+  }, [deal, isEditing, editedSubject, editedContent, onSent, onClose]);
 
-  const statusConfig: Record<DealStatus, { label: string; icon: typeof CircleDot; color: string; bg: string }> = {
-    new: { label: 'New', icon: CircleDot, color: 'text-text-tertiary', bg: 'bg-text-tertiary/10' },
-    draft_ready: { label: 'Draft Ready', icon: Eye, color: 'text-warning', bg: 'bg-warning/10' },
-    sent: { label: 'Sent', icon: Send, color: 'text-accent', bg: 'bg-accent/10' },
-    responded: { label: 'Responded', icon: CheckCircle2, color: 'text-success', bg: 'bg-success/10' },
-  };
+  if (!deal) return null;
 
-  const status = statusConfig[deal.status];
-  const StatusIcon = status.icon;
+  const statusCfg = STATUS_MAP[deal.status];
+  const StatusIcon = statusCfg.icon;
 
+  const activeSubject = isEditing ? editedSubject : (deal.subject || '');
+  const activeContent = isEditing ? editedContent : (deal.content || '');
+
+  /* ── render ── */
   return (
     <Sheet open={!!deal} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-md bg-surface border-l border-border overflow-y-auto">
-        <SheetHeader className="pb-4 border-b border-border/50">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-surface-raised border border-border flex items-center justify-center text-lg font-semibold text-text-secondary">
-                {deal.brandName.charAt(0)}
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-lg bg-bg border-l border-border p-0 flex flex-col overflow-hidden"
+      >
+        {/* ═════ HEADER ═════ */}
+        <header className="shrink-0 px-6 pt-6 pb-5 border-b border-border/60">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-4 min-w-0">
+              {/* Avatar */}
+              <div className="w-14 h-14 rounded-2xl bg-surface-raised border border-border flex items-center justify-center text-xl font-bold text-accent shrink-0">
+                {deal.brandName.charAt(0).toUpperCase()}
               </div>
-              <div>
-                <SheetTitle className="text-lg font-black text-text">{deal.brandName}</SheetTitle>
-                <SheetDescription className="text-xs font-bold text-text-tertiary flex items-center gap-1">
-                  <Mail className="w-3 h-3" />
-                  {deal.brandEmail}
-                </SheetDescription>
+
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-text truncate leading-tight">
+                  {deal.brandName}
+                </h2>
+                <div className="flex items-center gap-1.5 mt-1 text-sm text-text-secondary">
+                  <Mail className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{deal.brandEmail}</span>
+                </div>
               </div>
             </div>
+
+            {/* Close */}
+            <button
+              onClick={onClose}
+              aria-label="Cerrar panel"
+              className="w-10 h-10 rounded-xl bg-surface-raised border border-border flex items-center justify-center text-text-secondary hover:text-text hover:bg-surface-hover transition-colors shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          <div className="flex items-center gap-2 mt-3">
-            <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black ${status.bg} ${status.color}`}>
-              <StatusIcon className="w-3 h-3" />
-              {status.label}
+
+          {/* Status row */}
+          <div className="flex items-center gap-3 mt-5">
+            <span
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${statusCfg.bg} ${statusCfg.color}`}
+            >
+              <StatusIcon className="w-3.5 h-3.5" />
+              {statusCfg.label}
             </span>
             {deal.sentAt && (
-              <span className="flex items-center gap-1 text-[10px] font-bold text-text-tertiary">
-                <Clock className="w-3 h-3" />
+              <span className="inline-flex items-center gap-1.5 text-xs text-text-tertiary">
+                <Clock className="w-3.5 h-3.5" />
                 Enviado {new Date(deal.sentAt).toLocaleDateString('es-ES')}
               </span>
             )}
           </div>
-        </SheetHeader>
+        </header>
 
-        <div className="py-6 space-y-6">
-          {/* Timeline */}
-          <div>
-            <p className="text-[10px] font-black text-text-tertiary uppercase tracking-wider mb-4">Timeline</p>
+        {/* ═════ SCROLLABLE BODY ═════ */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+          {/* ── Timeline ── */}
+          <section>
+            <h3 className="text-xs font-bold text-text-tertiary uppercase tracking-widest mb-5">
+              Timeline
+            </h3>
             <div className="space-y-0">
-              <TimelineItem
+              <TimelineStep
                 icon={Mail}
-                iconColor="text-text-tertiary"
-                bgColor="bg-text-tertiary/10"
+                color="text-text-tertiary"
+                bg="bg-text-tertiary/10"
                 title="Email recibido"
-                subtitle={deal.detectedAt ? new Date(deal.detectedAt).toLocaleDateString('es-ES') : 'Desconocido'}
+                date={deal.detectedAt}
                 isFirst
+                isDone
                 isActive={deal.status === 'new'}
               />
-              <TimelineItem
+              <TimelineStep
                 icon={MessageSquare}
-                iconColor="text-warning"
-                bgColor="bg-warning/10"
+                color="text-warning"
+                bg="bg-warning/10"
                 title="Pitch generado"
-                subtitle={deal.createdAt ? new Date(deal.createdAt).toLocaleDateString('es-ES') : 'Desconocido'}
+                date={deal.createdAt}
+                isDone={deal.status !== 'new'}
                 isActive={deal.status === 'draft_ready'}
               />
-              <TimelineItem
+              <TimelineStep
                 icon={Send}
-                iconColor="text-accent"
-                bgColor="bg-accent/10"
+                color="text-accent"
+                bg="bg-accent/10"
                 title="Pitch enviado"
-                subtitle={deal.sentAt ? new Date(deal.sentAt).toLocaleDateString('es-ES') : 'Pendiente'}
+                date={deal.sentAt}
+                isDone={deal.status === 'sent' || deal.status === 'responded'}
                 isActive={deal.status === 'sent'}
               />
-              <TimelineItem
+              <TimelineStep
                 icon={CheckCircle2}
-                iconColor="text-success"
-                bgColor="bg-success/10"
+                color="text-success"
+                bg="bg-success/10"
                 title="Respuesta recibida"
-                subtitle={deal.status === 'responded' ? 'Activo' : 'Esperando...'}
+                date={deal.status === 'responded' ? deal.sentAt : undefined}
                 isLast
+                isDone={deal.status === 'responded'}
                 isActive={deal.status === 'responded'}
               />
             </div>
-          </div>
+          </section>
 
-          {/* Original Email */}
-          {(deal.kind === 'lead' || deal.originalEmailFrom || deal.originalEmailSubject || deal.originalEmailSnippet) && (
-            <div className="rounded-2xl bg-accent-soft border border-accent-muted/10 overflow-hidden">
+          {/* ── Original Email (collapsible) ── */}
+          {(deal.kind === 'lead' ||
+            deal.originalEmailFrom ||
+            deal.originalEmailSubject ||
+            deal.originalEmailSnippet) && (
+            <section className="rounded-2xl border border-border bg-surface overflow-hidden">
               <button
-                onClick={() => setShowOriginal(!showOriginal)}
-                className="flex items-center justify-between w-full px-4 py-3 text-xs font-black text-accent-muted"
+                onClick={() => setShowOriginal((v) => !v)}
+                className="flex items-center justify-between w-full px-5 py-4 text-sm font-semibold text-text-secondary hover:text-text transition-colors"
               >
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  {deal.kind === 'lead' ? 'Email entrante' : 'Email original de la marca'}
+                <div className="flex items-center gap-2.5">
+                  <MessageSquare className="w-4 h-4 text-accent-muted" />
+                  {deal.kind === 'lead'
+                    ? 'Email entrante'
+                    : 'Email original de la marca'}
                 </div>
-                <motion.div animate={{ rotate: showOriginal ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                  <ChevronDown className="w-3.5 h-3.5" />
+                <motion.div
+                  animate={{ rotate: showOriginal ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronDown className="w-4 h-4" />
                 </motion.div>
               </button>
-              <AnimatePresence>
+
+              <AnimatePresence initial={false}>
                 {showOriginal && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="px-4 pb-3 space-y-2 border-t border-accent-muted/10 pt-3 overflow-hidden"
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                    className="border-t border-border/60"
                   >
-                    {/* From */}
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-3 h-3 text-text-tertiary shrink-0" />
-                      <span className="text-[10px] font-black text-text-tertiary uppercase tracking-wider mr-1">From:</span>
-                      <span className="text-xs font-bold text-text truncate">
-                        {deal.originalEmailFrom || deal.brandEmail}
-                      </span>
+                    <div className="px-5 py-4 space-y-3">
+                      <EmailField label="From" value={deal.originalEmailFrom || deal.brandEmail} />
+                      {(deal.originalEmailSubject || deal.subject) && (
+                        <EmailField
+                          label="Asunto"
+                          value={deal.originalEmailSubject || deal.subject || ''}
+                        />
+                      )}
+                      {(deal.originalEmailSnippet || deal.snippet) && (
+                        <p className="text-sm text-text-secondary leading-relaxed pl-[52px]">
+                          {deal.originalEmailSnippet || deal.snippet}
+                        </p>
+                      )}
                     </div>
-                    {/* Subject */}
-                    {(deal.originalEmailSubject || deal.subject) && (
-                      <div className="flex items-start gap-2">
-                        <span className="text-[10px] font-black text-text-tertiary uppercase tracking-wider shrink-0 mt-0.5">Subject:</span>
-                        <p className="text-xs font-black text-text">{deal.originalEmailSubject || deal.subject}</p>
-                      </div>
-                    )}
-                    {/* Snippet */}
-                    {(deal.originalEmailSnippet || deal.snippet) && (
-                      <p className="text-[11px] font-medium text-text-secondary leading-relaxed pl-[58px]">
-                        {deal.originalEmailSnippet || deal.snippet}
-                      </p>
-                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+            </section>
           )}
 
-          {/* Pitch content */}
-          {deal.subject && (
-            <div>
-              <p className="text-[10px] font-black text-text-tertiary uppercase tracking-wider mb-2">Asunto del pitch</p>
-              <p className="text-sm font-bold text-text">{deal.subject}</p>
-            </div>
-          )}
-          {deal.content && (
-            <div>
-              <p className="text-[10px] font-black text-text-tertiary uppercase tracking-wider mb-2">Contenido</p>
-              <div className="rounded-2xl p-4 bg-surface-hover/70 border border-border/50 text-xs font-medium text-text-secondary leading-relaxed whitespace-pre-wrap">
-                {deal.content}
+          {/* ── Pitch Content (editable) ── */}
+          {deal.status === 'draft_ready' && (
+            <section className="space-y-5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-text-tertiary uppercase tracking-widest">
+                  Pitch redactado por IA
+                </h3>
+                <button
+                  onClick={() => {
+                    if (isEditing) {
+                      /* save → just toggle off, state already synced */
+                      setIsEditing(false);
+                    } else {
+                      setIsEditing(true);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-raised border border-border hover:border-accent/30 text-text-secondary hover:text-text transition-colors"
+                >
+                  {isEditing ? (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      Guardar
+                    </>
+                  ) : (
+                    <>
+                      <Edit3 className="w-3.5 h-3.5" />
+                      Editar
+                    </>
+                  )}
+                </button>
               </div>
-            </div>
+
+              {/* Subject */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+                  Asunto
+                </label>
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editedSubject}
+                    onChange={(e) => setEditedSubject(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-surface-raised border border-border text-sm font-medium text-text placeholder:text-text-tertiary focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all outline-none"
+                  />
+                ) : (
+                  <div className="px-4 py-3 rounded-xl bg-surface-raised border border-border/60 text-sm font-semibold text-text">
+                    {activeSubject || 'Sin asunto'}
+                  </div>
+                )}
+              </div>
+
+              {/* Content */}
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+                  Contenido
+                </label>
+                {isEditing ? (
+                  <textarea
+                    value={editedContent}
+                    onChange={(e) => setEditedContent(e.target.value)}
+                    rows={12}
+                    className="w-full px-4 py-3 rounded-xl bg-surface-raised border border-border text-sm font-medium text-text placeholder:text-text-tertiary focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all outline-none resize-y leading-relaxed"
+                  />
+                ) : (
+                  <div className="px-4 py-3 rounded-xl bg-surface-raised border border-border/60 text-sm text-text-secondary leading-relaxed whitespace-pre-wrap min-h-[160px]">
+                    {activeContent || 'Sin contenido'}
+                  </div>
+                )}
+              </div>
+            </section>
           )}
 
-          {/* Error */}
-          {sendError && (
-            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-400 font-medium">
-              {sendError}
-            </div>
+          {/* ── Sent / Responded read-only view ── */}
+          {(deal.status === 'sent' || deal.status === 'responded') && (
+            <section className="space-y-5">
+              <h3 className="text-xs font-bold text-text-tertiary uppercase tracking-widest">
+                Pitch enviado
+              </h3>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+                  Asunto
+                </label>
+                <div className="px-4 py-3 rounded-xl bg-surface-raised border border-border/60 text-sm font-semibold text-text">
+                  {deal.subject || 'Sin asunto'}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-text-tertiary uppercase tracking-wider">
+                  Contenido
+                </label>
+                <div className="px-4 py-3 rounded-xl bg-surface-raised border border-border/60 text-sm text-text-secondary leading-relaxed whitespace-pre-wrap min-h-[160px]">
+                  {deal.content || 'Sin contenido'}
+                </div>
+              </div>
+            </section>
           )}
 
-          {/* Actions */}
-          <div className="flex items-center gap-3 pt-4 border-t border-border/50">
+          {/* ── Error ── */}
+          <AnimatePresence>
+            {sendError && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400 font-medium"
+              >
+                {sendError}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* ═════ FOOTER ACTIONS ═════ */}
+        <footer className="shrink-0 px-6 py-5 border-t border-border/60 bg-surface/50">
+          <div className="flex items-center gap-3">
             {deal.status === 'draft_ready' && deal.logId && (
               <motion.button
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={handleSend}
-                disabled={isSending}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-sm font-semibold text-white bg-accent hover:brightness-110 transition-all shadow-lg shadow-accent/20 disabled:opacity-50"
+                disabled={isSending || !activeSubject || !activeContent}
+                className="flex-1 inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl text-sm font-semibold text-white bg-accent hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed min-h-[48px]"
               >
                 {isSending ? (
-                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  >
                     <Send className="w-4 h-4" />
                   </motion.div>
                 ) : (
@@ -224,9 +380,9 @@ export default function DealDetailSheet({ deal, onClose, onStatusChange, onSent 
 
             {deal.status === 'sent' && deal.logId && (
               <motion.button
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={() => onStatusChange(deal.logId!, 'responded')}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-sm font-semibold text-white bg-success hover:brightness-110 transition-all shadow-lg shadow-success/20"
+                className="flex-1 inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl text-sm font-semibold text-white bg-success hover:brightness-110 transition-all min-h-[48px]"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 Marcar como respondido
@@ -235,57 +391,133 @@ export default function DealDetailSheet({ deal, onClose, onStatusChange, onSent 
 
             {deal.status === 'responded' && deal.logId && (
               <motion.button
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={() => onStatusChange(deal.logId!, 'sent')}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-sm font-semibold text-text bg-surface-hover border border-border hover:border-accent/30 transition-all"
+                className="flex-1 inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl text-sm font-semibold text-text bg-surface-raised border border-border hover:border-accent/30 transition-all min-h-[48px]"
               >
                 <ArrowRight className="w-4 h-4" />
                 Volver a Sent
               </motion.button>
             )}
           </div>
-        </div>
+        </footer>
       </SheetContent>
     </Sheet>
   );
 }
 
-function TimelineItem({
+/* ================================================================== */
+/*  Timeline Step                                                      */
+/* ================================================================== */
+
+function TimelineStep({
   icon: Icon,
-  iconColor,
-  bgColor,
+  color,
+  bg,
   title,
-  subtitle,
+  date,
   isFirst,
   isLast,
+  isDone,
   isActive,
 }: {
   icon: typeof CircleDot;
-  iconColor: string;
-  bgColor: string;
+  color: string;
+  bg: string;
   title: string;
-  subtitle: string;
+  date?: string;
   isFirst?: boolean;
   isLast?: boolean;
+  isDone?: boolean;
   isActive?: boolean;
 }) {
+  const formattedDate = date
+    ? new Date(date).toLocaleDateString('es-ES', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : 'Pendiente';
+
   return (
-    <div className="flex gap-3 relative">
-      {/* Connector line */}
+    <div className="flex gap-4 relative">
+      {/* connector */}
       {!isFirst && (
-        <div className="absolute left-[18px] top-0 bottom-1/2 w-px bg-border/50 -translate-x-1/2" />
+        <div className="absolute left-[22px] top-0 bottom-1/2 w-px bg-border/40 -translate-x-1/2" />
       )}
       {!isLast && (
-        <div className="absolute left-[18px] top-1/2 bottom-0 w-px bg-border/50 -translate-x-1/2" />
+        <div className="absolute left-[22px] top-1/2 bottom-0 w-px bg-border/40 -translate-x-1/2" />
       )}
 
-      <div className={`relative z-10 w-9 h-9 rounded-full ${bgColor} flex items-center justify-center shrink-0 ${isActive ? 'ring-2 ring-offset-2 ring-offset-surface ring-accent/30' : ''}`}>
-        <Icon className={`w-4 h-4 ${iconColor}`} />
+      {/* dot */}
+      <div
+        className={`relative z-10 w-11 h-11 rounded-full ${bg} flex items-center justify-center shrink-0 border-2 border-transparent ${
+          isActive ? 'border-accent/40' : ''
+        } ${isDone ? '' : 'opacity-60'}`}
+      >
+        <Icon className={`w-5 h-5 ${color}`} />
       </div>
-      <div className="pb-5 pt-1">
-        <p className={`text-xs font-bold ${isActive ? 'text-text' : 'text-text-tertiary'}`}>{title}</p>
-        <p className="text-[10px] font-medium text-text-tertiary">{subtitle}</p>
+
+      {/* text */}
+      <div className="pb-6 pt-1.5">
+        <p
+          className={`text-sm font-semibold ${
+            isActive ? 'text-text' : isDone ? 'text-text-secondary' : 'text-text-tertiary'
+          }`}
+        >
+          {title}
+        </p>
+        <p className="text-xs text-text-tertiary mt-0.5">{formattedDate}</p>
       </div>
     </div>
   );
 }
+
+/* ================================================================== */
+/*  Email Field                                                        */
+/* ================================================================== */
+
+function EmailField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="text-[10px] font-bold text-text-tertiary uppercase tracking-wider w-12 shrink-0 pt-0.5">
+        {label}
+      </span>
+      <span className="text-sm font-medium text-text break-all">{value}</span>
+    </div>
+  );
+}
+
+/* ================================================================== */
+/*  Constants                                                          */
+/* ================================================================== */
+
+const STATUS_MAP: Record<
+  DealStatus,
+  { label: string; icon: typeof CircleDot; color: string; bg: string }
+> = {
+  new: {
+    label: 'Nuevo',
+    icon: CircleDot,
+    color: 'text-text-tertiary',
+    bg: 'bg-text-tertiary/10',
+  },
+  draft_ready: {
+    label: 'Borrador',
+    icon: Eye,
+    color: 'text-warning',
+    bg: 'bg-warning/10',
+  },
+  sent: {
+    label: 'Enviado',
+    icon: Send,
+    color: 'text-accent',
+    bg: 'bg-accent/10',
+  },
+  responded: {
+    label: 'Respondido',
+    icon: CheckCircle2,
+    color: 'text-success',
+    bg: 'bg-success/10',
+  },
+};

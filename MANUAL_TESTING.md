@@ -30,22 +30,22 @@ Para testear el onboarding completo con un usuario nuevo:
 
 ### 1.1 Registro
 
-- [ ] Ir a `/register`
-- [ ] Completar email + password
-- [ ] Verificar redirección a `/onboarding?step=1`
-- [ ] Verificar que el JWT se guardó en `localStorage` (DevTools -> Application -> Local Storage)
+- [x] Ir a `/register`
+- [x] Completar email + password
+- [x] Verificar redirección a `/onboarding?step=1`
+- [v] Verificar que el JWT se guardó en `localStorage` (DevTools -> Application -> Local Storage)
 
 ### 1.2 Login
 
-- [ ] Ir a `/login`
-- [ ] Completar credenciales del usuario creado
-- [ ] Verificar redirección a `/onboarding` si `onboarding_completed: false`, o a `/` si `true`
+- [v] Ir a `/login`
+- [v] Completar credenciales del usuario creado
+- [v] Verificar redirección a `/onboarding` si `onboarding_completed: false`, o a `/` si `true`
 
 ### 1.3 Logout
 
-- [ ] Click en "Cerrar sesión" en Sidebar
-- [ ] Verificar que JWT se elimina de `localStorage`
-- [ ] Verificar redirección a `/login`
+- [v] Click en "Cerrar sesión" en Sidebar
+- [v] Verificar que JWT se elimina de `localStorage`
+- [v] Verificar redirección a `/login`
 
 ---
 
@@ -53,25 +53,25 @@ Para testear el onboarding completo con un usuario nuevo:
 
 ### 2.1 Step 1 — Connect YouTube
 
-- [ ] Pegar URL de canal (ej: `https://www.youtube.com/@midudev` o `https://www.youtube.com/channel/UC...`)
-- [ ] Verificar que el backend detecta el canal (preview de nombre + subs)
-- [ ] Click "Confirmar"
-- [ ] Verificar redirección a `?step=2`
+- [v] Pegar URL de canal (ej: `https://www.youtube.com/@midudev` o `https://www.youtube.com/channel/UC...`)
+- [v] Verificar que el backend detecta el canal (preview de nombre + subs)
+- [v] Click "Confirmar"
+- [v] Verificar redirección a `?step=2`
 
 ### 2.2 Step 2 — Connect Gmail
 
-- [ ] Click "Conectar Gmail" -> redirige a Google OAuth
-- [ ] Autorizar -> redirige a `/auth/callback` -> `/onboarding?step=3`
+- [v] Click "Conectar Gmail" -> redirige a Google OAuth
+- [v] Autorizar -> redirige a `/auth/callback` -> `/onboarding?step=3`
 - [ ] **Testear reconnect:** Si el token está vencido, verificar que aparece banner rojo en Sidebar + Dashboard con "Reconectar Gmail"
 - [ ] **Dev skip:** En development, botón "Saltar Gmail (solo para testear)" funciona
 
 ### 2.3 Step 3 — First Pulse
 
-- [ ] Verificar que el botón "Analizar" está habilitado
-- [ ] Click "Analizar" -> spinner
-- [ ] Verificar que `/pulse?wait=true` retorna 200
-- [ ] Verificar redirección a Dashboard
-- [ ] Verificar que `onboarding_completed=true` en la DB (o en `/auth/me`)
+- [v] Verificar que el botón "Analizar" está habilitado
+- [v] Click "Analizar" -> spinner
+- [v] Verificar que `/pulse?wait=true` retorna 200
+- [v] Verificar redirección a Dashboard
+- [v] Verificar que `onboarding_completed=true` en la DB (o en `/auth/me`)
 
 ---
 
@@ -79,29 +79,29 @@ Para testear el onboarding completo con un usuario nuevo:
 
 ### 3.1 Métricas
 
-- [ ] Verificar que las métricas del canal cargan (subs, views, engagement rate)
-- [ ] Verificar que los números hacen count-up animation
-- [ ] Verificar que las cards tienen hover effect
+- [v] Verificar que las métricas del canal cargan (subs, views, engagement rate)
+- [v] Verificar que los números hacen count-up animation
+- [v] Verificar que las cards tienen hover effect
 
 ### 3.2 Daily Brief
 
-- [ ] Verificar que aparece "Resumen del día"
-- [ ] Verificar que el texto del brief es legible (no truncado)
+- [v] Verificar que aparece "Resumen del día"
+- [v] Verificar que el texto del brief es legible (no truncado)
 
 ### 3.3 Acción Sugerida (SuggestedAction)
 
 - [ ] Si hay deals pendientes -> aparece "Tenés X propuestas esperando revisión" con link a `/deals`
-- [ ] Si no hay deals -> verificar que no aparece o muestra otra sugerencia
+- [v] Si no hay deals -> verificar que no aparece o muestra otra sugerencia
 
 ### 3.4 Audience Insights
 
-- [ ] Verificar que aparece la sección con barras de sentimiento
-- [ ] Verificar que hay temas recurrentes y preguntas frecuentes
+- [v] Verificar que aparece la sección con barras de sentimiento
+- [v] Verificar que hay temas recurrentes y preguntas frecuentes
 
 ### 3.5 Growth Chart
 
 - [ ] Si hay datos -> gráfico renderiza con línea y área
-- [ ] Si no hay datos -> empty state honesto
+- [v] Si no hay datos -> empty state honesto
 
 ---
 
@@ -109,11 +109,11 @@ Para testear el onboarding completo con un usuario nuevo:
 
 ### 4.1 Éxito
 
-- [ ] Click en botón "Analizar" (PulseButton)
-- [ ] Verificar estado "pulsing" (animación de círculo + dots)
-- [ ] Esperar a que termine -> estado "success" (check verde)
-- [ ] Verificar que las métricas se actualizan en el Dashboard
-- [ ] Verificar que aparece nuevo log en `/logs`
+- [v] Click en botón "Analizar" (PulseButton)
+- [v] Verificar estado "pulsing" (animación de círculo + dots)
+- [v] Esperar a que termine -> estado "success" (check verde)
+- [v] Verificar que las métricas se actualizan en el Dashboard
+- [v] Verificar que aparece nuevo log en `/logs`
 
 ### 4.2 Timeout
 
@@ -345,4 +345,4 @@ Necesita arquitectura con:
 
 ### Bugs encontrados durante testing
 
-*(Agregar acá cualquier bug descubierto con su descripción y pasos para reproducir)*
+_(Agregar acá cualquier bug descubierto con su descripción y pasos para reproducir)_
