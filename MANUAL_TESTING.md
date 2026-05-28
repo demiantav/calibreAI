@@ -8,10 +8,10 @@
 
 ## Setup Previo
 
-- [ ] Backend corriendo (`pnpm --filter calibre-api dev` o equivalente)
-- [ ] Frontend corriendo (`pnpm --filter calibre-dashboard dev`)
-- [ ] Gmail OAuth en Testing mode (tokens pueden estar vencidos — útil para testear reconnect)
-- [ ] **Base de datos limpia** (ver abajo)
+- [v] Backend corriendo (`pnpm --filter calibre-api dev` o equivalente)
+- [v] Frontend corriendo (`pnpm --filter calibre-dashboard dev`)
+- [v] Gmail OAuth en Testing mode (tokens pueden estar vencidos — útil para testear reconnect)
+- [v] **Base de datos limpia** (ver abajo)
 
 ### Limpiar la base de datos (Testing desde cero)
 
@@ -30,9 +30,9 @@ Para testear el onboarding completo con un usuario nuevo:
 
 ### 1.1 Registro
 
-- [x] Ir a `/register`
-- [x] Completar email + password
-- [x] Verificar redirección a `/onboarding?step=1`
+- [v] Ir a `/register`
+- [v] Completar email + password
+- [v] Verificar redirección a `/onboarding?step=1`
 - [v] Verificar que el JWT se guardó en `localStorage` (DevTools -> Application -> Local Storage)
 
 ### 1.2 Login
@@ -63,7 +63,7 @@ Para testear el onboarding completo con un usuario nuevo:
 - [v] Click "Conectar Gmail" -> redirige a Google OAuth
 - [v] Autorizar -> redirige a `/auth/callback` -> `/onboarding?step=3`
 - [ ] **Testear reconnect:** Si el token está vencido, verificar que aparece banner rojo en Sidebar + Dashboard con "Reconectar Gmail"
-- [ ] **Dev skip:** En development, botón "Saltar Gmail (solo para testear)" funciona
+- [v] **Dev skip:** En development, botón "Saltar Gmail (solo para testear)" funciona
 
 ### 2.3 Step 3 — First Pulse
 
@@ -124,33 +124,30 @@ Para testear el onboarding completo con un usuario nuevo:
 
 ## Flujo 5: Deals / Pipeline Visual (10 min) :star: CRÍTICO
 
+> **Nota:** No existe columna "New". Con auto-pitch activado, el agente genera pitches inmediatamente al detectar emails. El pipeline tiene 3 columnas: **Draft → Sent → Responded**.
+
 ### 5.1 Kanban Board
 
-- [ ] Ir a `/deals`
-- [ ] Verificar 4 columnas: **New** / **Draft** / **Sent** / **Responded**
-- [ ] Verificar que cada card muestra: brand name, email, snippet, estado
-- [ ] Verificar que cards en **New** tienen asunto del email visible (ej: "Propuesta de partner — Vercel")
-- [ ] Verificar que el avatar es la inicial del brand name (no del dominio de email)
+- [v] Ir a `/deals`
+- [v] Verificar **3 columnas**: **Draft** / **Sent** / **Responded**
+- [v] Verificar que cada card muestra: brand name, email, snippet, estado
+- [v] Verificar que el avatar es la inicial del brand name (no del dominio de email)
 
-### 5.2 Lead → Draft
+### 5.2 Draft — Contenido de IA
 
-- [ ] Enviar un email de prueba a la cuenta Gmail del usuario (desde otra cuenta)
-- [ ] Hacer pulse
-- [ ] Verificar que el email aparece en columna **New** con datos reales
-- [ ] Abrir el card (click) -> se abre **Sheet lateral** (drawer)
-- [ ] Verificar que se ve: email original (from, subject, snippet)
+- [v] Verificar que pitches generados por el agente aparecen en columna **Draft**
+- [v] Abrir card en Draft -> se abre **Sheet lateral** (drawer)
+- [v] Verificar background sólido (no transparente), con márgenes generosos
+- [v] Verificar que se ve:
+  - [v] Asunto del pitch redactado por IA
+  - [v] Contenido del pitch redactado por IA (bloque de texto)
+  - [v] Timeline del deal
+- [v] Verificar que hay botón **"Editar"** para modificar asunto y contenido
+- [v] Click "Editar" -> input (asunto) + textarea (contenido) se hacen editables
+- [v] Modificar texto, click "Guardar", verificar que se guarda
+- [v] Botón **"Enviar Pitch"** visible y clickeable
 
-### 5.3 Draft con contenido de IA
-
-- [ ] Verificar que pitches generados por el agente aparecen en columna **Draft**
-- [ ] Abrir card en Draft -> Sheet lateral
-- [ ] Verificar que se ve:
-  - [ ] Asunto del pitch redactado por IA
-  - [ ] Contenido del pitch redactado por IA (bloque de texto)
-  - [ ] Timeline del deal
-- [ ] Botón **"Enviar Pitch"** visible y clickeable
-
-### 5.4 Enviar Pitch (:star: bug fix)
+### 5.3 Enviar Pitch (:star: bug fix)
 
 - [ ] Abrir un deal en estado **Draft**
 - [ ] Click **"Enviar Pitch"**
@@ -158,16 +155,22 @@ Para testear el onboarding completo con un usuario nuevo:
 - [ ] Verificar que el deal se mueve de **Draft** a **Sent**
 - [ ] Verificar que aparece timestamp de envío en el timeline
 
-### 5.5 Mover entre columnas (Drag & Drop)
+### 5.4 Mover entre columnas (Drag & Drop)
 
-- [ ] Arrastrar un deal de **New** a **Draft**
+- [ ] Arrastrar un deal de **Draft** a **Sent**
 - [ ] Verificar que el backend acepta el cambio (`PATCH /api/pitches/:id/status`)
 - [ ] Verificar que no permite mover de **Sent** a **Draft** (validación backend)
 
-### 5.6 Responded
+### 5.5 Responded
 
 - [ ] Mover un deal de **Sent** a **Responded** (drag & drop o botón)
 - [ ] Verificar que cambia de columna correctamente
+
+### 5.6 Email original
+
+- [ ] Abrir un deal en Draft
+- [ ] Verificar sección "Email original de la marca" colapsable
+- [ ] Click para expandir -> verificar From, Subject, Snippet
 
 ---
 
@@ -281,11 +284,11 @@ Para testear el onboarding completo con un usuario nuevo:
 
 ## Flujo 12: Keyboard Shortcuts (1 min)
 
-- [ ] Presionar `D` -> navega a Dashboard
-- [ ] Presionar `L` -> navega a Logs
-- [ ] Presionar `P` -> navega a Deals
-- [ ] Presionar `R` -> navega a Rates/Sponsorship
-- [ ] Verificar que NO funciona cuando se escribe en un input
+- [v] Presionar `D` -> navega a Dashboard
+- [v] Presionar `L` -> navega a Logs
+- [v] Presionar `P` -> navega a Deals
+- [v] Presionar `R` -> navega a Rates/Sponsorship
+- [v] Verificar que NO funciona cuando se escribe en un input
 
 ---
 
