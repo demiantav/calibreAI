@@ -1,7 +1,7 @@
 # 🧪 Manual Testing Checklist — Calibre MVP
 
 > **Rama:** `feature/mvp-testing`  
-> **Fecha:** 2026-05-27  
+> **Fecha:** 2026-05-28  
 > **Propósito:** Validar todos los flujos de usuario end-to-end antes de merge a `develop`.
 
 ---
@@ -30,22 +30,22 @@ Para testear el onboarding completo con un usuario nuevo:
 
 ### 1.1 Registro
 
-- [x] Ir a `/register`
-- [x] Completar email + password
-- [x] Verificar redireccion a `/onboarding?step=1`
-- [x] Verificar que el JWT se guardo en `localStorage` (DevTools -> Application -> Local Storage)
+- [ ] Ir a `/register`
+- [ ] Completar email + password
+- [ ] Verificar redirección a `/onboarding?step=1`
+- [ ] Verificar que el JWT se guardó en `localStorage` (DevTools -> Application -> Local Storage)
 
 ### 1.2 Login
 
-- [x] Ir a `/login`
-- [x] Completar credenciales del usuario creado
-- [x] Verificar redireccion a `/onboarding` si `onboarding_completed: false`, o a `/` si `true`
+- [ ] Ir a `/login`
+- [ ] Completar credenciales del usuario creado
+- [ ] Verificar redirección a `/onboarding` si `onboarding_completed: false`, o a `/` si `true`
 
 ### 1.3 Logout
 
-- [x] Click en "Logout" en Sidebar
-- [x] Verificar que JWT se elimina de `localStorage`
-- [x] Verificar redireccion a `/login`
+- [ ] Click en "Cerrar sesión" en Sidebar
+- [ ] Verificar que JWT se elimina de `localStorage`
+- [ ] Verificar redirección a `/login`
 
 ---
 
@@ -56,95 +56,118 @@ Para testear el onboarding completo con un usuario nuevo:
 - [ ] Pegar URL de canal (ej: `https://www.youtube.com/@midudev` o `https://www.youtube.com/channel/UC...`)
 - [ ] Verificar que el backend detecta el canal (preview de nombre + subs)
 - [ ] Click "Confirmar"
-- [ ] Verificar redireccion a `?step=2`
+- [ ] Verificar redirección a `?step=2`
 
 ### 2.2 Step 2 — Connect Gmail
 
 - [ ] Click "Conectar Gmail" -> redirige a Google OAuth
 - [ ] Autorizar -> redirige a `/auth/callback` -> `/onboarding?step=3`
-- [ ] **Testear reconnect:** Si el token esta vencido, verificar que aparece banner rojo en Sidebar + Dashboard con "Reconectar Gmail"
+- [ ] **Testear reconnect:** Si el token está vencido, verificar que aparece banner rojo en Sidebar + Dashboard con "Reconectar Gmail"
+- [ ] **Dev skip:** En development, botón "Saltar Gmail (solo para testear)" funciona
 
 ### 2.3 Step 3 — First Pulse
 
-- [ ] Verificar que el boton "Analizar" esta habilitado
+- [ ] Verificar que el botón "Analizar" está habilitado
 - [ ] Click "Analizar" -> spinner
 - [ ] Verificar que `/pulse?wait=true` retorna 200
-- [ ] Verificar redireccion a Dashboard
+- [ ] Verificar redirección a Dashboard
 - [ ] Verificar que `onboarding_completed=true` en la DB (o en `/auth/me`)
 
 ---
 
 ## Flujo 3: Dashboard (5 min)
 
-### 3.1 Metricas
+### 3.1 Métricas
 
-- [ ] Verificar que las metricas del canal cargan (subs, views, engagement rate)
-- [ ] Verificar que los numeros hacen count-up animation
+- [ ] Verificar que las métricas del canal cargan (subs, views, engagement rate)
+- [ ] Verificar que los números hacen count-up animation
 - [ ] Verificar que las cards tienen hover effect
 
 ### 3.2 Daily Brief
 
-- [ ] Verificar que aparece "Resumen del dia"
+- [ ] Verificar que aparece "Resumen del día"
 - [ ] Verificar que el texto del brief es legible (no truncado)
 
-### 3.3 SuggestedAction
+### 3.3 Acción Sugerida (SuggestedAction)
 
-- [ ] Si hay pitches pendientes -> aparece "Tenes X propuestas esperando revision" con link a /pitches
-- [ ] Si no hay pitches -> verificar que no aparece o muestra otra sugerencia
+- [ ] Si hay deals pendientes -> aparece "Tenés X propuestas esperando revisión" con link a `/deals`
+- [ ] Si no hay deals -> verificar que no aparece o muestra otra sugerencia
 
-### 3.4 AudienceInsights
+### 3.4 Audience Insights
 
-- [ ] Verificar que aparece la seccion con barras de sentimiento
+- [ ] Verificar que aparece la sección con barras de sentimiento
 - [ ] Verificar que hay temas recurrentes y preguntas frecuentes
 
-### 3.5 GrowthChart
+### 3.5 Growth Chart
 
-- [ ] Si hay datos -> grafico renderiza con linea y area
+- [ ] Si hay datos -> gráfico renderiza con línea y área
 - [ ] Si no hay datos -> empty state honesto
 
 ---
 
 ## Flujo 4: Pulse Manual (5 min)
 
-### 4.1 Exito
+### 4.1 Éxito
 
-- [ ] Click en boton "Analizar" (PulseButton)
-- [ ] Verificar estado "pulsing" (animacion de circulo + dots)
+- [ ] Click en botón "Analizar" (PulseButton)
+- [ ] Verificar estado "pulsing" (animación de círculo + dots)
 - [ ] Esperar a que termine -> estado "success" (check verde)
-- [ ] Verificar que las metricas se actualizan en el Dashboard
+- [ ] Verificar que las métricas se actualizan en el Dashboard
 - [ ] Verificar que aparece nuevo log en `/logs`
 
 ### 4.2 Timeout
 
-- [ ] Si tarda mas de 60s -> verificar que el boton pasa a estado "error" (X roja)
-- [ ] Verificar que el error se limpia automaticamente tras 2s
+- [ ] Si tarda más de 60s -> verificar que el botón pasa a estado "error" (X roja)
+- [ ] Verificar que el error se limpia automáticamente tras 2s
 
 ---
 
-## Flujo 5: Pitches (10 min) :star: CRITICO
+## Flujo 5: Deals / Pipeline Visual (10 min) :star: CRÍTICO
 
-### 5.1 Lista
+### 5.1 Kanban Board
 
-- [ ] Ir a `/pitches`
-- [ ] Verificar tabs "Pendientes" / "Enviadas"
-- [ ] Verificar que cada pitch muestra: brand name, email, asunto, estado
+- [ ] Ir a `/deals`
+- [ ] Verificar 4 columnas: **New** / **Draft** / **Sent** / **Responded**
+- [ ] Verificar que cada card muestra: brand name, email, snippet, estado
+- [ ] Verificar que cards en **New** tienen asunto del email visible (ej: "Propuesta de partner — Vercel")
+- [ ] Verificar que el avatar es la inicial del brand name (no del dominio de email)
 
-### 5.2 Enviar Pitch (:star: bug fix)
+### 5.2 Lead → Draft
 
-- [ ] Abrir un pitch en estado "draft_ready"
-- [ ] Click "Revisar y Enviar"
-- [ ] Verificar que el modal carga el contenido del pitch
-- [ ] Click "Send" (sin editar)
-- [ ] **Verificar que NO da error 401** (esto es lo que fixeamos)
-- [ ] Verificar que el pitch desaparece de "Pendientes" y aparece en "Enviadas"
+- [ ] Enviar un email de prueba a la cuenta Gmail del usuario (desde otra cuenta)
+- [ ] Hacer pulse
+- [ ] Verificar que el email aparece en columna **New** con datos reales
+- [ ] Abrir el card (click) -> se abre **Sheet lateral** (drawer)
+- [ ] Verificar que se ve: email original (from, subject, snippet)
 
-### 5.3 Editar antes de enviar
+### 5.3 Draft con contenido de IA
 
-- [ ] Abrir otro pitch
-- [ ] Click "Editar"
-- [ ] Modificar el asunto y/o contenido
-- [ ] Click "Done Editing"
-- [ ] Enviar y verificar que usa el texto editado
+- [ ] Verificar que pitches generados por el agente aparecen en columna **Draft**
+- [ ] Abrir card en Draft -> Sheet lateral
+- [ ] Verificar que se ve:
+  - [ ] Asunto del pitch redactado por IA
+  - [ ] Contenido del pitch redactado por IA (bloque de texto)
+  - [ ] Timeline del deal
+- [ ] Botón **"Enviar Pitch"** visible y clickeable
+
+### 5.4 Enviar Pitch (:star: bug fix)
+
+- [ ] Abrir un deal en estado **Draft**
+- [ ] Click **"Enviar Pitch"**
+- [ ] **Verificar que NO da error 401** (usa headers de auth correctos)
+- [ ] Verificar que el deal se mueve de **Draft** a **Sent**
+- [ ] Verificar que aparece timestamp de envío en el timeline
+
+### 5.5 Mover entre columnas (Drag & Drop)
+
+- [ ] Arrastrar un deal de **New** a **Draft**
+- [ ] Verificar que el backend acepta el cambio (`PATCH /api/pitches/:id/status`)
+- [ ] Verificar que no permite mover de **Sent** a **Draft** (validación backend)
+
+### 5.6 Responded
+
+- [ ] Mover un deal de **Sent** a **Responded** (drag & drop o botón)
+- [ ] Verificar que cambia de columna correctamente
 
 ---
 
@@ -154,7 +177,7 @@ Para testear el onboarding completo con un usuario nuevo:
 
 - [ ] Ir a `/contracts`
 - [ ] Drag & drop o click para subir un PDF de contrato real
-- [ ] Verificar que aparece el analisis con:
+- [ ] Verificar que aparece el análisis con:
   - [ ] Risk level badge (low/medium/high)
   - [ ] Red flags list
   - [ ] Suggested negotiation points
@@ -162,11 +185,11 @@ Para testear el onboarding completo con un usuario nuevo:
 
 ### 6.2 Fallback (sin Gemini)
 
-- [ ] Si Gemini no esta disponible -> verificar que el fallback regex funciona
+- [ ] Si Gemini no está disponible -> verificar que el fallback regex funciona
 
 ### 6.3 Historial
 
-- [ ] Verificar que el analisis aparece en la lista del historial
+- [ ] Verificar que el análisis aparece en la lista del historial
 
 ---
 
@@ -179,9 +202,9 @@ Para testear el onboarding completo con un usuario nuevo:
 - [ ] Filtrar por tipo (media_kit_update, agent_summary, pitch_draft, etc.)
 - [ ] Verificar que los filtros funcionan
 
-### 7.2 Busqueda
+### 7.2 Búsqueda
 
-- [ ] Buscar por texto en el campo de busqueda
+- [ ] Buscar por texto en el campo de búsqueda
 - [ ] Verificar que filtra correctamente
 
 ---
@@ -196,7 +219,7 @@ Para testear el onboarding completo con un usuario nuevo:
 
 ### 8.2 Sin datos
 
-- [ ] Si no hay forecast -> verificar empty state "Aun no hay tarifas estimadas"
+- [ ] Si no hay forecast -> verificar empty state "Aún no hay tarifas estimadas"
 
 ---
 
@@ -206,7 +229,7 @@ Para testear el onboarding completo con un usuario nuevo:
 
 - [ ] En Sidebar, toggle "Auto-pitch"
 - [ ] Verificar que el switch cambia de estado
-- [ ] Verificar que persiste tras recargar la pagina
+- [ ] Verificar que persiste tras recargar la página
 
 ### 9.2 Daily Digest
 
@@ -242,7 +265,7 @@ Para testear el onboarding completo con un usuario nuevo:
 
 - [ ] Borrar JWT de localStorage
 - [ ] Recargar Dashboard
-- [ ] Verificar redireccion a `/login`
+- [ ] Verificar redirección a `/login`
 
 ### 11.2 404 Not Found
 
@@ -260,7 +283,7 @@ Para testear el onboarding completo con un usuario nuevo:
 
 - [ ] Presionar `D` -> navega a Dashboard
 - [ ] Presionar `L` -> navega a Logs
-- [ ] Presionar `P` -> navega a Pitches
+- [ ] Presionar `P` -> navega a Deals
 - [ ] Presionar `R` -> navega a Rates/Sponsorship
 - [ ] Verificar que NO funciona cuando se escribe en un input
 
@@ -305,9 +328,9 @@ Necesita arquitectura con:
 | Onboarding 3 steps    | :white_check_mark: |
 | Dashboard carga       | :white_check_mark: |
 | Pulse manual success  | :white_check_mark: |
-| Pitches envio real    | :white_check_mark: |
-| Contracts analisis    | :white_check_mark: |
-| Logs filtros/busqueda | :white_check_mark: |
+| Deals pipeline visual | :white_check_mark: |
+| Contracts análisis    | :white_check_mark: |
+| Logs filtros/búsqueda | :white_check_mark: |
 | Toggles persisten     | :white_check_mark: |
 | Mobile responsive     | :white_check_mark: |
 | Errores manejados     | :white_check_mark: |
@@ -317,5 +340,9 @@ Necesita arquitectura con:
 ## Notas
 
 - Si un test falla, anotar el paso exacto, el error observado, y los logs de la consola del navegador y/o terminal del backend.
-- Priorizar los flujos marcados con :star: (criticos) antes de los opcionales.
+- Priorizar los flujos marcados con :star: (críticos) antes de los opcionales.
 - Documentar cualquier bug encontrado en un issue de GitHub o en este archivo bajo "Bugs encontrados durante testing".
+
+### Bugs encontrados durante testing
+
+*(Agregar acá cualquier bug descubierto con su descripción y pasos para reproducir)*
