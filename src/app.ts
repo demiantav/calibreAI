@@ -230,12 +230,14 @@ app.post('/api/pitches/:id/send', async (req, res) => {
 
     pitch.status = 'sent';
     pitch.sentAt = new Date().toISOString();
+    pitch.pitchSubject = subject;
+    pitch.pitchContent = content;
 
     const { error: preUpdateError } = await supabase
       .from('agent_logs')
       .update({
         content: pitch,
-        insights: `Pitch marcado como enviado a ${pitch.brandName} — Asunto: "${subject}"`,
+        insights: `Pitch enviado a ${pitch.brandName} — Asunto: "${subject}"`,
       })
       .eq('id', id)
       .eq('user_id', userId);
