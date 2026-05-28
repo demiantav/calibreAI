@@ -18,7 +18,7 @@ describe('Sidebar', () => {
 
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
     expect(screen.getByText('Actividad')).toBeInTheDocument()
-    expect(screen.getByText('Propuestas')).toBeInTheDocument()
+    expect(screen.getByText('Deals')).toBeInTheDocument()
     expect(screen.getByText('Tarifas')).toBeInTheDocument()
   })
 
@@ -35,13 +35,13 @@ describe('Sidebar', () => {
 
   it('should highlight active route', () => {
     render(
-      <MemoryRouter initialEntries={['/pitches']}>
+      <MemoryRouter initialEntries={['/deals']}>
         <Sidebar />
       </MemoryRouter>
     )
 
-    const pitchesLink = screen.getByText('Propuestas').closest('a')
-    expect(pitchesLink).toHaveClass('text-accent')
+    const dealsLink = screen.getByText('Deals').closest('a')
+    expect(dealsLink).toHaveClass('text-accent')
   })
 
   it('should fetch profile data on mount', async () => {
