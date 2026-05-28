@@ -32,11 +32,9 @@ Mínimo necesario:
 
 ---
 
-### 2. No hay pipeline visual de deals.
+### 2. ✅ Pipeline visual de deals implementado (Sprint 14b)
 
-El CRM existe en la base de datos (`draft_ready → sent → responded`), pero la vista `/pitches` es una lista tabulada, no un pipeline visual. Para un creador que maneja 5+ marcas simultáneas, esto es insuficiente. Se siente como un inbox, no como un sistema de ventas.
-
-Sin una vista kanban o pipeline de deals, el producto no entrega su core promise: "el sistema que cierra los deals por vos".
+Kanban board con 3 columnas (Draft / Sent / Responded), drag & drop, Sheet lateral con timeline editable. Resuelto en `feature/mvp-testing`.
 
 ---
 
@@ -214,7 +212,7 @@ Calibre puede rankear con contenido útil antes de que la competencia global lle
 | Feature | Estado | Justificación |
 |---|---|---|
 | Landing page + waitlist | ❌ No iniciado | Presencia pública, posicionamiento claro, validación de demanda |
-| Pipeline visual de deals | ❌ No iniciado | Core del valor. Convierte "herramienta" en "sistema de ventas" |
+| Pipeline visual de deals | ✅ Completado | Kanban 3 columnas, drag & drop, conversation threading |
 | Job queue + scalability | ❌ No iniciado | BullMQ/pgboss, rate limiting per user, worker separado |
 | Google OAuth production mode | ❌ No iniciado | Verificación de dominio + pasar a "Production" en Google Cloud |
 | Integration tests JWT | 🟡 Parcial | Re-escribir 22 tests legacy para evitar regresiones |
@@ -251,15 +249,14 @@ Calibre puede rankear con contenido útil antes de que la competencia global lle
 **Lo que falta para ser un negocio:**
 
 1. **Landing page + waitlist** → sin esto no hay señal de mercado ni canal de adquisición
-2. **Pipeline visual de deals** → sin esto el producto no entrega su core promise ("sistema de ventas")
-3. **Beta cerrada con creadores reales** → sin esto no hay product-market fit validado
-4. **Scalability (job queue + rate limiting)** → sin esto no podemos pasar de 5 a 50+ usuarios
-5. **Google OAuth production mode** → sin esto no hay lanzamiento público autónomo
+2. **Beta cerrada con creadores reales** → sin esto no hay product-market fit validado (en progreso: testing manual)
+3. **Scalability (job queue + rate limiting)** → sin esto no podemos pasar de 5 a 50+ usuarios
+4. **Google OAuth production mode** → sin esto no hay lanzamiento público autónomo
 
-**El orden importa:** Beta cerrada (5 usuarios) → Landing + Waitlist → Pipeline visual → Scalability → Lanzamiento público → Monetización.
+**El orden importa:** Beta cerrada (5 usuarios) → Landing + Waitlist → Scalability → Lanzamiento público → Monetización.
 
 No al revés.
 
 ---
 
-_Documento generado para uso interno de producto. Última actualización: Mayo 2026 · Post Sprint 14._
+_Documento generado para uso interno de producto. Última actualización: Mayo 2026 · Post Sprint 14 (Pipeline Visual completado, conversation threading, response snippets en deals)._

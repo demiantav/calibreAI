@@ -456,6 +456,49 @@ Hacer que Calibre soporte múltiples usuarios reales con sus propios canales de 
 
 ---
 
+## 🔵 Sprint 14b: Pipeline Visual de Deals (Completado)
+
+**Objetivo:** Reemplazar `/pitches` tabulado por un pipeline kanban visual de 3 columnas (Draft/Sent/Responded).
+
+### Features
+- **`/deals` page**: Kanban board con 3 columnas — Draft, Sent, Responded
+- **`@dnd-kit` drag & drop**: Cards movibles entre columnas con `PATCH /api/pitches/:id/status`
+- **`DealDetailSheet`**: Sheet lateral con timeline, email original colapsable, pitch editable (input + textarea), última respuesta
+- **`DealCard`**: avatar, brand name, email, urgency badge (>3d), quick action hover
+- **`PipelineSummary`**: barra de métricas con counts y win rate
+- **View toggle**: Board / List
+- **Migraciones**: `006_pipeline_snippet.sql`, `007_processed_emails_subject.sql`, `008_thread_id.sql`
+- **Route migration**: `/pitches` → `/deals`, Sidebar nav actualizado, shortcut `P` → `/deals`
+
+### Design Decisions
+- No columna "New" — auto-pitch genera drafts inmediatamente
+- Sheet (drawer) en vez de modal — preserva contexto del pipeline
+- Quick action button solo en hover (progressive disclosure)
+
+---
+
+## 🔵 Sprint 14c: Conversation Threading + Fixes (Completado)
+
+### Features
+- **Thread deduplication**: `generateAndDraftPitch` deduplica por `threadId` (no solo `gmailId`)
+- **Auto-responded**: Si pitch está `sent` y llega respuesta en mismo thread → auto-marcar `responded`
+- **Response snippet**: Guarda `latestResponseSnippet` + `latestResponseAt` del último mensaje del hilo
+- **Dashboard Toast**: Banner dismissible verde cuando hay deals `responded`, con link a `/deals`
+
+### Bug Fixes
+- **BUG-5 (user_id en pitch_draft)**: `generatePitchUseCase` guarda `user_id` → pitches visibles en `/deals`
+- **BUG-6 (DealDetailSheet 401)**: `API_BASE_URL` + `getJsonHeaders()` para "Marcar como respondido"
+- **BUG-7 (Duplicate close buttons)**: `SheetContent` de shadcn ya tiene X nativo, removido duplicado manual
+- **BUG-8 (brandName extraction)**: Extrae brand name del asunto del email, no del dominio (evita "gmail")
+
+### Stats Sprint 14c
+- **Build backend:** ✅ 0 errores
+- **Build frontend:** ✅ 0 errores, JS 763KB, CSS 140KB
+- **Tests backend:** 173 passing, 22 skipped
+- **Tests frontend:** 78/78 passing
+
+---
+
 ## 🛠 Contexto de Desarrollo
 
 - **Modelo IA:** `gemini-3.1-flash-lite` (upgrade desde 2.0 flash, 500 RPD vs 20 RPD). Retry 3x para 429
@@ -473,6 +516,23 @@ Hacer que Calibre soporte múltiples usuarios reales con sus propios canales de 
 - **Componentes nuevos:** `Switch` (toggle-switch.tsx), `AudienceInsights`, `SuggestedAction`, `SendPitchModal`, `ContractUploader`, `MobileSidebarDrawer`
 - **Canal test:** `UC8LeXCWOalN8SxlrPcG-PaQ` (midudev)
 - **Build backend:** 0 errores TypeScript
-- **Build frontend:** ~662KB JS / ~136KB CSS
+- **Build frontend:** ~763KB JS / ~140KB CSS
 - **Tests:** 173 backend unit passing + 22 integration skipped (legacy) + 78 frontend passing. Total: 251/273 effective
 - **Fallbacks:** mock YouTube (738K subs), mock pitch (template), mock sponsorship (subs × 0.002), mock contract audit (regex de cláusulas abusivas)
+
+---
+
+## 🎯 Next Steps / Roadmap
+
+### Pre-Launch (antes de beta)
+- [ ] **Testing manual end-to-end**: ejecutar `MANUAL_TESTING.md` checklist completo
+- [ ] **Landing Page**: Presencia pública en inglés para Google for Startups
+- [ ] **Integration tests**: Re-escribir 22 tests de integración para nuevo flujo JWT
+
+### Post-MVP
+- [ ] **Brand Identity / Agent Persona**: Definir nombre, tono de voz, visual identity del agente
+- [ ] **Job Queue**: BullMQ o pgboss para escalabilidad
+- [ ] **Rate limiting por usuario**: 1 pulse cada 6h
+- [ ] **Multi-tenant Agency**: Una cuenta con múltiples creadores
+- [ ] **TikTok/Instagram**: Evaluado: TikTok primero
+- [ ] **Timezone configurable**: guardar `timezone` del usuario
