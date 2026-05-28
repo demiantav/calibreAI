@@ -224,11 +224,13 @@ export const functionsImplementations = {
     }
 
     const threadId = emailData.threadId;
+    console.log(`[Tool Executor] DEDUP check: gmailId=${args.gmailId}, threadId=${threadId || 'N/A'}`);
 
     // --- DEDUP 2: Por threadId en agent_logs (conversation threading) ---
-    // Si ya existe un pitch para este threadId, significa que ya procesamos
-    // un email de esta conversacion anteriormente. Si el pitch esta sent,
-    // la marca respondio -> marcar como responded automaticamente.
+    // Fallback: si no hay threadId o no se encuentra, buscar por gmailId.
+    let existingPitch: any = null;
+    let foundBy: string = '';
+
     if (threadId) {
       let threadQuery = supabase
         .from('agent_logs')
@@ -236,23 +238,43 @@ export const functionsImplementations = {
         .eq('type', 'pitch_draft')
         .filter('content->>threadId', 'eq', threadId);
       if (args._userId) threadQuery = threadQuery.eq('user_id', args._userId);
-      const { data: existingThreadPitch } = await threadQuery.limit(1).maybeSingle();
+      const { data: threadResult } = await threadQuery.limit(1).maybeSingle();
+      if (threadResult) {
+        existingPitch = threadResult;
+        foundBy = 'threadId';
+      }
+    }
 
-      if (existingThreadPitch) {
-        const pitch = existingThreadPitch.content;
-        console.log(`[Tool Executor] ⏭️ Conversación ya tiene pitch (threadId: ${threadId}, status: ${pitch.status})`);
+    // Fallback por gmailId (para pitches antiguos sin threadId o threadId vacío)
+    if (!existingPitch) {
+      let gmailQuery = supabase
+        .from('agent_logs')
+        .select('id, content')
+        .eq('type', 'pitch_draft')
+        .filter('content->>gmailId', 'eq', args.gmailId);
+      if (args._userId) gmailQuery = gmailQuery.eq('user_id', args._userId);
+      const { data: gmailResult } = await gmailQuery.limit(1).maybeSingle();
+      if (gmailResult) {
+        existingPitch = gmailResult;
+        foundBy = 'gmailId';
+      }
+    }
 
-        // Si el pitch esta sent y llego un nuevo email, marcar como responded
-        if (pitch.status === 'sent') {
-          pitch.status = 'responded';
+    if (existingPitch) {
+      const pitch = existingPitch.content;
+      console.log(`[Tool Executor] ⏭️ Pitch encontrado por ${foundBy} (status: ${pitch.status})`);
 
-          // Fetch the thread to get the actual response snippet (not just current email)
-          let responseSnippet = emailData.snippet || '';
+      // Si el pitch esta sent y llego un nuevo email, marcar como responded
+      if (pitch.status === 'sent') {
+        pitch.status = 'responded';
+
+        // Fetch the thread to get the actual response snippet
+        let responseSnippet = emailData.snippet || '';
+        if (threadId) {
           try {
             const threadRes = await gmail.users.threads.get({ userId: 'me', id: threadId });
             const messages = threadRes.data.messages || [];
             if (messages.length > 0) {
-              // Get the LAST message in the thread (the brand's response)
               const lastMsg = messages[messages.length - 1];
               const lastDetail = await gmail.users.messages.get({ userId: 'me', id: lastMsg.id! });
               responseSnippet = lastDetail.data.snippet || emailData.snippet || '';
@@ -260,27 +282,27 @@ export const functionsImplementations = {
           } catch (threadErr) {
             console.warn(`[Tool Executor] Could not fetch thread ${threadId}, falling back to email snippet`);
           }
-
-          pitch.latestResponseSnippet = responseSnippet;
-          pitch.latestResponseAt = new Date().toISOString();
-          try {
-            await supabase
-              .from('agent_logs')
-              .update({ content: pitch })
-              .eq('id', existingThreadPitch.id)
-              .eq('user_id', args._userId || '');
-            console.log(`[Tool Executor] ✅ Pitch marcado como responded automáticamente (threadId: ${threadId})`);
-          } catch (err) {
-            console.error('[Tool Executor] Error marcando como responded:', err);
-          }
         }
 
-        return {
-          status: "skipped",
-          brandName: pitch.brandName || args.gmailId,
-          message: "Conversación ya tiene un pitch. No se generó un nuevo draft."
-        };
+        pitch.latestResponseSnippet = responseSnippet;
+        pitch.latestResponseAt = new Date().toISOString();
+        try {
+          await supabase
+            .from('agent_logs')
+            .update({ content: pitch })
+            .eq('id', existingPitch.id)
+            .eq('user_id', args._userId || '');
+          console.log(`[Tool Executor] ✅ Pitch marcado como responded automáticamente (${foundBy})`);
+        } catch (err) {
+          console.error('[Tool Executor] Error marcando como responded:', err);
+        }
       }
+
+      return {
+        status: "skipped",
+        brandName: pitch.brandName || args.gmailId,
+        message: "Conversación ya tiene un pitch. No se generó un nuevo draft."
+      };
     }
 
     // Extraer brandName y brandEmail del From
