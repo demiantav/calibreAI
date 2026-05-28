@@ -79,14 +79,20 @@ app.get('/auth/callback', async (req, res) => {
     const expiryDate = new Date(tokens.expiry_date || Date.now() + 3600 * 1000);
 
     // Save tokens to the users table for the specific user
+    // IMPORTANT: only update refresh_token if Google sent one
+    // (re-authorizations may not include refresh_token)
+    const updateData: any = {
+      gmail_access_token: tokens.access_token,
+      gmail_expires_at: expiryDate.toISOString(),
+      onboarding_step: 3,
+    };
+    if (tokens.refresh_token) {
+      updateData.gmail_refresh_token = tokens.refresh_token;
+    }
+
     const { error: updateError } = await supabase
       .from('users')
-      .update({
-        gmail_access_token: tokens.access_token,
-        gmail_refresh_token: tokens.refresh_token,
-        gmail_expires_at: expiryDate.toISOString(),
-        onboarding_step: 3,
-      })
+      .update(updateData)
       .eq('id', oauthSession.user_id);
 
     if (updateError) throw updateError;
