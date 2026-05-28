@@ -470,6 +470,64 @@ app.patch('/api/pitches/:id/status', jwtAuthMiddleware, async (req, res) => {
   }
 });
 
+// Endpoint para actualizar el contenido de un pitch (edición manual)
+app.patch('/api/pitches/:id', jwtAuthMiddleware, async (req, res) => {
+  const userId = req.user?.userId;
+  if (!userId) {
+    return res.status(401).json({ error: 'Usuario no autenticado' });
+  }
+
+  const { id } = req.params;
+  const { subject, content } = req.body;
+
+  if (!subject && !content) {
+    return res.status(400).json({ error: 'Se requiere al menos subject o content' });
+  }
+
+  try {
+    const { data: log, error: fetchError } = await supabase
+      .from('agent_logs')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single();
+
+    if (fetchError || !log) {
+      return res.status(404).json({ error: 'Pitch no encontrado' });
+    }
+
+    if (log.type !== 'pitch_draft') {
+      return res.status(400).json({ error: 'El registro no es un pitch' });
+    }
+
+    const pitch = log.content;
+
+    // Solo permitir editar si está en draft_ready
+    if (pitch.status !== 'draft_ready') {
+      return res.status(400).json({ error: 'Solo se puede editar pitches en estado borrador' });
+    }
+
+    if (subject) pitch.pitchSubject = subject;
+    if (content) pitch.pitchContent = content;
+
+    const { error: updateError } = await supabase
+      .from('agent_logs')
+      .update({
+        content: pitch,
+        insights: `Pitch editado manualmente para ${pitch.brandName}`,
+      })
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (updateError) throw updateError;
+
+    res.json({ success: true, id, pitchSubject: pitch.pitchSubject, pitchContent: pitch.pitchContent });
+  } catch (error: any) {
+    console.error('[API] Error actualizando contenido del pitch:', error);
+    res.status(500).json({ error: 'Error al actualizar el pitch', details: error.message });
+  }
+});
+
 // Catch-all: serve frontend SPA for non-API routes (production)
 if (config.NODE_ENV !== 'test') {
   const frontendDist = path.resolve(process.cwd(), 'apps/web/dist');

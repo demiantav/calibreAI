@@ -40,6 +40,10 @@ export default function DealDetailSheet({
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
 
+  /* save draft state */
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   /* editable pitch state */
   const [isEditing, setIsEditing] = useState(false);
   const [editedSubject, setEditedSubject] = useState('');
@@ -67,7 +71,9 @@ export default function DealDetailSheet({
     setShowOriginal(false);
     setSendError(null);
     setUpdateError(null);
+    setSaveError(null);
     setIsUpdating(false);
+    setIsSaving(false);
     setIsEditing(false);
     if (deal) {
       const subj = deal.subject || '';
@@ -104,6 +110,36 @@ export default function DealDetailSheet({
     },
     [deal?.logId, onClose, onSent]
   );
+
+  const handleSave = useCallback(async () => {
+    if (!deal?.logId) return;
+    const subject = editedSubjectRef.current;
+    const content = editedContentRef.current;
+    if (!subject && !content) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/pitches/${deal.logId}`, {
+        method: 'PATCH',
+        headers: getJsonHeaders(),
+        body: JSON.stringify({ subject, content }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Failed: ${res.status}`);
+      }
+      setIsEditing(false);
+      onSent(); // trigger refetch so the parent gets updated deal data
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Error al guardar');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [deal?.logId, onSent]);
 
   const handleSend = useCallback(async () => {
     if (!deal?.logId) return;
@@ -294,15 +330,20 @@ export default function DealDetailSheet({
                 <button
                   onClick={() => {
                     if (isEditing) {
-                      /* save → just toggle off, state already synced */
-                      setIsEditing(false);
+                      handleSave();
                     } else {
                       setIsEditing(true);
                     }
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-raised border border-border hover:border-accent/30 text-text-secondary hover:text-text transition-colors"
+                  disabled={isSaving}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-surface-raised border border-border hover:border-accent/30 text-text-secondary hover:text-text transition-colors disabled:opacity-50"
                 >
-                  {isEditing ? (
+                  {isSaving ? (
+                    <>
+                      <Save className="w-3.5 h-3.5 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : isEditing ? (
                     <>
                       <Save className="w-3.5 h-3.5" />
                       Guardar
@@ -420,6 +461,16 @@ export default function DealDetailSheet({
                 className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400 font-medium"
               >
                 {updateError}
+              </motion.div>
+            )}
+            {saveError && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400 font-medium"
+              >
+                {saveError}
               </motion.div>
             )}
           </AnimatePresence>
