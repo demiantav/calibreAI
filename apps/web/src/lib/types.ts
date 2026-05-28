@@ -48,6 +48,7 @@ export interface ContractAudit {
 export interface Lead {
   id: string;
   brand_email: string;
+  subject: string;
   snippet: string;
   processed_at: string;
 }

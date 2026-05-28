@@ -130,7 +130,7 @@ export default function DealDetailSheet({ deal, onClose, onStatusChange, onSent 
           </div>
 
           {/* Original Email */}
-          {(deal.originalEmailFrom || deal.originalEmailSubject || deal.originalEmailSnippet) && (
+          {(deal.kind === 'lead' || deal.originalEmailFrom || deal.originalEmailSubject || deal.originalEmailSnippet) && (
             <div className="rounded-2xl bg-accent-soft border border-accent-muted/10 overflow-hidden">
               <button
                 onClick={() => setShowOriginal(!showOriginal)}
@@ -138,7 +138,7 @@ export default function DealDetailSheet({ deal, onClose, onStatusChange, onSent 
               >
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-3.5 h-3.5" />
-                  Email original de la marca
+                  {deal.kind === 'lead' ? 'Email entrante' : 'Email original de la marca'}
                 </div>
                 <motion.div animate={{ rotate: showOriginal ? 180 : 0 }} transition={{ duration: 0.2 }}>
                   <ChevronDown className="w-3.5 h-3.5" />
@@ -152,21 +152,26 @@ export default function DealDetailSheet({ deal, onClose, onStatusChange, onSent 
                     exit={{ height: 0, opacity: 0 }}
                     className="px-4 pb-3 space-y-2 border-t border-accent-muted/10 pt-3 overflow-hidden"
                   >
-                    {deal.originalEmailFrom && (
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-3 h-3 text-text-tertiary shrink-0" />
-                        <span className="text-[10px] font-black text-text-tertiary uppercase tracking-wider mr-1">From:</span>
-                        <span className="text-xs font-bold text-text truncate">{deal.originalEmailFrom}</span>
-                      </div>
-                    )}
-                    {deal.originalEmailSubject && (
+                    {/* From */}
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-3 h-3 text-text-tertiary shrink-0" />
+                      <span className="text-[10px] font-black text-text-tertiary uppercase tracking-wider mr-1">From:</span>
+                      <span className="text-xs font-bold text-text truncate">
+                        {deal.originalEmailFrom || deal.brandEmail}
+                      </span>
+                    </div>
+                    {/* Subject */}
+                    {(deal.originalEmailSubject || deal.subject) && (
                       <div className="flex items-start gap-2">
                         <span className="text-[10px] font-black text-text-tertiary uppercase tracking-wider shrink-0 mt-0.5">Subject:</span>
-                        <p className="text-xs font-black text-text">{deal.originalEmailSubject}</p>
+                        <p className="text-xs font-black text-text">{deal.originalEmailSubject || deal.subject}</p>
                       </div>
                     )}
-                    {deal.originalEmailSnippet && (
-                      <p className="text-[11px] font-medium text-text-secondary leading-relaxed pl-[58px]">{deal.originalEmailSnippet}</p>
+                    {/* Snippet */}
+                    {(deal.originalEmailSnippet || deal.snippet) && (
+                      <p className="text-[11px] font-medium text-text-secondary leading-relaxed pl-[58px]">
+                        {deal.originalEmailSnippet || deal.snippet}
+                      </p>
                     )}
                   </motion.div>
                 )}

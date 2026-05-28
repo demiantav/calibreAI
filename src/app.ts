@@ -363,7 +363,7 @@ app.get('/api/leads', jwtAuthMiddleware, async (req, res) => {
     // Obtener todos los processed_emails del usuario
     const { data: processed, error: processedError } = await supabase
       .from('processed_emails')
-      .select('gmail_id, brand_email, snippet, processed_at')
+      .select('gmail_id, brand_email, subject, snippet, processed_at')
       .eq('user_id', userId)
       .order('processed_at', { ascending: false });
 
@@ -391,6 +391,7 @@ app.get('/api/leads', jwtAuthMiddleware, async (req, res) => {
       .map((pe) => ({
         id: pe.gmail_id,
         brand_email: pe.brand_email,
+        subject: pe.subject || '',
         snippet: pe.snippet || '',
         processed_at: pe.processed_at,
       }));

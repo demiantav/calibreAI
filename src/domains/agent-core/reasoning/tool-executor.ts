@@ -261,6 +261,7 @@ export const functionsImplementations = {
       const upsertData: any = {
         gmail_id: args.gmailId,
         brand_email: brandEmail,
+        subject: emailData.subject || '',
         snippet: emailData.snippet || '',
         processed_at: new Date().toISOString(),
       };

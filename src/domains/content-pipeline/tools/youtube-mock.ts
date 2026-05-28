@@ -14,6 +14,7 @@ export const getMockYouTubeMetrics = async (channelId?: string): Promise<RealYou
         lastVideoId: 'dQw4w9WgXcQ',
         channelName: channelId?.includes('UC') ? 'midudev' : 'Tech Latino',
         engagementRate: 2.86,
+        algorithmVersion: 'v3',
       });
     }, 500);
   });
