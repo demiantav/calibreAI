@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Edit3,
   Save,
+  PartyPopper,
 } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { API_BASE_URL, getJsonHeaders } from '@/lib/api-config';
@@ -424,19 +425,41 @@ export default function DealDetailSheet({
 
           {/* ── Última respuesta de la marca ── */}
           {deal.status === 'responded' && deal.latestResponseSnippet && (
-            <section className="space-y-3">
-              <h3 className="text-xs font-bold text-text-tertiary uppercase tracking-widest">
-                Última respuesta de la marca
-              </h3>
-              <div className="rounded-2xl p-5 bg-success/5 border border-success/20">
-                <p className="text-sm text-text-secondary leading-relaxed">
+            <motion.section
+              className="space-y-3"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <div className="flex items-center gap-2">
+                <PartyPopper className="w-4 h-4 text-success" />
+                <h3 className="text-xs font-bold text-success uppercase tracking-widest">
+                  ¡La marca respondió!
+                </h3>
+              </div>
+              <div className="rounded-2xl p-5 bg-success/10 border border-success/30">
+                <p className="text-sm text-text leading-relaxed">
                   {deal.latestResponseSnippet}
                 </p>
                 {deal.latestResponseAt && (
-                  <p className="text-xs text-text-tertiary mt-3">
+                  <p className="text-xs text-text-tertiary mt-3 font-medium">
                     Recibido {new Date(deal.latestResponseAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </p>
                 )}
+              </div>
+            </motion.section>
+          )}
+
+          {/* ── Empty response state (should not show after fix) ── */}
+          {deal.status === 'responded' && !deal.latestResponseSnippet && (
+            <section className="space-y-3">
+              <h3 className="text-xs font-bold text-text-tertiary uppercase tracking-widest">
+                Última respuesta
+              </h3>
+              <div className="rounded-2xl p-5 bg-surface-raised border border-border/60">
+                <p className="text-sm text-text-tertiary">
+                  El deal fue marcado como respondido. Hacé un nuevo pulse para capturar el contenido de la respuesta.
+                </p>
               </div>
             </section>
           )}
