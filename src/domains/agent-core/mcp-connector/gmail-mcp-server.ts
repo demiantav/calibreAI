@@ -58,8 +58,9 @@ server.tool(
     subject: z.string(),
     body: z.string(),
     html: z.string().optional().describe("HTML body for rich emails. When provided, the email is sent as text/html"),
+    threadId: z.string().optional().describe("Gmail thread ID to reply to. When provided, the email is sent as part of that thread"),
   },
-  async ({ to, subject, body, html }) => {
+  async ({ to, subject, body, html, threadId }) => {
     await ensureGmailAuth();
 
     function encodeHeader(text: string): string {
@@ -78,13 +79,13 @@ server.tool(
     );
     const encodedMessage = utf8Bytes.toString('base64url');
 
-    await gmail.users.messages.send({
+    const sendResponse = await gmail.users.messages.send({
       userId: 'me',
-      requestBody: { raw: encodedMessage },
+      requestBody: { raw: encodedMessage, threadId: threadId || undefined },
     });
 
     return {
-      content: [{ type: "text", text: JSON.stringify({ success: true, to, subject, html: isHtml }) }],
+      content: [{ type: "text", text: JSON.stringify({ success: true, to, subject, html: isHtml, threadId: sendResponse.data.threadId, messageId: sendResponse.data.id }) }],
     };
   }
 );

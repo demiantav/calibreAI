@@ -251,6 +251,7 @@ app.post('/api/pitches/:id/send', async (req, res) => {
       to: targetEmail,
       subject,
       body: content,
+      threadId: pitch.threadId || undefined,
     });
 
     res.json({ success: true, id, sent: true, result: sendResult });
