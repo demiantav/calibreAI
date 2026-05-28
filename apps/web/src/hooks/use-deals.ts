@@ -27,6 +27,8 @@ export function useDeals() {
         gmailId: draft.gmailId,
         detectedAt: draft.detectedAt,
         sentAt: draft.sentAt,
+        latestResponseSnippet: draft.latestResponseSnippet,
+        latestResponseAt: draft.latestResponseAt,
         createdAt: log.created_at,
         logId: log.id,
       });

@@ -70,6 +70,8 @@ export interface UnifiedDeal {
   gmailId?: string;
   detectedAt?: string;
   sentAt?: string;
+  latestResponseSnippet?: string;
+  latestResponseAt?: string;
   createdAt: string;
   logId?: string; // reference to agent_logs id for pitches
 }

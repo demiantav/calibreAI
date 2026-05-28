@@ -245,6 +245,8 @@ export const functionsImplementations = {
         // Si el pitch esta sent y llego un nuevo email, marcar como responded
         if (pitch.status === 'sent') {
           pitch.status = 'responded';
+          pitch.latestResponseSnippet = emailData.snippet || '';
+          pitch.latestResponseAt = new Date().toISOString();
           try {
             await supabase
               .from('agent_logs')

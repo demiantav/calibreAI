@@ -12,4 +12,6 @@ export interface BrandDeal {
   pitchSubject?: string;
   detectedAt: string;
   sentAt?: string;
+  latestResponseSnippet?: string;
+  latestResponseAt?: string;
 }
