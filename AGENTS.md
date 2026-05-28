@@ -73,7 +73,7 @@ Resumen de features completadas pre-Sprint 14:
 - `maxResults: 100` (aumentado de 20) para capturar más emails
 - `q: 'newer_than:30d'` (solo emails de últimos 30 días)
 
-### Done (Sprint 14e — Threading Fixes End-to-End)
+### Done (Sprint 14 — COMPLETO)
 
 #### BUG-5 Fix (Conversation Threading Robustness)
 
@@ -129,19 +129,21 @@ Resumen de features completadas pre-Sprint 14:
 - **Build**: pasa con 0 errores (frontend + backend)
 - **TypeScript**: `pnpm typecheck` pasa, `pnpm --filter calibre-dashboard build` pasa
 
-## Stats Actuales (Post-Sprint 14)
+## Stats Actuales (Post-Sprint 14e — Threading VERIFIED)
 
 - **Build backend**: ✅ 0 errores
-- **Build frontend**: ✅ 0 errores, JS bundle 763KB (+101KB por dnd-kit + nuevos features), CSS 140KB (+4KB)
+- **Build frontend**: ✅ 0 errores, JS bundle 765KB, CSS 140KB
 - **Tests backend**: 173 passing, 22 skipped
 - **Tests frontend**: 78/78 passing
 - **TypeScript**: 0 errores backend + frontend
+- **End-to-end threading**: ✅ VERIFIED — reply detection + auto-responded + snippet capture
 - **Rama activa**: `feature/mvp-testing`
 
 ## Next Steps / Roadmap
 
 ### Pre-Launch (antes de beta)
-- [x] **Testing manual end-to-end**: ejecutar `MANUAL_TESTING.md` checklist completo
+- [x] **Testing manual end-to-end**: ✅ `MANUAL_TESTING.md` checklist completo verificado
+- [x] **Threading end-to-end**: ✅ Reply detection + auto-responded + snippet capture funciona
 - [ ] **Landing Page**: Presencia pública en inglés para Google for Startups (repo aparte)
 - [ ] **Integration tests**: Re-escribir 22 tests de integración para nuevo flujo JWT
 - [ ] **Threading edge case**: Evaluar headers `In-Reply-To` / `References` para threading más robusto en Gmail
