@@ -1,23 +1,20 @@
 import type { DealStatus, UnifiedDeal } from '@/lib/types';
-import { CircleDot, Eye, Send, CheckCircle2 } from 'lucide-react';
+import { Eye, Send, CheckCircle2 } from 'lucide-react';
 
 interface PipelineSummaryProps {
   byStatus: Record<DealStatus, UnifiedDeal[]>;
 }
 
 export default function PipelineSummary({ byStatus }: PipelineSummaryProps) {
-  const total = Object.values(byStatus).reduce((sum, arr) => sum + (arr as UnifiedDeal[]).length, 0);
-  const responded = byStatus.responded?.length || 0;
-  const sent = byStatus.sent?.length || 0;
   const draft = byStatus.draft_ready?.length || 0;
-  const newLeads = byStatus.new?.length || 0;
+  const sent = byStatus.sent?.length || 0;
+  const responded = byStatus.responded?.length || 0;
+  const total = draft + sent + responded;
 
-  // Win rate calculation (responded / total non-new)
-  const activeDeals = sent + responded + draft;
-  const winRate = activeDeals > 0 ? Math.round((responded / activeDeals) * 100) : 0;
+  // Win rate calculation (responded / total)
+  const winRate = total > 0 ? Math.round((responded / total) * 100) : 0;
 
   const items = [
-    { key: 'new' as DealStatus, label: 'New', count: newLeads, icon: CircleDot, color: 'bg-text-tertiary' },
     { key: 'draft_ready' as DealStatus, label: 'Draft', count: draft, icon: Eye, color: 'bg-warning' },
     { key: 'sent' as DealStatus, label: 'Sent', count: sent, icon: Send, color: 'bg-accent' },
     { key: 'responded' as DealStatus, label: 'Responded', count: responded, icon: CheckCircle2, color: 'bg-success' },
@@ -44,7 +41,7 @@ export default function PipelineSummary({ byStatus }: PipelineSummaryProps) {
         <span className="text-xs font-black text-text">{total}</span>
       </div>
 
-      {activeDeals > 0 && (
+      {total > 0 && (
         <>
           <div className="h-4 w-px bg-border/50" />
           <div className="flex items-center gap-2">

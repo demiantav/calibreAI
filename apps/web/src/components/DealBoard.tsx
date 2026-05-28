@@ -23,7 +23,6 @@ import ViewToggle from './ViewToggle';
 import { motion } from 'framer-motion';
 
 const COLUMNS: { key: DealStatus; label: string; colorClass: string }[] = [
-  { key: 'new', label: 'New', colorClass: 'text-text-tertiary' },
   { key: 'draft_ready', label: 'Draft', colorClass: 'text-warning' },
   { key: 'sent', label: 'Sent', colorClass: 'text-accent' },
   { key: 'responded', label: 'Responded', colorClass: 'text-success' },
@@ -122,8 +121,8 @@ export default function DealBoard() {
       </header>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
             <SkeletonCard key={i} />
           ))}
         </div>
@@ -194,7 +193,6 @@ function DealListView({ deals, onSelectDeal }: { deals: UnifiedDeal[]; onSelectD
               <p className="text-xs font-bold text-text-tertiary truncate">{deal.brandEmail}</p>
             </div>
             <span className={`text-xs font-black uppercase tracking-wider ${
-              deal.status === 'new' ? 'text-text-tertiary' :
               deal.status === 'draft_ready' ? 'text-warning' :
               deal.status === 'sent' ? 'text-accent' : 'text-success'
             }`}>

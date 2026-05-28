@@ -26,7 +26,6 @@ export default function DealColumn({ status, label, colorClass, deals, onSelectD
       <div className="px-4 py-3 flex items-center justify-between border-b border-border/50 sticky top-0 bg-surface/50 rounded-t-[20px] backdrop-blur-sm z-10">
         <div className="flex items-center gap-2">
           <div className={`w-2.5 h-2.5 rounded-full ${
-            status === 'new' ? 'bg-text-tertiary' :
             status === 'draft_ready' ? 'bg-warning' :
             status === 'sent' ? 'bg-accent' : 'bg-success'
           }`} />
