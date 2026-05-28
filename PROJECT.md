@@ -58,7 +58,7 @@ Dashboard React 19 + Vite + Tailwind v4 + Framer Motion. Dark/Light mode, 4 pág
 ### Features
 - YouTube metrics vía Uploads Playlist + Videos batch (3 unidades/ciclo vs 100)
 - Smart Shorts detection por duración (`contentDetails.duration`, ≤ 60s)
-- Algoritmo `selectBestVideo`: maduro > 24h → reciente > 1h → más visto → fallback Short
+- Algoritmo `selectBestVideo`: maduro > 24h → más reciente no-Short → fallback Short más reciente
 - Filtro de datos inconsistentes (views=0 + likes>0 se descartan)
 - Engagement rate pre-calculado server-side (`(likes+comments)/subs*100`)
 - Cache layer (`channel_metrics_cache` con TTL 1h, upsert a Supabase)

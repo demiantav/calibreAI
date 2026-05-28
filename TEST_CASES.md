@@ -85,9 +85,9 @@ Con `vi.useFakeTimers()` congelado en `2026-05-20T12:00:00Z`.
 | `2026-05-18T12:00:00Z` | 48 |
 | `2026-05-20T12:00:00Z` | 0 |
 | `2026-05-21T12:00:00Z` | -24 (futuro) |
-
 ### `selectBestVideo` (12 tests)
-Algoritmo de selección del mejor video (prioridad: maduro > reciente > muy reciente > shorts > null).
+
+Algoritmo de selección del mejor video (prioridad: maduro > 24h → más reciente no-Short → Short más reciente → null).
 
 | # | Escenario | Esperado |
 |---|-----------|----------|
@@ -96,12 +96,12 @@ Algoritmo de selección del mejor video (prioridad: maduro > reciente > muy reci
 | 3 | Video único (short) | ese mismo |
 | 4 | Solo shorts → mejor engagement | highEng |
 | 5 | Maduro 48h vs reciente 2h → maduro | mature |
-| 6 | Sin maduro → más vistas entre >1h | highViews |
-| 7 | Todos < 1h → más vistas | highViews |
-| 8 | Sin non-shorts → fallback shorts | highEng |
+| 6 | Sin maduro → más reciente no-Short | recent |
+| 7 | Todos < 1h → más reciente no-Short | recent |
+| 8 | Sin non-shorts → fallback Short más reciente | recentShort |
 | 9 | Shorts ignorados si hay non-shorts maduros | mature |
 | 10 | Múltiples maduros → primero en array | mature-1 |
-| 11 | Borde: exactamente 24h (no >24) → pasa a paso 2 | recent-2h |
+| 11 | Borde: exactamente 24h (no >24) → más reciente | recent-24h |
 | 12 | Mix shorts + recent + mature → mature | mature |
 
 ---

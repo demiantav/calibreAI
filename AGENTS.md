@@ -21,7 +21,7 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 
 - **YouTube metrics infrastructure**: Search API reemplazada por Uploads Playlist (`contentDetails.relatedPlaylists.uploads` → `playlistItems` → `videos` con `part=statistics,contentDetails`)
 - **Smart Shorts filtering**: videos con duración ≤ 60s se saltan automáticamente (con fallback si todo el feed son Shorts)
-- **selectBestVideo algorithm**: prioriza video no-Short > 24h → no-Short > 1h más visto → cualquier no-Short → Short con más interacción
+- **selectBestVideo algorithm**: prioriza video no-Short maduro (> 24h) → si no hay maduros, el no-Short más reciente → si solo hay Shorts, el más reciente
 - **Data consistency filter**: videos con views=0 y likes>0 se descartan (datos inválidos)
 - **engagementRate pre-calculated**: `(likes+comments)/subscribers*100` se calcula server-side y se persiste en `media_kit_update`
 - **Metrics cache**: `channel_metrics_cache` con upsert a Supabase (TTL 1h)
@@ -490,6 +490,43 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 
 ---
 
+## Completed (Sprint 14b — Pipeline Visual de Deals)
+
+### Features Implemented
+- **`/deals` page (replaces `/pitches`)**: Kanban board with 4 columns (New, Draft, Sent, Responded)
+- **`@dnd-kit` drag & drop**: Cards draggable between columns with real-time status update via `PATCH /api/pitches/:id/status`
+- **`GET /api/leads` endpoint**: Returns `processed_emails` without associated pitch_draft (New column)
+- **`PATCH /api/pitches/:id/status` endpoint**: Allows moving deals between columns. Validates transitions (no sent -> draft_ready)
+- **`useDeals` hook**: Unifies leads + pitch_drafts into `UnifiedDeal[]` with `kind: 'lead' | 'pitch'`
+- **`DealBoard` component**: Board view + List view toggle. PipelineSummary bar with win rate
+- **`DealColumn` component**: Droppable column with count header and scrollable card list
+- **`DealCard` component**: Sortable card with brand avatar, email, urgency badge (>3d), quick action hover button
+- **`DealDetailSheet` component**: Radix Sheet slide-in with timeline, original email collapsible, pitch content, send/response actions
+- **Migration `006_pipeline_snippet.sql`**: Adds `snippet` column to `processed_emails`
+- **Route migration**: `/pitches` redirects to `/deals`. Sidebar nav updated. Keyboard shortcut `P` -> `/deals`
+
+### Design Decisions
+- Sheet (drawer) instead of modal for deal detail — user keeps pipeline context
+- Quick action button appears on hover only (progressive disclosure)
+- Urgency badge: 3-7d = amber, >7d = red
+- Color-coded columns: new (gray), draft (warning/amber), sent (accent/cyan), responded (success/green)
+
+### Backend Changes
+- `tool-executor.ts`: Saves `snippet` when upserting to `processed_emails`
+- `app.ts`: Added `GET /api/leads` and `PATCH /api/pitches/:id/status`
+
+### Frontend Tests Updated
+- `Sidebar.test.tsx`: Updated `/pitches` -> `/deals`, `Propuestas` -> `Deals`
+
+### Stats Sprint 14 (Pipeline)
+- **Build backend**: 0 errores
+- **Build frontend**: 0 errores, JS 662KB + @dnd-kit (~12KB gzipped), CSS 136KB
+- **Tests backend**: 173 passing, 22 skipped
+- **Tests frontend**: 78/78 passing
+- **TypeScript**: 0 errores backend + frontend
+
+---
+
 ## Known Issues / Next Steps
 - **Timezone configurable**: ahora el digest corre a las 8am `Europe/Rome` (fijo). Futuro: guardar `timezone` del usuario (detectar del navegador) y correr cron cada hora filtrando `hora_local = 8am`.
 - **Landing Page**: Presencia pública en inglés para Google for Startups (repo aparte)
@@ -530,3 +567,12 @@ Sprint 9.5 (Premium Visual Pass): transformación visual del dashboard a dark th
 - `apps/web/src/pages/Contracts.tsx`: upload de PDF + visualización de análisis + historial
 - `apps/web/src/test-setup.tsx`: setup + mock centralizado de framer-motion con todos los elementos SVG/HTML
 - `src/domains/contracts/use-cases/audit-contract.ts`: auditoría de contratos con Gemini + fallback regex
+- `apps/web/src/pages/Deals.tsx`: pipeline visual kanban (reemplaza Pitches)
+- `apps/web/src/components/DealBoard.tsx`: kanban board con DndContext, drag overlay, board/list toggle
+- `apps/web/src/components/DealColumn.tsx`: droppable column con scroll y contador
+- `apps/web/src/components/DealCard.tsx`: sortable card con avatar, urgency badge, quick action hover
+- `apps/web/src/components/DealDetailSheet.tsx`: Radix Sheet slide-in con timeline, email original, pitch content
+- `apps/web/src/components/PipelineSummary.tsx`: barra de métricas del pipeline (counts, win rate)
+- `apps/web/src/components/ViewToggle.tsx`: toggle Board/List view
+- `apps/web/src/hooks/use-deals.ts`: unifica fetching de `/api/leads` + `/logs?type=pitch_draft`
+- `migrations/006_pipeline_snippet.sql`: agrega `snippet` a `processed_emails`
