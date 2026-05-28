@@ -105,14 +105,19 @@ export const functionsImplementations = {
     await ensureGmailAuth(args._userId);
 
     try {
-      // Leer hasta 20 emails no leidos de los ultimos 30 dias
-      // Los mas nuevos primero (default de la API) para capturar propuestas frescas y activas
+      // Leer hasta 20 emails de los ultimos 30 dias (todos, no solo no-leidos)
+      // La deduplicacion con processed_emails evita re-procesar los mismos emails
+      // Los mas nuevos primero (default de la API) para capturar propuestas frescas
+      const query = 'newer_than:30d';
+      console.log(`[Tool Executor] Gmail query: "${query}" for userId=${args._userId || 'none'}`);
+
       const response = await gmail.users.messages.list({
         userId: 'me',
         maxResults: args.maxResults || 20,
-        q: 'is:unread newer_than:30d',
+        q: query,
       });
       const messages = response.data.messages || [];
+      console.log(`[Tool Executor] Gmail encontró ${messages.length} emails (raw)`);
 
       // Obtener IDs de emails ya procesados (dedup) — filtrar por user_id si existe
       let processedQuery = supabase.from('processed_emails').select('gmail_id');
@@ -121,6 +126,7 @@ export const functionsImplementations = {
       }
       const { data: processed } = await processedQuery;
       const processedSet = new Set(processed?.map(r => r.gmail_id) || []);
+      console.log(`[Tool Executor] Emails ya procesados en DB: ${processedSet.size}`);
 
       const details = await Promise.all(
         messages.map(async (msg: any) => {
@@ -135,6 +141,10 @@ export const functionsImplementations = {
           };
         })
       );
+      console.log(`[Tool Executor] Detalles obtenidos: ${details.length}`);
+      details.slice(0, 5).forEach((d: any) => {
+        console.log(`  - "${d.subject?.slice(0, 50)}" | from: ${d.from?.slice(0, 40)}`);
+      });
 
       // Obtener email del usuario para filtrar self-emails
       let userEmail: string | null = null;
@@ -142,14 +152,19 @@ export const functionsImplementations = {
         const { data: user } = await supabase.from('users').select('email').eq('id', args._userId).single();
         userEmail = user?.email || null;
       }
+      console.log(`[Tool Executor] User email (para filtro self): ${userEmail || 'unknown'}`);
 
       // Filtrar emails ya procesados y del propio usuario
-      const filtered = details.filter((msg: any) =>
-        !processedSet.has(msg.id) && !(userEmail && msg.from?.includes(userEmail)) && !msg.from?.includes(config.AUTHENTICATED_USER_EMAIL)
-      );
-      if (filtered.length < details.length) {
-        console.log(`[Tool Executor] Filtrados ${details.length - filtered.length} emails ya procesados`);
-      }
+      let skippedProcessed = 0;
+      let skippedSelf = 0;
+      let skippedLegacy = 0;
+      const filtered = details.filter((msg: any) => {
+        if (processedSet.has(msg.id)) { skippedProcessed++; return false; }
+        if (userEmail && msg.from?.includes(userEmail)) { skippedSelf++; return false; }
+        if (msg.from?.includes(config.AUTHENTICATED_USER_EMAIL)) { skippedLegacy++; return false; }
+        return true;
+      });
+      console.log(`[Tool Executor] RESULTADO: ${filtered.length} emails nuevos | Filtrados: ${skippedProcessed} procesados + ${skippedSelf} self + ${skippedLegacy} legacy`);
 
       return { content: [{ type: "text", text: JSON.stringify(filtered, null, 2) }] };
     } catch (gmailError: any) {
