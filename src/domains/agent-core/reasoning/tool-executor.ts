@@ -247,6 +247,7 @@ export const functionsImplementations = {
       const upsertData: any = {
         gmail_id: args.gmailId,
         brand_email: brandEmail,
+        snippet: emailData.snippet || '',
         processed_at: new Date().toISOString(),
       };
       if (args._userId) upsertData.user_id = args._userId;

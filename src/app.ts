@@ -346,6 +346,121 @@ app.post('/api/contracts/audit', jwtAuthMiddleware, upload.single('contract'), a
   }
 });
 
+// Endpoint para obtener leads (processed_emails sin pitch_draft asociado)
+app.get('/api/leads', jwtAuthMiddleware, async (req, res) => {
+  const userId = req.user?.userId;
+  if (!userId) {
+    return res.status(401).json({ error: 'Usuario no autenticado' });
+  }
+
+  try {
+    // Obtener todos los processed_emails del usuario
+    const { data: processed, error: processedError } = await supabase
+      .from('processed_emails')
+      .select('gmail_id, brand_email, snippet, processed_at')
+      .eq('user_id', userId)
+      .order('processed_at', { ascending: false });
+
+    if (processedError) throw processedError;
+
+    // Obtener todos los pitch_drafts del usuario para dedup
+    const { data: pitches, error: pitchesError } = await supabase
+      .from('agent_logs')
+      .select('content')
+      .eq('user_id', userId)
+      .eq('type', 'pitch_draft');
+
+    if (pitchesError) throw pitchesError;
+
+    // Construir set de gmail_ids que ya tienen pitch
+    const pitchedGmailIds = new Set(
+      (pitches || [])
+        .map((p) => p.content?.gmailId)
+        .filter(Boolean)
+    );
+
+    // Filtrar solo los que NO tienen pitch
+    const leads = (processed || [])
+      .filter((pe) => !pitchedGmailIds.has(pe.gmail_id))
+      .map((pe) => ({
+        id: pe.gmail_id,
+        brand_email: pe.brand_email,
+        snippet: pe.snippet || '',
+        processed_at: pe.processed_at,
+      }));
+
+    res.json(leads);
+  } catch (error: any) {
+    console.error('[API] Error fetching leads:', error);
+    res.status(500).json({ error: 'Error al obtener leads', details: error.message });
+  }
+});
+
+// Endpoint para actualizar el status de un pitch (drag & drop / manual)
+app.patch('/api/pitches/:id/status', jwtAuthMiddleware, async (req, res) => {
+  const userId = req.user?.userId;
+  if (!userId) {
+    return res.status(401).json({ error: 'Usuario no autenticado' });
+  }
+
+  const { id } = req.params;
+  const { status } = req.body;
+
+  // Validar status permitido
+  const validStatuses = ['draft_ready', 'sent', 'responded'];
+  if (!status || !validStatuses.includes(status)) {
+    return res.status(400).json({ error: `Status inválido. Debe ser uno de: ${validStatuses.join(', ')}` });
+  }
+
+  try {
+    // Obtener el pitch actual
+    const { data: log, error: fetchError } = await supabase
+      .from('agent_logs')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single();
+
+    if (fetchError || !log) {
+      return res.status(404).json({ error: 'Pitch no encontrado' });
+    }
+
+    if (log.type !== 'pitch_draft') {
+      return res.status(400).json({ error: 'El registro no es un pitch' });
+    }
+
+    const pitch = log.content;
+    const oldStatus = pitch.status;
+
+    // No permitir regresar de sent -> draft_ready
+    if (oldStatus === 'sent' && status === 'draft_ready') {
+      return res.status(400).json({ error: 'No se puede cambiar de sent a draft_ready' });
+    }
+
+    // Actualizar status y timestamp si aplica
+    pitch.status = status;
+    if (status === 'sent' && !pitch.sentAt) {
+      pitch.sentAt = new Date().toISOString();
+    }
+
+    const { error: updateError } = await supabase
+      .from('agent_logs')
+      .update({
+        content: pitch,
+        insights: `Pitch movido de ${oldStatus} a ${status} para ${pitch.brandName}`,
+      })
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (updateError) throw updateError;
+
+    res.json({ success: true, id, status, oldStatus });
+  } catch (error: any) {
+    console.error('[API] Error actualizando status del pitch:', error);
+    res.status(500).json({ error: 'Error al actualizar el status', details: error.message });
+  }
+});
+
 // Catch-all: serve frontend SPA for non-API routes (production)
 if (config.NODE_ENV !== 'test') {
   const frontendDist = path.resolve(process.cwd(), 'apps/web/dist');
