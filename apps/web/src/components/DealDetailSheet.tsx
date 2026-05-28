@@ -113,8 +113,8 @@ export default function DealDetailSheet({
   const statusCfg = STATUS_MAP[deal.status];
   const StatusIcon = statusCfg.icon;
 
-  const activeSubject = isEditing ? editedSubject : (deal.subject || '');
-  const activeContent = isEditing ? editedContent : (deal.content || '');
+  const activeSubject = isEditing ? editedSubject : (editedSubject || deal.subject || '');
+  const activeContent = isEditing ? editedContent : (editedContent || deal.content || '');
 
   /* ── render ── */
   return (
