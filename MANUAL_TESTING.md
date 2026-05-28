@@ -191,6 +191,21 @@ Para testear el onboarding completo con un usuario nuevo:
 - [ ] Verificar que el deal se mueve a columna **Responded**
 - [ ] Verificar que el Sheet se cierra automáticamente tras éxito
 
+### 5.9 Última respuesta de la marca
+
+- [ ] Abrir un deal en estado **Responded** (marcado manual o automáticamente)
+- [ ] Verificar que aparece sección **"Última respuesta de la marca"**
+- [ ] Verificar que muestra el snippet del email de respuesta
+- [ ] Verificar que muestra la fecha/hora de recepción
+
+### 5.10 Toast en Dashboard
+
+- [ ] Ir al **Dashboard** cuando hay deals en estado **Responded**
+- [ ] Verificar que aparece toast verde: "X marcas respondieron a tus pitches"
+- [ ] Verificar que tiene botón **"Ver respuestas"** que lleva a `/deals`
+- [ ] Verificar que el toast se puede **cerrar** con la X
+- [ ] Verificar que NO vuelve a aparecer en la misma sesión tras cerrarlo
+
 ---
 
 ## Flujo 6: Contracts (5 min)
