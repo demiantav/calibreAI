@@ -13,6 +13,7 @@ interface PitchInput {
   originalEmailFrom?: string;
   originalEmailSubject?: string;
   originalEmailSnippet?: string;
+  userId?: string;
 }
 
 interface PitchResult {
@@ -98,14 +99,17 @@ export const generatePitchUseCase = async (input: PitchInput): Promise<PitchResu
       detectedAt: new Date().toISOString(),
     };
 
+    const insertData: any = {
+      creator_name: input.creatorName,
+      type: 'pitch_draft',
+      content: draft,
+      insights: `Pitch generado para ${input.brandName} (estilo: ${styleGuide})`,
+    };
+    if (input.userId) insertData.user_id = input.userId;
+
     const { error } = await supabase
       .from('agent_logs')
-      .insert([{
-        creator_name: input.creatorName,
-        type: 'pitch_draft',
-        content: draft,
-        insights: `Pitch generado para ${input.brandName} (estilo: ${styleGuide})`,
-      }]);
+      .insert([insertData]);
 
     if (error) {
       console.error("[Pitch Use Case] Error guardando draft:", error);

@@ -253,6 +253,7 @@ export const functionsImplementations = {
       originalEmailFrom: rawFrom,
       originalEmailSubject: emailData.subject,
       originalEmailSnippet: emailData.snippet,
+      userId: args._userId,
     });
     console.log(`[Tool Executor] Pitch generado: "${result.pitchSubject}"`);
 
