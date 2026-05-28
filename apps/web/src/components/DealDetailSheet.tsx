@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Send,
@@ -45,18 +45,39 @@ export default function DealDetailSheet({
   const [editedSubject, setEditedSubject] = useState('');
   const [editedContent, setEditedContent] = useState('');
 
-  /* reset everything when deal changes */
+  /* refs to always read latest values in callbacks */
+  const editedSubjectRef = useRef('');
+  const editedContentRef = useRef('');
+
   useEffect(() => {
+    editedSubjectRef.current = editedSubject;
+  }, [editedSubject]);
+
+  useEffect(() => {
+    editedContentRef.current = editedContent;
+  }, [editedContent]);
+
+  /* reset everything when deal changes */
+  const prevDealIdRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const currentId = deal?.id;
+    if (currentId === prevDealIdRef.current) return;
+    prevDealIdRef.current = currentId;
+
     setShowOriginal(false);
     setSendError(null);
     setUpdateError(null);
     setIsUpdating(false);
     setIsEditing(false);
     if (deal) {
-      setEditedSubject(deal.subject || '');
-      setEditedContent(deal.content || '');
+      const subj = deal.subject || '';
+      const cont = deal.content || '';
+      setEditedSubject(subj);
+      setEditedContent(cont);
+      editedSubjectRef.current = subj;
+      editedContentRef.current = cont;
     }
-  }, [deal?.id]);
+  });
 
   const handleStatusChange = useCallback(
     async (newStatus: DealStatus) => {
@@ -86,8 +107,10 @@ export default function DealDetailSheet({
 
   const handleSend = useCallback(async () => {
     if (!deal?.logId) return;
-    const subject = isEditing ? editedSubject : (deal.subject || '');
-    const content = isEditing ? editedContent : (deal.content || '');
+    // Always read from refs to get the LATEST edited values
+    // (avoids stale closure issues with useCallback)
+    const subject = editedSubjectRef.current || deal.subject || '';
+    const content = editedContentRef.current || deal.content || '';
     if (!subject || !content) return;
 
     setIsSending(true);
@@ -106,7 +129,7 @@ export default function DealDetailSheet({
     } finally {
       setIsSending(false);
     }
-  }, [deal, isEditing, editedSubject, editedContent, onSent, onClose]);
+  }, [deal?.logId, deal?.subject, deal?.content, onSent, onClose]);
 
   if (!deal) return null;
 
