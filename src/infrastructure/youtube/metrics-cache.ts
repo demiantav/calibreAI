@@ -11,15 +11,30 @@ export const getCachedMetrics = async (channelId: string): Promise<RealYouTubeMe
       .eq('channel_id', channelId)
       .maybeSingle();
 
-    if (error || !data) return null;
+    if (error || !data) {
+      console.log(`[Metrics Cache] No hay caché para ${channelId} (error=${!!error}, data=${!!data})`);
+      return null;
+    }
 
     const age = Date.now() - new Date(data.cached_at).getTime();
-    if (age > CACHE_TTL_MS) return null;
+    if (age > CACHE_TTL_MS) {
+      console.log(`[Metrics Cache] Caché expirado para ${channelId} (${Math.round(age / 1000)}s > ${CACHE_TTL_MS / 1000}s)`);
+      return null;
+    }
 
     const metrics = data.data as unknown as RealYouTubeMetrics;
     // Invalidate cache if it lacks lastVideoId (schema was updated)
-    if (!metrics.lastVideoId) return null;
+    if (!metrics.lastVideoId) {
+      console.log(`[Metrics Cache] Caché inválido para ${channelId}: falta lastVideoId`);
+      return null;
+    }
+    // Invalidate cache if algorithm version changed
+    if (metrics.algorithmVersion !== 'v3') {
+      console.log(`[Metrics Cache] Caché inválido para ${channelId}: versión ${metrics.algorithmVersion || 'v1'} != v3`);
+      return null;
+    }
 
+    console.log(`[Metrics Cache] Caché VÁLIDO para ${channelId}: ${metrics.lastVideoTitle} (v=${metrics.algorithmVersion})`);
     return metrics;
   } catch (e) {
     console.warn('[Metrics Cache] Error leyendo caché:', e);

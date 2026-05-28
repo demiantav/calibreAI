@@ -10,6 +10,7 @@ export interface RealYouTubeMetrics {
   lastVideoId: string;
   channelName: string;
   engagementRate: number;
+  algorithmVersion: string;
 }
 
 export interface VideoCandidate {
@@ -44,28 +45,24 @@ export function hoursSince(v: VideoCandidate): number {
 }
 
 export function selectBestVideo(videos: VideoCandidate[]): VideoCandidate | null {
-  if (videos.length === 0) return null;
+  if (videos.length === 0) {
+    console.log('[selectBestVideo] No hay videos');
+    return null;
+  }
 
   const nonShorts = videos.filter(isDurable);
+  console.log(`[selectBestVideo] Total: ${videos.length}, Non-shorts: ${nonShorts.length}`);
 
-  // 1. Video regular maduro (> 24h) — el candidato ideal
-  const matured = nonShorts.filter(v => hoursSince(v) > 24);
-  if (matured.length > 0) return matured[0];
+  // Si hay videos regulares (no-Shorts), tomar el más reciente
+  // (playlistItems viene ordenado por fecha descendente, nonShorts[0] es el más reciente)
+  if (nonShorts.length > 0) {
+    console.log(`[selectBestVideo] Non-short seleccionado "${nonShorts[0].title}" (${Math.round(hoursSince(nonShorts[0]))}h)`);
+    return nonShorts[0];
+  }
 
-  // 2. Video regular reciente (> 1h) — recién subido, el de más vistas
-  const recentRegular = nonShorts.filter(v => hoursSince(v) > 1);
-  if (recentRegular.length > 0) return recentRegular.reduce((best, v) => v.views > best.views ? v : best);
-
-  // 3. Videos regulares muy recientes (< 1h) — el de más vistas
-  if (nonShorts.length > 0) return nonShorts.reduce((best, v) => v.views > best.views ? v : best);
-
-  // 4. Solo hay Shorts en el feed — tomar el que tenga más interacción
-  const byEngagement = videos.reduce((best, v) => {
-    const eng = v.likes + v.comments;
-    const bestEng = best.likes + best.comments;
-    return eng > bestEng ? v : best;
-  });
-  return byEngagement;
+  // Solo hay Shorts en el feed — tomar el más reciente
+  console.log(`[selectBestVideo] Short seleccionado "${videos[0].title}" (${Math.round(hoursSince(videos[0]))}h)`);
+  return videos[0];
 }
 
 async function fetchFromApi<T>(url: string): Promise<T> {
@@ -163,11 +160,13 @@ export const getRealYouTubeMetrics = async (channelId: string): Promise<RealYouT
       throw new Error('No se pudo seleccionar un video representativo');
     }
 
+    console.log(`[YouTube Debug] Video SELECCIONADO: "${best.title}" | id=${best.id} | dur=${parseISODuration(best.duration)}s | ${Math.round(hoursSince(best))}h old`);
+
     const engagementRate = rawSubs > 0
       ? ((best.likes + best.comments) / rawSubs * 100)
       : 0;
 
-    return {
+    const result = {
       subscriberCount: rawSubs,
       totalViews,
       lastVideoTitle: best.title,
@@ -177,7 +176,11 @@ export const getRealYouTubeMetrics = async (channelId: string): Promise<RealYouT
       lastVideoId: best.id,
       channelName,
       engagementRate,
+      algorithmVersion: 'v3',
     };
+
+    console.log(`[YouTube Debug] Returning metrics with algorithmVersion=${result.algorithmVersion}`);
+    return result;
   } catch (error) {
     console.error('[YouTube Infrastructure] Error:', error);
     throw error;
