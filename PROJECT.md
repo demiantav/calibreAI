@@ -252,73 +252,227 @@ Hacer que Calibre soporte múltiples usuarios reales con sus propios canales de 
 | 6 | Gmail token expired (`invalid_grant`) | **Resuelto** — tokens ahora se guardan por usuario en tabla `users`. Re-autorización vía onboarding OAuth |
 | 7 | Integration tests legacy | **Pendiente** — 22 tests skipped, requieren refactor para flujo JWT + mock de `oauth_sessions` |
 | 8 | Google OAuth production mode | **Pendiente** — para producción pública requiere pasar a "Production" mode (verificación de dominio) |
+| 9 | Supabase visibility gap | **Pendiente (workaroundado)** — `agent_logs` insertado con `error: null` no aparece en `SELECT` inmediato del mismo endpoint (mismo `user_id`, service role). Root cause desconocido. Workaround: onboarding ya no depende de polling en tiempo real |
+| 10 | Scalability (>5 usuarios) | **Pendiente** — arquitectura actual no escala: Gemini 500 RPD, sin job queue, auto-pulse en startup simultáneo para todos |
 
 ---
 
 ## 🗺️ Roadmap (post-MVP)
 
-| Prioridad | Feature | Descripción |
-|---|---|---|
-| 🟢 | **Production hardening** | Completado: rate limiting, caching YouTube, health checks, graceful shutdown |
-| 🟢 | **Multi-tenant Auth + Onboarding** | Completado: JWT auth, data isolation, onboarding 3 steps |
-| 🔴 P1 | **Landing page** | Presencia pública en inglés para Google for Startups |
-| 🔴 P1 | **Auto-Pitch opcional** | ✅ Completado: Toggle en Sidebar + backend `PATCH /auth/me` + respeto en `pulse.ts` |
-| 🔴 P1 | **Multi-tenant (Agency)** | Una cuenta con múltiples creadores. Switcher, Gmail tokens por creator, RLS |
-| 🟡 P2 | **Email digest diario** | Scheduler `node-cron` + servicio de digest + HTML template |
-| 🟡 P2 | **Integration tests JWT** | Re-escribir 22 tests legacy para nuevo flujo auth |
-| 🟡 P2 | **Instagram / TikTok** | Métricas multi-plataforma para sponsorship |
-| 🟢 P3 | **Pagos (Stripe)** | Free / Creator ($19) / Pro ($49) |
-| 🟢 P3 | **Agency Dashboard** | Métricas agregadas, facturación, reportes |
+| Prioridad | Feature | Estado | Descripción |
+|---|---|---|---|
+| 🟢 | **Production hardening** | ✅ Completado | Rate limiting, caching YouTube, health checks, graceful shutdown |
+| 🟢 | **Multi-tenant Auth + Onboarding** | ✅ Completado | JWT auth, data isolation, onboarding 3 steps end-to-end |
+| 🟢 | **Auto-Pitch opcional** | ✅ Completado | Toggle en Sidebar + backend `PATCH /auth/me` + respeto en `pulse.ts` |
+| 🟢 | **Email digest diario** | ✅ Completado | Scheduler `node-cron` + servicio de digest + HTML template responsive |
+| 🟢 | **Acción sugerida (SuggestedAction)** | ✅ Completado | Componente post-Daily Brief con acciones concretas (pitches pendientes, engagement bajo, recordatorio) |
+| 🟢 | **Audience Intelligence** | ✅ Completado | Análisis de comentarios YouTube: sentimiento, temas, preguntas frecuentes |
+| 🟢 | **Contract Auditor** | ✅ Completado | Upload de PDF + análisis Gemini con fallback regex + historial |
+| 🔴 P1 | **Landing page** | ❌ No iniciado | Presencia pública en inglés para Google for Startups |
+| 🔴 P1 | **Pipeline visual de deals** | ❌ No iniciado | Vista kanban de `draft_ready → sent → responded`. Core del valor para creadores serios |
+| 🔴 P1 | **Multi-tenant (Agency)** | ❌ No iniciado | Una cuenta con múltiples creadores. Switcher, Gmail tokens por creator, RLS |
+| 🟡 P2 | **Integration tests JWT** | 🟡 Parcial | Re-escribir 22 tests legacy para nuevo flujo auth |
+| 🟡 P2 | **Benchmarks reales de sponsorship** | ❌ No iniciado | Datos por nicho/región para que el forecast sea referencia de mercado, no estimación |
+| 🟡 P2 | **Historial de conversaciones por deal** | ❌ No iniciado | Hilo completo de negociación (emails de ida y vuelta) |
+| 🟡 P2 | **Instagram / TikTok** | ❌ No iniciado | Métricas multi-plataforma para sponsorship |
+| 🟡 P2 | **Job queue / scalability** | ❌ No iniciado | BullMQ/pgboss + rate limiting per user + staggered startup + worker separado |
+| 🟢 P3 | **Pagos (Stripe)** | ❌ No iniciado | Free / Creator ($19) / Pro ($49) |
+| 🟢 P3 | **Agency Dashboard** | ❌ No iniciado | Métricas agregadas, facturación, reportes |
+| 🟢 P3 | **Timezone configurable** | ❌ No iniciado | Digest ajustado a timezone del usuario (ahora fijo a Europe/Rome) |
 
 ---
 
-## 🟢 Sprint 11a: Auto-Pitch Toggle (Completado)
+## 🟢 Sprint 11b: Onboarding Bug Fixes + Auth Flow Verified (Completado)
 
-### Objetivo
-Dar al creador control sobre si Calibre genera borradores de respuesta automáticamente cuando detecta emails de marcas.
+### Bug Fixes
+- **Zod `updateMeSchema`**: agregados `onboarding_completed: z.boolean()` y `onboarding_step: z.number()` al schema de `PATCH /auth/me`. Antes solo aceptaba `auto_pitch_enabled` → `updateUser({ onboarding_completed: true })` era silenciosamente ignorado por Zod → `ProtectedRoute` redirigía a onboarding en loop infinito tras cada recarga.
+- **api-config Content-Type fix**: `getApiHeaders()` enviaba `Content-Type: application/json` en GET requests → causaba 404 en el navegador (CORS preflight innecesario). Ahora `getAuthHeaders()` (solo `Authorization`) para GET/DELETE y `getJsonHeaders()` (agrega `Content-Type`) para POST/PATCH/PUT. `useApiFetch` elige automáticamente según método HTTP.
+- **FirstPulse simplificado**: eliminado el polling frágil de 2 minutos que esperaba `agent_summary` en `/logs?type=agent_summary`. El insert en Supabase (`error: null`) no era visible en el `SELECT` posterior del mismo endpoint (mismo `user_id`, misma conexión service role). Ahora el onboarding se completa inmediatamente tras `/pulse` 200. El análisis corre en background y las métricas se cargan vía el polling existente del Dashboard.
 
-### Backend
-- **Endpoint `PATCH /auth/me`**: Zod validation (`auto_pitch_enabled: boolean`), actualiza tabla `users`, retorna usuario actualizado
-- **`runPulseCheck`**: `autoPitchEnabled` agregado a `PulseCheckDeps`. Prompt dinámico: incluye paso 5 (listEmails + generateAndDraftPitch) solo si `autoPitchEnabled=true`
-- **`runDegradedMode`**: Tercer parámetro `autoPitchEnabled = false`. Si `false`, saltea completamente el bloque de emails/pitches. Métricas, forecast, summary siguen corriendo
-- **Auto-pulse fix**: `index.ts` itera usuarios con `auto_pitch_enabled=true` + `youtube_channel_id IS NOT NULL`. Stagger de 2s entre usuarios
-
-### Frontend
-- **AuthContext `updateUser`**: Update optimista (`setUser` inmediato) + rollback vía `fetchUser()` en error
-- **Componente `Switch`**: `toggle-switch.tsx` — `<button role="switch">`, estados naranja/gris, focus-visible outline, `prefers-reduced-motion` friendly
-- **Sidebar toggle**: Debajo del profile card. Label "Auto-pitch" + descripción pequeña "Generar borradores automáticamente". Icono `Zap`. Touch target completo ≥ 44px vía padding del contenedor
-- **Onboarding fix**: `FirstPulse` ahora marca `onboarding_completed=true` vía `updateUser` tras análisis exitoso, timeout o skip
-
-### Tests
-- **Backend**: 4 tests `PATCH /auth/me` (success, 401, 400, 404), 2 tests `runDegradedMode` (pitches cuando true, skip cuando false), 2 tests `runPulseCheck` (prompt con/sin instrucciones de pitch)
-- **Frontend**: 2 tests Sidebar toggle (render + accesibilidad ARIA)
+### Auth Flow Verificado (end-to-end)
+- Register → Login → JWT emitido (`expiresIn: 7d`) → Onboarding 3-step (YouTube → Gmail → FirstPulse) → Dashboard: flujo completo probado con usuario real.
+- `jwtAuthMiddleware` protege `/pulse`, `/logs`, `/api/*` correctamente. `ProtectedRoute` redirige a `/login` si no autenticado, a `/onboarding?step=X` si `onboarding_completed: false`.
+- `updateUser` optimistic + rollback validado: el update optimista permite navegar al Dashboard inmediatamente sin esperar la respuesta del server. Si el server falla, `fetchUser()` restaura el estado real.
 
 ### Stats
+- **Build backend:** ✅ 0 errores
+- **Build frontend:** ✅ 0 errores, JS 639KB, CSS 135KB
 - **Tests backend:** 171 passing, 22 skipped
 - **Tests frontend:** 78/78 passing
-- **TypeScript:** 0 errores
-- **Build backend:** 0 errores
-- **Build frontend:** 0 errores, JS bundle 639KB (+2KB toggle), CSS 135KB (stable)
+
+---
+
+## 🟢 Sprint 11c: Auth Headers Fixes (Completado)
+
+### Bug Fixes
+- **`pulse-context.tsx` 401 fix**: `triggerPulse` hacía `fetch` a `/pulse` sin headers de autenticación (URL hardcodeada a `localhost:8080` sin `Authorization`). El backend retornaba 401 silenciosamente gracias a `.catch(() => {})` → el botón Pulse parecía funcionar pero el servidor nunca recibía el request real.
+- **`Dashboard.tsx` 401 fix**: El polling del Dashboard hacía `fetch` a `/logs` sin headers de autenticación. Retornaba 401 cada 3 segundos → nunca detectaba el `agent_summary` nuevo → safety timeout a los 60s disparaba `error` (X roja) aunque el backend había terminado exitosamente.
+- **Eliminado hardcodeo de `localhost:8080`**: `pulse-context.tsx` y `Dashboard.tsx` ahora usan `API_BASE_URL` desde `api-config.ts`.
+
+### Stats
+- **Build backend:** ✅ 0 errores
+- **Build frontend:** ✅ 0 errores, JS 640KB, CSS 135KB
+- **Tests backend:** 171 passing, 22 skipped
+- **Tests frontend:** 78/78 passing
+
+---
+
+## 🟢 Sprint 12: Email Digest Daily (Completado)
+
+### Features
+- **`node-cron` scheduler**: corre todos los días a las 8:00 AM (`Europe/Rome`). Itera usuarios con `email_digest_enabled=true` + `youtube_channel_id IS NOT NULL`. Stagger 5s entre usuarios.
+- **`DigestService`**: `generateAndSendDigest(user)` → dispara `runPulseCheck` para datos frescos → espera 3s → query logs últimas 24h → genera HTML responsive → envía vía Gmail MCP.
+- **HTML Template**: tabla-based layout compatible Gmail/Outlook. Secciones: header (logo + fecha), métricas snapshot (subs/views/engagement), Daily Brief, pitches pendientes, tarifas estimadas, CTA "Abrir Dashboard", footer.
+- **Gmail MCP `send_email`**: ahora acepta `html?: string`. Cuando se pasa, usa `Content-Type: text/html` en vez de `text/plain`.
+- **Subject mejorado**: `📊 Calibre · Daily Brief de {creatorName} · {fecha}` (ej: lunes, 25 de mayo).
+- **Sidebar toggle**: "Daily Digest" debajo de "Auto-pitch". Mismo patrón de switch accesible + update optimista.
+- **Migración**: `005_email_digest.sql` agrega `email_digest_enabled BOOLEAN DEFAULT false` a `users`.
+
+### Known Issues
+- **Timezone configurable**: ahora el digest corre a las 8am `Europe/Rome` (fijo). Futuro: guardar `timezone` del usuario (detectar del navegador) y correr cron cada hora filtrando `hora_local = 8am`.
+
+### Stats
+- **Build backend:** ✅ 0 errores
+- **Build frontend:** ✅ 0 errores, JS 640KB, CSS 135KB
+- **Tests backend:** 171 passing, 22 skipped
+- **Tests frontend:** 78/78 passing
+
+---
+
+## 🟢 Sprint 13: Audience Intelligence / Escucha Activa (Completado)
+
+### Features Implemented
+- **`getAudienceInsights` tool**: nueva función en el agente que analiza comentarios del último video de YouTube
+- **YouTube Comments API**: endpoint `commentThreads.list` (1 quota unit), fetch de hasta 100 comentarios por video
+- **Comment Analyzer** (`comment-analyzer.ts`):
+  - **Sentiment analysis**: keywords positivas/negativas en español e inglés + emojis
+  - **Theme extraction**: 12 categorías temáticas (TypeScript, React, Performance, Career, etc.) con conteo y ejemplos
+  - **Question detection**: identifica preguntas por signo de interrogación o palabras interrogativas (`cómo`, `qué`, `por qué`, etc.)
+  - **Deduplicación**: normaliza preguntas similares para mostrar las más frecuentes
+- **Integración con Gemini**: el prompt del pulse incluye paso 7 — `getAudienceInsights` se ejecuta en cada ciclo
+- **Persistencia**: resultados guardados en `agent_logs` con `type='audience_insights'`
+- **Frontend `AudienceInsights` component**:
+  - Barras de sentimiento (positive/neutral/negative) con porcentajes
+  - Top 5 temas recurrentes con ejemplos reales de comentarios
+  - Top 5 preguntas frecuentes con conteo de repeticiones
+  - Diseño consistente con el dashboard (cards redondeadas, tipografía jerárquica)
+- **Dashboard integration**: sección renderizada entre Daily Brief y Growth Chart
+
+### Gemini Infrastructure Fixes
+- **Model upgrade**: `gemini-2.0-flash` → `gemini-3.1-flash-lite` (500 RPD vs 20 RPD)
+- **Request counter**: logging de cada request con timestamp (`[Gemini] Request #X at ...`)
+- **Endpoint `/metrics/gemini`**: visibilidad de consumo en tiempo real
+- **Fix 429 retries**: no reintentar cuando la cuota diaria está agotada (sin `retryDelay`)
+- **Error persistence**: errores no-429 se guardan como `agent_error` en Supabase
+
+### Gmail Auth Resilience
+- **`GmailAuthError` class**: errores específicos de autenticación de Gmail
+- **Refresh token detection**: detecta falta de refresh token antes de intentar refresh
+- **`gmail_auth_error` type**: tag específico para errores de Gmail (distinto de `agent_error`)
+- **Endpoint `GET /auth/gmail/status`**: retorna estado de conexión (access_token, refresh_token, connected)
+- **Sidebar reconnect banner**: aparece automáticamente cuando `connected: false`
+- **Dashboard reconnect banner**: detectado vía polling de `gmail_auth_error` logs
+
+### Stats
+- **Build backend:** ✅ 0 errores
+- **Build frontend:** ✅ 0 errores, JS bundle 659KB (+20KB), CSS 136KB (+1KB)
+- **Tests backend:** 173 passing, 22 skipped
+- **Tests frontend:** 78/78 passing
+
+---
+
+## 🟢 Sprint 13b: Copy + Acciones Sugeridas (Completado)
+
+### UX Copy Improvements
+- **PulseButton**: label visible "Analizar" + aria-label en español
+- **AgentIndicator**: "AI Agent Active" → "Calibre activo"
+- **Sidebar nav**: "Activity" → "Actividad", "Pitches" → "Propuestas", "Contracts" → "Contratos", "Rates" → "Tarifas"
+- **Daily Brief**: título cambiado a "Resumen del día"
+- **Empty states**: "No metrics yet" → "Aún no hay métricas. Analizá tu canal para ver tus estadísticas."
+- **Onboarding**: "Configuración de Calibre" → "Empecemos"
+- **Sponsorship empty**: "No forecast yet" → "Aún no hay tarifas estimadas"
+- **GrowthChart empty**: "No growth data yet" → "Aún no hay datos de crecimiento"
+
+### Acción Sugerida (SuggestedAction)
+- Nuevo componente que muestra una acción concreta después del Daily Brief
+- **Prioridad 1**: Pitches pendientes → "Tenés X propuestas esperando revisión" + link a /pitches
+- **Prioridad 2**: Engagement bajó → sugerencia de publicar contenido más interactivo
+- **Prioridad 3**: Más de 24h sin pulse → recordatorio de mantener métricas al día
+- Hace el producto accionable, no solo informativo
+
+### Stats
+- **Build backend:** ✅ 0 errores
+- **Build frontend:** ✅ 0 errores, JS bundle 662KB (+3KB), CSS 136KB (+0KB)
+- **Tests backend:** 173 passing, 22 skipped
+- **Tests frontend:** 78/78 passing
+
+---
+
+## 🟡 Sprint 14: MVP Testing + Pre-Launch Fixes (En Progreso)
+
+### Bugs encontrados y fixeados durante testing manual
+
+#### BUG-1: SendPitchModal 401 Unauthorized (CRÍTICO)
+- **Problema**: `fetch` a `/api/pitches/:id/send` usaba URL hardcodeada `localhost:8080` y no enviaba header `Authorization`
+- **Fix**: Usar `API_BASE_URL` + `getJsonHeaders()` desde `api-config.ts`
+- **Archivo**: `apps/web/src/components/SendPitchModal.tsx`
+
+#### BUG-2: Audience Insights channelId → videoId (CRÍTICO)
+- **Problema**: Gemini pasaba `channelId` (ej: `UC8LeXCWOalN8SxlrPcG-PaQ`) a `getAudienceInsights`, que luego lo usaba como `videoId` en YouTube Comments API → error "video not found"
+- **Fix**: 
+  - Agregar `lastVideoId` a `RealYouTubeMetrics` y retornarlo desde `getRealYouTubeMetrics`
+  - En `pulse.ts`, interceptar llamada a `getAudienceInsights` y reemplazar `channelId` por `lastVideoId` real
+  - Invalidar cache entries que no tengan `lastVideoId` (migración de schema)
+- **Archivos**: `src/infrastructure/youtube/metrics-service.ts`, `src/domains/agent-core/heartbeat/pulse.ts`, `src/infrastructure/youtube/metrics-cache.ts`, `src/domains/content-pipeline/tools/youtube-mock.ts`
+
+#### BUG-3: Sidebar sin scroll — botón Logout invisible
+- **Problema**: El sidebar tenía `overflow-hidden` sin scroll. En pantallas con poca altura (o con muchos elementos como toggles + reconnect banner + profile), el botón de "Cerrar sesión" quedaba recortado fuera de la pantalla
+- **Fix**: Cambiar `overflow-hidden` → `overflow-y-auto` en desktop y mobile sidebar. Agregar wrapper `flex flex-col min-h-full` para distribución correcta
+- **Archivo**: `apps/web/src/components/Sidebar.tsx`
+
+#### BUG-4: Tests de copy en español fallando
+- **Problema**: Sprint 13b tradujo toda la UI al español, pero 6 tests seguían buscando textos en inglés
+- **Fix**: Actualizar textos en tests: "AI Agent Active" → "Calibre activo", "Activity" → "Actividad", "Pitches" → "Propuestas", "Rates" → "Tarifas", "Daily Brief" → "Resumen del día", "No forecast yet" → "Aún no hay tarifas estimadas"
+- **Archivos**: 5 archivos de test en `apps/web/src/**/__tests__`
+
+### Mejoras implementadas durante testing
+
+#### Gmail Email Discovery mejorado
+- **Antes**: `maxResults: 5`, sin filtro de lectura, orden aleatorio
+- **Ahora**: 
+  - `maxResults: 20` (más margen)
+  - `q: 'is:unread newer_than:30d'` (solo no leídos, máximo 30 días de antigüedad)
+  - Orden: más nuevo primero (captura propuestas frescas y con deadlines vigentes)
+- **Rationale**: Las marcas esperan respuesta en 7-14 días. Propuestas de >30 días probablemente ya cerraron con otro creador
+- **Archivo**: `src/domains/agent-core/reasoning/tool-executor.ts`
+
+### Stats Sprint 14 (parcial — testing en progreso)
+- **Build backend:** ✅ 0 errores
+- **Build frontend:** ✅ 0 errores, JS 662KB, CSS 136KB
+- **Tests backend:** 173 passing, 22 skipped
+- **Tests frontend:** 78/78 passing
+- **TypeScript:** 0 errores backend + frontend
+- **Rama:** `feature/mvp-testing`
 
 ---
 
 ## 🛠 Contexto de Desarrollo
 
-- **Modelo IA:** `gemini-flash-latest` (con retry 3x para 429)
+- **Modelo IA:** `gemini-3.1-flash-lite` (upgrade desde 2.0 flash, 500 RPD vs 20 RPD). Retry 3x para 429
 - **Backend:** Express + Supabase + MCP (Gmail child process)
 - **Dashboard:** `apps/web` — React 19 + Vite + Tailwind v4 + Framer Motion
 - **Package manager:** pnpm (workspace: raíz + apps/web)
-- **Tablas:** `users` (reemplaza `user_auth`), `oauth_sessions`, `agent_logs`, `processed_emails`, `brand_deals`, `channel_metrics_cache`
+- **Tablas:** `users`, `oauth_sessions`, `agent_logs`, `processed_emails`, `brand_deals`, `channel_metrics_cache`
 - **Endpoints:**
   - Public: `POST /auth/register`, `POST /auth/login`, `GET /auth/me`, `POST /auth/youtube`, `GET /auth/gmail/start`, `GET /auth/callback`
-  - Protected: `PATCH /auth/me`, `GET /pulse`, `GET /logs`, `POST /api/pitches/:id/send`
+  - Protected: `PATCH /auth/me`, `GET /pulse`, `GET /logs`, `POST /api/pitches/:id/send`, `POST /api/contracts/audit`, `GET /auth/gmail/status`, `GET /metrics/gemini`
   - System: `GET /health`
 - **Auth:** JWT (`jsonwebtoken` + `bcryptjs`) con `Authorization: Bearer <token>`. Gmail OAuth2 por usuario, tokens en tabla `users`
 - **Paleta:** acento naranja `#FF6B2C` (antes `#EA5103`). Acento secundario frío: cyan `#22D3EE`. Dark: `#030305` fondo / `#F0F0F5` texto / `#A0A0B0` secundario / `#5A5A70` terciario. Light: `#FFEED0` fondo / `#1A0E09` texto
-- **Layout:** Dashboard asimétrico (7-col + 5-col), secciones diferenciadas (hero, growth chart, rates bars, timeline), sidebar 260px flotante glass-card, profile bar con avatar ring orgánico SVG animado
-- **Componentes nuevos:** `Switch` (toggle-switch.tsx, accesible), auto-pitch toggle en Sidebar
+- **Layout:** Dashboard asimétrico (7-col + 5-col), secciones diferenciadas (hero, growth chart, audience insights, rates bars, timeline), sidebar 260px flotante glass-card, profile bar con avatar ring orgánico SVG animado
+- **Componentes nuevos:** `Switch` (toggle-switch.tsx), `AudienceInsights`, `SuggestedAction`, `SendPitchModal`, `ContractUploader`, `MobileSidebarDrawer`
 - **Canal test:** `UC8LeXCWOalN8SxlrPcG-PaQ` (midudev)
 - **Build backend:** 0 errores TypeScript
-- **Build frontend:** ~639KB JS (+20KB auth + toggle) / ~135KB CSS (+2KB)
-- **Tests:** 171 backend unit passing + 22 integration skipped (legacy) + 78 frontend passing. Total: 249/271 effective
-- **Fallbacks:** mock YouTube (738K subs), mock pitch (template), mock sponsorship (subs × 0.002)
+- **Build frontend:** ~662KB JS / ~136KB CSS
+- **Tests:** 173 backend unit passing + 22 integration skipped (legacy) + 78 frontend passing. Total: 251/273 effective
+- **Fallbacks:** mock YouTube (738K subs), mock pitch (template), mock sponsorship (subs × 0.002), mock contract audit (regex de cláusulas abusivas)

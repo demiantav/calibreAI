@@ -1,6 +1,0 @@
-- En el Daily Brief, no me convence el aspecto visual, el texto es demasiado grande, esta desordenado, no trasmite profesionalidad ni armonia, la interfaz deberia ser mas moderna, como si fuera un chat donde nos escribio este resumen nuestro agente de AI. (Pantalla dashboard)
-- En el boton de pulse figura la palabra Pulse, eliminarla (Pantalla dashboard)
-- El aspecto visual del header donde figura el nombre del cliente, los followers, el engagement se repite, la informacion en general se repite, ya tenemos cards mas debajo que muestran eso. Esas cards deberian estar mas arriba, acompañando el header. (Pantalla dashboard)
-- Mejorar el padding en los laterales de la pantalla y los espaciados en general.
-- Al presionar el boton de Pulse, detras aparece un elemento que figura pulse in progress, hay que eliminarlo
-- La pantalla de onboarding, debe ser enfocada solo a eso, no deberia aparecer el panel lateral ni el boton de pulse, el flujo unicamente deberia ser de onboarding y luego si poder acceder al sistema general.

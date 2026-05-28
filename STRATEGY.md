@@ -1,87 +1,94 @@
 # Calibre — Análisis Estratégico de Producto & Marketing
 
 > Perspectiva de Head of Product + Growth + Marketing  
-> Fecha: Mayo 2026 · Post Sprint 9.75
+> Fecha: Mayo 2026 · Post Sprint 14
 
 ---
 
 ## Diagnóstico general
 
-El stack técnico está sobredimensionado para el estado actual del negocio. Hay 263 tests, glassmorphism, animaciones CountUp, glow orbs — pero no existe un segundo usuario real ni un onboarding funcional. No es una crítica al trabajo técnico; es una señal de que hay que reorientar el foco hacia validación de negocio.
+La infraestructura técnica está sólida: 251+ tests, onboarding end-to-end, multi-tenant auth, email digest diario, audience intelligence, contract auditor, modo degradado robusto. El producto pasó de "demo técnica" a "producto usable por un creador real".
 
-El diferencial real de Calibre no es el dashboard. Es que el agente actúa mientras el creador graba. Ese ángulo todavía no existe en ninguna pantalla ni en ningún copy.
+Sin embargo, el foco ahora debe ser **validación de negocio**, no más features técnicas. Tenemos un MVP funcional pero no tenemos: (1) presencia pública, (2) pipeline visual de deals, (3) arquitectura que escale más allá de ~5 usuarios.
 
----
-
-## Blockers P0 — antes de hablar con inversores o usuarios
-
-### 1. No hay onboarding. El producto empieza en el vacío.
-
-Hoy un nuevo usuario llega y ve el dashboard del canal de prueba (midudev). No existe ningún flujo de "conecta tu canal → autoriza Gmail → primer pulse". Sin onboarding, la primera sesión es desorientadora y el churn es inmediato.
-
-**Es el gap más crítico antes de cualquier lanzamiento público.**
-
-Flujo mínimo necesario:
-
-1. Conectar canal de YouTube (OAuth o URL)
-2. Autorizar Gmail
-3. Primer Pulse automático disparado
-4. Mostrar resultados con contexto ("Tu primer análisis está listo")
+El diferencial real de Calibre sigue siendo el mismo: el agente actúa mientras el creador graba. Ese mensaje debe estar en la landing page y en el copy de onboarding.
 
 ---
 
-### 2. No hay propuesta de valor clara en ninguna pantalla.
+## Blockers P0 — antes de cualquier lanzamiento público
 
-El producto no responde "¿qué hago yo exactamente?" en ningún lado. "Pulse", "AI Active", "Daily Brief" son términos internos de desarrollo, no copy que convierte.
+### 1. No hay landing page ni presencia pública.
 
-Se necesita una frase de posicionamiento de una línea que entienda un creador de 50k subs. Ejemplo de dirección:
+Hoy Calibre no tiene ninguna página pública. Un creador que escuche del producto no tiene dónde leer qué hace, cuánto cuesta, ni dónde registrarse. Para Google for Startups y para validar demanda orgánica, esto es un bloqueante absoluto.
 
-> "El chief of staff de tu canal. Encuentra sponsors, prepara los pitches y los envía — mientras vos grabás."
+**Es el gap más crítico ahora.**
 
----
+Mínimo necesario:
 
-### 3. Auth atada a un solo Gmail. Sin multi-tenant, no es un producto.
-
-Todo el sistema está hardcodeado a `tavolarodemian06@gmail.com`. Cualquier creador que intente usar el producto hoy verá los datos de otro canal. El roadmap lo tiene como P1, pero en la práctica es **P0** si se quiere un segundo usuario real.
-
----
-
-## Gaps P1 — limitan la retención una vez que el usuario entra
-
-### 4. El valor del agente no es observable ni accionable.
-
-El Daily Brief existe, pero el usuario no sabe cuándo fue generado, qué tan fresco está, ni qué acción concreta debería tomar hoy.
-
-El AI Brief necesita una acción sugerida al final, por ejemplo:
-
-- "Escribir a TechCorp esta semana — respondieron hace 2 días"
-- "Tu engagement bajó un 12%, publicá antes de las 18h los martes"
-
-Sin acción concreta, es un resumen que no activa comportamiento.
+1. Landing page en español e inglés con posicionamiento claro
+2. Formulario de waitlist (validación de demanda)
+3. Testimonios / casos de uso (aunque sean de uso propio por ahora)
+4. Pricing transparento (Free / Creator / Pro)
 
 ---
 
-### 5. No hay historial de deals ni pipeline visual.
+### 2. No hay pipeline visual de deals.
 
-Un creador que maneja 5+ marcas simultáneas no puede ver el estado de cada deal de un vistazo. El CRM básico existe en la base de datos (Draft → Sent → Responded), pero no hay una vista tipo kanban o pipeline.
+El CRM existe en la base de datos (`draft_ready → sent → responded`), pero la vista `/pitches` es una lista tabulada, no un pipeline visual. Para un creador que maneja 5+ marcas simultáneas, esto es insuficiente. Se siente como un inbox, no como un sistema de ventas.
 
-Este es el core del valor para creadores serios. Sin una vista de pipeline, Calibre se siente como un inbox, no como un sistema de ventas.
-
----
-
-### 6. No hay notificaciones. El usuario tiene que acordarse de abrir la app.
-
-Si el agente detecta que una marca respondió, o que hay un pitch listo para revisar, ¿cómo se entera el creador? Sin email digest o notificación, el engagement activo depende de que el usuario recuerde entrar.
-
-Un resumen diario por email con el Daily Brief cambiaría la retención radicalmente. Es el principal driver de hábito para una herramienta de este tipo.
+Sin una vista kanban o pipeline de deals, el producto no entrega su core promise: "el sistema que cierra los deals por vos".
 
 ---
 
-### 7. Las tasas de sponsorship son estimaciones, no datos de mercado.
+### 3. La arquitectura no escala más allá de ~5 usuarios.
+
+El MVP está construido para validar producto, no para escalar:
+
+| Limitación | Detalle |
+|---|---|
+| **Gemini API** | 500 requests/day. Cada pulse = 3-4 requests. 50 usuarios = quota excedida inmediatamente. |
+| **Auto-pulse en startup** | Al reiniciar el servidor, ejecuta pulse para TODOS los usuarios con `auto_pitch_enabled=true` simultáneamente. |
+| **Sin job queue** | No hay cola de procesamiento (BullMQ/pgboss). Si falla un pulse, no hay retry ni backoff. |
+| **YouTube API** | 10,000 units/day. 50 usuarios × 4 units = 200/day. Aún manejable, pero sin margen. |
+
+**Para beta cerrada (5 usuarios):** la arquitectura actual es suficiente.  
+**Para lanzamiento público (50+ usuarios):** requiere job queue, rate limiting per user, worker separado, y monitoreo de quota.
+
+---
+
+## Gaps P1 — limitan la retención y credibilidad
+
+### 4. Las tasas de sponsorship son estimaciones, no datos de mercado.
 
 El forecast usa `subs × 0.002` como fallback. Para que el creador confíe en los números, se necesitan benchmarks reales por nicho (tech, gaming, lifestyle) y por región.
 
 Sin datos de mercado, el "Sponsorship Forecast" es marketing interno, no inteligencia real.
+
+**Prioridad:** Media — el forecast funciona como estimador, pero no genera confianza de "esto es lo que cobra el mercado".
+
+---
+
+### 5. No hay historial de conversaciones por deal.
+
+Un creador que negocia con una marca necesita ver el hilo completo: email original de la marca, pitch enviado, respuesta de la marca, contra-oferta, etc. Hoy solo hay `brand_deals` con un status, pero no el historial de interacciones.
+
+Esto limita la utilidad del producto para deals que requieren múltiples rondas de negociación.
+
+---
+
+### 6. Los tests de integración legacy están skipped.
+
+22 tests de integración API (supertest) están skipped desde Sprint 10 porque requieren refactor para el nuevo flujo JWT + mock de `oauth_sessions`. Sin ellos, no hay cobertura de integración end-to-end para auth, onboarding, y pulse.
+
+**Riesgo:** Regresiones en flujos críticos sin detección automática.
+
+---
+
+### 7. Google OAuth está en "Testing" mode.
+
+Para lanzamiento público, Google requiere verificación de dominio y pasar la app a "Production" mode en Google Cloud Console. Mientras tanto, cada usuario nuevo debe ser agregado manualmente como "test user".
+
+**Bloquea:** Cualquier lanzamiento que no sea beta cerrada con usuarios pre-aprobados.
 
 ---
 
@@ -175,45 +182,57 @@ Calibre puede rankear con contenido útil antes de que la competencia global lle
 
 ## Roadmap recomendado (perspectiva de negocio)
 
-### Sprint 10 — Imprescindible para tener un segundo usuario
+### Fase 1 — Beta Cerrada (ahora, 5 usuarios máximo)
 
-| Feature                 | Justificación                                                |
-| ----------------------- | ------------------------------------------------------------ |
-| Onboarding end-to-end   | Sin esto no hay segundo usuario. Bloquea todo lo demás.      |
-| Multi-tenant básico     | Cada creador ve solo sus datos. Prerequisito de lanzamiento. |
-| Landing page + waitlist | Validar demanda antes de construir más features.             |
+**Objetivo:** Validar product-market fit con creadores reales antes de cualquier presión pública.
+
+| Feature | Estado | Justificación |
+|---|---|---|
+| Onboarding end-to-end | ✅ Completado | JWT auth, YouTube connect, Gmail OAuth, FirstPulse |
+| Multi-tenant básico | ✅ Completado | Data isolation por `user_id` en todas las tablas |
+| Auto-pitch toggle | ✅ Completado | Control del usuario sobre automatización |
+| Email digest diario | ✅ Completado | Driver de hábito. Ya corre a las 8am Europe/Rome |
+| Acción sugerida | ✅ Completado | Brief accionable con prioridades (pitches, engagement, recordatorio) |
+| Audience Intelligence | ✅ Completado | Análisis de comentarios YouTube |
+| Contract Auditor | ✅ Completado | Análisis de PDFs de contratos con Gemini + fallback |
+| Gmail reconnect banner | ✅ Completado | Detección automática de tokens vencidos + CTA de reconexión |
+
+**Actividades manuales:**
+- Elegir 3–5 creadores entre 20k–100k subs en tech/edu hispanohablante
+- Onboarding manual (white-glove) para capturar fricciones
+- Feedback semanal estructurado
+- Obtener 2–3 testimonios con números concretos
+
+**Métrica de validación:** 3 de 5 creadores siguen usando el producto semanalmente tras 30 días.
+
+---
+
+### Fase 2 — Lanzamiento Público MVP (post-validación)
+
+**Objetivo:** Abrir el producto a waitlist con arquitectura que soporte 50+ usuarios.
+
+| Feature | Estado | Justificación |
+|---|---|---|
+| Landing page + waitlist | ❌ No iniciado | Presencia pública, posicionamiento claro, validación de demanda |
+| Pipeline visual de deals | ❌ No iniciado | Core del valor. Convierte "herramienta" en "sistema de ventas" |
+| Job queue + scalability | ❌ No iniciado | BullMQ/pgboss, rate limiting per user, worker separado |
+| Google OAuth production mode | ❌ No iniciado | Verificación de dominio + pasar a "Production" en Google Cloud |
+| Integration tests JWT | 🟡 Parcial | Re-escribir 22 tests legacy para evitar regresiones |
 
 **Métrica de validación:** 100 signups en waitlist en 30 días. Si no se llega, el posicionamiento o el canal están mal.
 
 ---
 
-### Sprint 11 — Drivers de retención
+### Fase 3 — Retención y monetización (post-PMF)
 
-| Feature                           | Justificación                                                 |
-| --------------------------------- | ------------------------------------------------------------- |
-| Email digest diario               | Principal driver de hábito. Retención semana 2–4.             |
-| Pipeline visual de deals          | Convierte el producto de "herramienta" a "sistema de ventas". |
-| Acción sugerida en el Daily Brief | Hace el brief accionable, no solo informativo.                |
-
----
-
-### Sprint 12 — Credibilidad de los datos
-
-| Feature                              | Justificación                                                        |
-| ------------------------------------ | -------------------------------------------------------------------- |
-| Benchmarks de sponsorship por nicho  | Los números de forecast pasan de estimación a referencia de mercado. |
-| Historial de conversaciones por deal | El creador puede ver el hilo completo de cada negociación.           |
-| Toggle auto-pitch / manual           | Control del usuario sobre la automatización (confianza).             |
-
----
-
-### Sprint 13+ — Monetización y escala
-
-| Feature            | Justificación                                  |
-| ------------------ | ---------------------------------------------- |
-| Stripe + planes    | Solo monetizar después de validar retención.   |
-| Agency tier        | 5–10x LTV de un creador individual.            |
-| Instagram / TikTok | Amplía el TAM una vez que YouTube está sólido. |
+| Feature | Justificación |
+|---|---|
+| Benchmarks de sponsorship por nicho | Forecast pasa de estimación a referencia de mercado |
+| Historial de conversaciones por deal | Hilo completo de negociación (emails de ida y vuelta) |
+| Stripe + planes | Free / Creator ($19) / Pro ($49). Solo tras validar retención |
+| Agency tier | 5–10x LTV de un creador individual |
+| Instagram / TikTok | Amplía el TAM una vez que YouTube está sólido |
+| Timezone configurable | Digest ajustado a timezone del usuario |
 
 **Estructura de pricing sugerida:**
 
@@ -227,20 +246,20 @@ Calibre puede rankear con contenido útil antes de que la competencia global lle
 
 ## Resumen ejecutivo
 
-**Lo que está bien:** infraestructura técnica sólida, flujo de pitch end-to-end funcionando, UI premium diferenciada, modo degradado robusto, cobertura de tests seria.
+**Lo que está bien:** infraestructura técnica sólida, onboarding end-to-end funcional, multi-tenant auth operativo, flujo de pitch end-to-end funcionando, email digest diario corriendo, audience intelligence activa, contract auditor con fallback, UI premium diferenciada, modo degradado robusto, cobertura de tests seria (251+ tests).
 
 **Lo que falta para ser un negocio:**
 
-1. Onboarding + multi-tenant → sin esto no hay segundo usuario
-2. Propuesta de valor comunicada en pantalla → sin esto no hay conversión
-3. Email digest diario → sin esto no hay retención orgánica
-4. Beta cerrada con creadores reales → sin esto no hay product-market fit validado
-5. Landing page con waitlist → sin esto no hay señal de mercado
+1. **Landing page + waitlist** → sin esto no hay señal de mercado ni canal de adquisición
+2. **Pipeline visual de deals** → sin esto el producto no entrega su core promise ("sistema de ventas")
+3. **Beta cerrada con creadores reales** → sin esto no hay product-market fit validado
+4. **Scalability (job queue + rate limiting)** → sin esto no podemos pasar de 5 a 50+ usuarios
+5. **Google OAuth production mode** → sin esto no hay lanzamiento público autónomo
 
-**El orden importa:** Onboarding → Beta cerrada → Landing → Retención → Monetización.
+**El orden importa:** Beta cerrada (5 usuarios) → Landing + Waitlist → Pipeline visual → Scalability → Lanzamiento público → Monetización.
 
 No al revés.
 
 ---
 
-_Documento generado para uso interno de producto. Última actualización: Mayo 2026._
+_Documento generado para uso interno de producto. Última actualización: Mayo 2026 · Post Sprint 14._
