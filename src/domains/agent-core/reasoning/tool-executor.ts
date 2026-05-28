@@ -105,19 +105,18 @@ export const functionsImplementations = {
     await ensureGmailAuth(args._userId);
 
     try {
-      // Leer hasta 20 emails de los ultimos 30 dias (todos, no solo no-leidos)
+      // Buscar TODOS los emails de los ultimos 30 dias (todas las carpetas incluido spam)
       // La deduplicacion con processed_emails evita re-procesar los mismos emails
-      // Los mas nuevos primero (default de la API) para capturar propuestas frescas
       const query = 'newer_than:30d';
-      console.log(`[Tool Executor] Gmail query: "${query}" for userId=${args._userId || 'none'}`);
+      console.log(`[Tool Executor] Gmail query: "${query}" (all folders) for userId=${args._userId || 'none'}`);
 
       const response = await gmail.users.messages.list({
         userId: 'me',
-        maxResults: args.maxResults || 20,
+        maxResults: 100, // Aumentado para capturar mas emails
         q: query,
       });
       const messages = response.data.messages || [];
-      console.log(`[Tool Executor] Gmail encontró ${messages.length} emails (raw)`);
+      console.log(`[Tool Executor] Gmail encontró ${messages.length} emails (all folders)`);
 
       // Obtener IDs de emails ya procesados (dedup) — filtrar por user_id si existe
       let processedQuery = supabase.from('processed_emails').select('gmail_id');
