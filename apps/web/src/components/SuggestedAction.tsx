@@ -29,10 +29,10 @@ export function SuggestedAction({ pendingPitchesCount, latestSummary, lastPulseA
               Tenés {pendingPitchesCount} {pendingPitchesCount === 1 ? 'propuesta' : 'propuestas'} de marca esperando revisión.
             </p>
             <Link
-              to="/pitches"
+              to="/deals"
               className="inline-flex items-center gap-1 mt-2 text-sm font-semibold text-accent hover:text-accent/80 transition-colors"
             >
-              Revisar propuestas <ArrowRight className="w-3.5 h-3.5" />
+              Revisar deals <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>

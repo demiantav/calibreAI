@@ -44,3 +44,31 @@ export interface ContractAudit {
   summary: string;
   contractType: string;
 }
+
+export interface Lead {
+  id: string;
+  brand_email: string;
+  snippet: string;
+  processed_at: string;
+}
+
+export type DealStatus = 'new' | 'draft_ready' | 'sent' | 'responded';
+
+export interface UnifiedDeal {
+  id: string;
+  kind: 'lead' | 'pitch';
+  status: DealStatus;
+  brandName: string;
+  brandEmail: string;
+  snippet?: string;
+  subject?: string;
+  content?: string;
+  originalEmailFrom?: string;
+  originalEmailSubject?: string;
+  originalEmailSnippet?: string;
+  gmailId?: string;
+  detectedAt?: string;
+  sentAt?: string;
+  createdAt: string;
+  logId?: string; // reference to agent_logs id for pitches
+}

@@ -12,7 +12,7 @@ import type { LogEntry } from '@/lib/types';
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/logs', label: 'Actividad', icon: ScrollText },
-  { href: '/pitches', label: 'Propuestas', icon: FileText },
+  { href: '/deals', label: 'Deals', icon: FileText },
   { href: '/contracts', label: 'Contratos', icon: FileCheck },
   { href: '/sponsorship', label: 'Tarifas', icon: DollarSign },
 ];

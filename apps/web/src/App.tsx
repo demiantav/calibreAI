@@ -9,7 +9,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Logs from './pages/Logs';
-import Pitches from './pages/Pitches';
+import Deals from './pages/Deals';
 import Sponsorship from './pages/Sponsorship';
 import Contracts from './pages/Contracts';
 import LoginPage from './pages/auth/LoginPage';
@@ -86,7 +86,8 @@ export default function App() {
                 <Routes location={location} key={location.pathname}>
                   <Route path="/" element={<ProtectedRoute><AnimatedPage><Dashboard /></AnimatedPage></ProtectedRoute>} />
                   <Route path="/logs" element={<ProtectedRoute><AnimatedPage><Logs /></AnimatedPage></ProtectedRoute>} />
-                  <Route path="/pitches" element={<ProtectedRoute><AnimatedPage><Pitches /></AnimatedPage></ProtectedRoute>} />
+                  <Route path="/deals" element={<ProtectedRoute><AnimatedPage><Deals /></AnimatedPage></ProtectedRoute>} />
+                  <Route path="/pitches" element={<ProtectedRoute><AnimatedPage><Deals /></AnimatedPage></ProtectedRoute>} />
                   <Route path="/sponsorship" element={<ProtectedRoute><AnimatedPage><Sponsorship /></AnimatedPage></ProtectedRoute>} />
                   <Route path="/contracts" element={<ProtectedRoute><AnimatedPage><Contracts /></AnimatedPage></ProtectedRoute>} />
                 </Routes>

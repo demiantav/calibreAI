@@ -467,7 +467,7 @@ export default function Dashboard() {
                 <p className="text-sm text-white/90 mt-2">Drafts ready to send</p>
 
                 <Link
-                  to="/pitches"
+                  to="/deals"
                   className="inline-flex items-center gap-2 mt-6 px-5 py-3.5 bg-white/15 hover:bg-white/25 text-white rounded-2xl text-sm font-semibold transition-all border border-white/10 min-h-[44px]"
                 >
                   Review All
@@ -491,8 +491,8 @@ export default function Dashboard() {
                 <span className="text-[10px] font-semibold text-accent-muted uppercase tracking-wider">Latest Pitch</span>
               </div>
               <p className="text-sm text-text-secondary leading-relaxed line-clamp-4">{latestPitch.insights}</p>
-              <Link to="/pitches" className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-accent mt-4 hover:text-accent/80 transition-colors">
-                View all pitches <ArrowRight className="w-3 h-3" />
+              <Link to="/deals" className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-accent mt-4 hover:text-accent/80 transition-colors">
+                View all deals <ArrowRight className="w-3 h-3" />
               </Link>
             </motion.div>
           )}

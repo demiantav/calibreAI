@@ -25,7 +25,7 @@ export function useKeyboardShortcuts() {
           navigate('/logs');
           break;
         case 'p':
-          navigate('/pitches');
+          navigate('/deals');
           break;
         case 'r':
           navigate('/sponsorship');
