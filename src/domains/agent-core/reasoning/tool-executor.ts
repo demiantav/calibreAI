@@ -245,7 +245,23 @@ export const functionsImplementations = {
         // Si el pitch esta sent y llego un nuevo email, marcar como responded
         if (pitch.status === 'sent') {
           pitch.status = 'responded';
-          pitch.latestResponseSnippet = emailData.snippet || '';
+
+          // Fetch the thread to get the actual response snippet (not just current email)
+          let responseSnippet = emailData.snippet || '';
+          try {
+            const threadRes = await gmail.users.threads.get({ userId: 'me', id: threadId });
+            const messages = threadRes.data.messages || [];
+            if (messages.length > 0) {
+              // Get the LAST message in the thread (the brand's response)
+              const lastMsg = messages[messages.length - 1];
+              const lastDetail = await gmail.users.messages.get({ userId: 'me', id: lastMsg.id! });
+              responseSnippet = lastDetail.data.snippet || emailData.snippet || '';
+            }
+          } catch (threadErr) {
+            console.warn(`[Tool Executor] Could not fetch thread ${threadId}, falling back to email snippet`);
+          }
+
+          pitch.latestResponseSnippet = responseSnippet;
           pitch.latestResponseAt = new Date().toISOString();
           try {
             await supabase

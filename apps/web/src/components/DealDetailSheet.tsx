@@ -359,27 +359,21 @@ export default function DealDetailSheet({
           )}
 
           {/* ── Última respuesta de la marca ── */}
-          {deal.status === 'responded' && (
+          {deal.status === 'responded' && deal.latestResponseSnippet && (
             <section className="space-y-3">
               <h3 className="text-xs font-bold text-text-tertiary uppercase tracking-widest">
                 Última respuesta de la marca
               </h3>
-              {deal.latestResponseSnippet ? (
-                <div className="rounded-2xl p-5 bg-success/5 border border-success/20">
-                  <p className="text-sm text-text-secondary leading-relaxed">
-                    {deal.latestResponseSnippet}
+              <div className="rounded-2xl p-5 bg-success/5 border border-success/20">
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  {deal.latestResponseSnippet}
+                </p>
+                {deal.latestResponseAt && (
+                  <p className="text-xs text-text-tertiary mt-3">
+                    Recibido {new Date(deal.latestResponseAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </p>
-                  {deal.latestResponseAt && (
-                    <p className="text-xs text-text-tertiary mt-3">
-                      Recibido {new Date(deal.latestResponseAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="rounded-2xl p-5 bg-surface-raised border border-border/60">
-                  <p className="text-sm text-text-tertiary">Aún no se ha capturado el contenido de la respuesta. Vuelve a hacer un pulse para actualizar.</p>
-                </div>
-              )}
+                )}
+              </div>
             </section>
           )}
 
