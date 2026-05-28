@@ -36,6 +36,10 @@ export default function DealDetailSheet({
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
+  /* status update state */
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+
   /* editable pitch state */
   const [isEditing, setIsEditing] = useState(false);
   const [editedSubject, setEditedSubject] = useState('');
@@ -45,12 +49,40 @@ export default function DealDetailSheet({
   useEffect(() => {
     setShowOriginal(false);
     setSendError(null);
+    setUpdateError(null);
+    setIsUpdating(false);
     setIsEditing(false);
     if (deal) {
       setEditedSubject(deal.subject || '');
       setEditedContent(deal.content || '');
     }
   }, [deal?.id]);
+
+  const handleStatusChange = useCallback(
+    async (newStatus: DealStatus) => {
+      if (!deal?.logId) return;
+      setIsUpdating(true);
+      setUpdateError(null);
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/pitches/${deal.logId}/status`, {
+          method: 'PATCH',
+          headers: getJsonHeaders(),
+          body: JSON.stringify({ status: newStatus }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `Failed: ${res.status}`);
+        }
+        onClose();
+        onSent();
+      } catch (err) {
+        setUpdateError(err instanceof Error ? err.message : 'Error al actualizar');
+      } finally {
+        setIsUpdating(false);
+      }
+    },
+    [deal?.logId, onClose, onSent]
+  );
 
   const handleSend = useCallback(async () => {
     if (!deal?.logId) return;
@@ -326,7 +358,7 @@ export default function DealDetailSheet({
             </section>
           )}
 
-          {/* ── Error ── */}
+          {/* ── Errors ── */}
           <AnimatePresence>
             {sendError && (
               <motion.div
@@ -336,6 +368,16 @@ export default function DealDetailSheet({
                 className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400 font-medium"
               >
                 {sendError}
+              </motion.div>
+            )}
+            {updateError && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-sm text-red-400 font-medium"
+              >
+                {updateError}
               </motion.div>
             )}
           </AnimatePresence>
@@ -368,22 +410,42 @@ export default function DealDetailSheet({
             {deal.status === 'sent' && deal.logId && (
               <motion.button
                 whileTap={{ scale: 0.97 }}
-                onClick={() => onStatusChange(deal.logId!, 'responded')}
-                className="flex-1 inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl text-sm font-semibold text-white bg-success hover:brightness-110 transition-all min-h-[48px]"
+                onClick={() => handleStatusChange('responded')}
+                disabled={isUpdating}
+                className="flex-1 inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl text-sm font-semibold text-white bg-success hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
               >
-                <CheckCircle2 className="w-4 h-4" />
-                Marcar como respondido
+                {isUpdating ? (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                  </motion.div>
+                ) : (
+                  <CheckCircle2 className="w-4 h-4" />
+                )}
+                {isUpdating ? 'Actualizando...' : 'Marcar como respondido'}
               </motion.button>
             )}
 
             {deal.status === 'responded' && deal.logId && (
               <motion.button
                 whileTap={{ scale: 0.97 }}
-                onClick={() => onStatusChange(deal.logId!, 'sent')}
-                className="flex-1 inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl text-sm font-semibold text-text bg-surface-raised border border-border hover:border-accent/30 transition-all min-h-[48px]"
+                onClick={() => handleStatusChange('sent')}
+                disabled={isUpdating}
+                className="flex-1 inline-flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl text-sm font-semibold text-text bg-surface-raised border border-border hover:border-accent/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
               >
-                <ArrowRight className="w-4 h-4" />
-                Volver a Sent
+                {isUpdating ? (
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </motion.div>
+                ) : (
+                  <ArrowRight className="w-4 h-4" />
+                )}
+                {isUpdating ? 'Actualizando...' : 'Volver a Sent'}
               </motion.button>
             )}
           </div>

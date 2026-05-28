@@ -168,9 +168,28 @@ Para testear el onboarding completo con un usuario nuevo:
 
 ### 5.6 Email original
 
-- [ ] Abrir un deal en Draft
-- [ ] Verificar sección "Email original de la marca" colapsable
-- [ ] Click para expandir -> verificar From, Subject, Snippet
+- [v] Abrir un deal en Draft
+- [v] Verificar sección "Email original de la marca" colapsable
+- [v] Click para expandir -> verificar From, Subject, Snippet
+
+### 5.7 Conversation Threading (:star: bug fix)
+
+- [ ] Enviar un email de prueba a la cuenta Gmail del usuario
+- [ ] Hacer pulse -> se genera un draft en columna **Draft**
+- [ ] Enviar el pitch -> el deal se mueve a **Sent**
+- [ ] Desde otra cuenta, responder al mismo hilo de conversación
+- [ ] Hacer pulse de nuevo
+- [ ] **Verificar que NO se genera un nuevo draft** para la misma conversación
+- [ ] **Verificar que el deal existente se marca automáticamente como Responded**
+
+### 5.8 "Marcar como respondido" (:star: bug fix)
+
+- [ ] Abrir un deal en estado **Sent**
+- [ ] Click **"Marcar como respondido"**
+- [ ] Verificar que hay feedback visual (spinner + "Actualizando...")
+- [ ] Verificar que NO da error (usa `API_BASE_URL` + headers correctos)
+- [ ] Verificar que el deal se mueve a columna **Responded**
+- [ ] Verificar que el Sheet se cierra automáticamente tras éxito
 
 ---
 

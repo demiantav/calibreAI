@@ -10,6 +10,7 @@ interface PitchInput {
   brandContext: string;
   pitchStyle?: string;
   gmailId?: string;
+  threadId?: string;
   originalEmailFrom?: string;
   originalEmailSubject?: string;
   originalEmailSnippet?: string;
@@ -94,6 +95,7 @@ export const generatePitchUseCase = async (input: PitchInput): Promise<PitchResu
       originalEmailSubject: input.originalEmailSubject,
       originalEmailSnippet: input.originalEmailSnippet,
       gmailId: input.gmailId,
+      threadId: input.threadId,
       pitchContent: parsed.pitchContent,
       pitchSubject: parsed.pitchSubject,
       detectedAt: new Date().toISOString(),

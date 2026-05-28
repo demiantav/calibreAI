@@ -7,6 +7,7 @@ export interface BrandDeal {
   originalEmailSubject?: string;
   originalEmailSnippet?: string;
   gmailId?: string;
+  threadId?: string;
   pitchContent?: string;
   pitchSubject?: string;
   detectedAt: string;

@@ -15,6 +15,7 @@ import { useDeals } from '@/hooks/use-deals';
 import type { DealStatus, UnifiedDeal } from '@/lib/types';
 import { ErrorState } from '@/components/ui/error-state';
 import { SkeletonCard } from '@/components/ui/skeleton-card';
+import { API_BASE_URL, getJsonHeaders } from '@/lib/api-config';
 import PipelineSummary from './PipelineSummary';
 import DealColumn from './DealColumn';
 import DealCard from './DealCard';
@@ -61,12 +62,9 @@ export default function DealBoard() {
     const targetId = deal.logId || dealId;
 
     try {
-      const res = await fetch(`/api/pitches/${targetId}/status`, {
+      const res = await fetch(`${API_BASE_URL}/api/pitches/${targetId}/status`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('calibre-jwt') || ''}`,
-        },
+        headers: getJsonHeaders(),
         body: JSON.stringify({ status: newStatus }),
       });
       if (!res.ok) throw new Error('Failed to update status');
@@ -78,12 +76,9 @@ export default function DealBoard() {
 
   const handleStatusChange = useCallback(async (dealId: string, newStatus: DealStatus) => {
     try {
-      const res = await fetch(`/api/pitches/${dealId}/status`, {
+      const res = await fetch(`${API_BASE_URL}/api/pitches/${dealId}/status`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('calibre-jwt') || ''}`,
-        },
+        headers: getJsonHeaders(),
         body: JSON.stringify({ status: newStatus }),
       });
       if (!res.ok) throw new Error('Failed to update status');
