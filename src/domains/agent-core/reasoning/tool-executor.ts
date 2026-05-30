@@ -143,7 +143,7 @@ export const functionsImplementations = {
       );
       console.log(`[Tool Executor] Detalles obtenidos: ${details.length}`);
       details.slice(0, 5).forEach((d: any) => {
-        console.log(`  - "${d.subject?.slice(0, 50)}" | from: ${d.from?.slice(0, 40)}`);
+        console.log(`  - [email discovered]`);
       });
 
       // Obtener email del usuario para filtrar self-emails
@@ -152,7 +152,6 @@ export const functionsImplementations = {
         const { data: user } = await supabase.from('users').select('email').eq('id', args._userId).single();
         userEmail = user?.email || null;
       }
-      console.log(`[Tool Executor] User email (para filtro self): ${userEmail || 'unknown'}`);
 
       // Filtrar emails ya procesados y del propio usuario
       let skippedProcessed = 0;
@@ -356,7 +355,7 @@ export const functionsImplementations = {
     const brandName = rawFrom.replace(/^"?(.*?)"?\s*<.*$/, '$1').trim() || emailData.subject.split(/[-–—]/)[0]?.trim() || 'Marca detectada';
     const brandContext = `${emailData.subject}: ${emailData.snippet}`;
 
-    console.log(`[Tool Executor] Email real: "${emailData.subject}" de ${rawFrom} (threadId: ${threadId || 'N/A'})`);
+    console.log(`[Tool Executor] Procesando email para pitch generation (threadId: ${threadId || 'N/A'})`);
 
     const result = await generatePitchUseCase({
       creatorName: args.creatorName,

@@ -190,6 +190,8 @@ app.post('/api/pitches/:id/send', async (req, res) => {
     return res.status(400).json({ error: 'subject y content son requeridos' });
   }
 
+  let updateCommitted = false;
+
   try {
     const { data: log, error: fetchError } = await supabase
       .from('agent_logs')
@@ -247,6 +249,8 @@ app.post('/api/pitches/:id/send', async (req, res) => {
       return res.status(500).json({ error: 'Error al actualizar el pitch antes del envío' });
     }
 
+    updateCommitted = true;
+
     const sendResult = await mcpManager.callTool('send_email', {
       to: targetEmail,
       subject,
@@ -256,6 +260,30 @@ app.post('/api/pitches/:id/send', async (req, res) => {
 
     res.json({ success: true, id, sent: true, result: sendResult });
   } catch (error: any) {
+    // Revert status if the DB update was committed but the email send failed
+    if (updateCommitted) {
+      try {
+        const { data: currentLog } = await supabase
+          .from('agent_logs')
+          .select('content')
+          .eq('id', id)
+          .eq('user_id', userId)
+          .single();
+
+        if (currentLog?.content?.status === 'sent') {
+          const reverted = { ...currentLog.content, status: 'draft_ready' };
+          delete reverted.sentAt;
+          await supabase
+            .from('agent_logs')
+            .update({ content: reverted, insights: 'Pitch revertido a borrador — envío fallido' })
+            .eq('id', id)
+            .eq('user_id', userId);
+        }
+      } catch {
+        // Best-effort revert — if this also fails, pitch stays as 'sent' (manual intervention needed)
+      }
+    }
+
     console.error('[API] Error enviando pitch:', error);
     res.status(500).json({ error: 'Error al enviar el pitch', details: error.message });
   }
