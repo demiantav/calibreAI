@@ -149,8 +149,8 @@ Para testear el onboarding completo con un usuario nuevo:
 
 ### 5.3 Enviar Pitch (:star: bug fix)
 
-- [ ] Abrir un deal en estado **Draft**
-- [ ] Click **"Enviar Pitch"**
+- [v] Abrir un deal en estado **Draft**
+- [v] Click **"Enviar Pitch"**
 - [ ] **Verificar que NO da error 401** (usa headers de auth correctos)
 - [ ] Verificar que el deal se mueve de **Draft** a **Sent**
 - [ ] Verificar que aparece timestamp de envío en el timeline
@@ -168,47 +168,9 @@ Para testear el onboarding completo con un usuario nuevo:
 
 ### 5.6 Email original
 
-- [v] Abrir un deal en Draft
-- [v] Verificar sección "Email original de la marca" colapsable
-- [v] Click para expandir -> verificar From, Subject, Snippet
-
-### 5.7 Conversation Threading (:star: VERIFICADO END-TO-END)
-
-> **Fix aplicado Sprint 14e:** El pitch se envía como reply manteniendo el `threadId` original.
-> Cuando la marca responde al mismo hilo, el dedup detecta `threadId` y marca como `responded`.
-
-- [x] Enviar un email de prueba a la cuenta Gmail del usuario
-- [x] Hacer pulse -> se genera un draft en columna **Draft**
-- [x] Enviar el pitch -> el deal se mueve a **Sent**
-- [x] Desde otra cuenta, responder al mismo hilo de conversación
-- [x] Hacer pulse de nuevo
-- [x] **Verificar que NO se genera un nuevo draft** para la misma conversación
-- [x] **Verificar que el deal existente se marca automáticamente como Responded**
-- [x] **Verificar que aparece el snippet de la respuesta** en el Sheet lateral
-
-### 5.8 "Marcar como respondido" (:star: bug fix)
-
-- [ ] Abrir un deal en estado **Sent**
-- [ ] Click **"Marcar como respondido"**
-- [ ] Verificar que hay feedback visual (spinner + "Actualizando...")
-- [ ] Verificar que NO da error (usa `API_BASE_URL` + headers correctos)
-- [ ] Verificar que el deal se mueve a columna **Responded**
-- [ ] Verificar que el Sheet se cierra automáticamente tras éxito
-
-### 5.9 Última respuesta de la marca
-
-- [ ] Abrir un deal en estado **Responded** (marcado manual o automáticamente)
-- [ ] Verificar que aparece sección **"Última respuesta de la marca"**
-- [ ] Verificar que muestra el snippet del email de respuesta
-- [ ] Verificar que muestra la fecha/hora de recepción
-
-### 5.10 Toast en Dashboard
-
-- [ ] Ir al **Dashboard** cuando hay deals en estado **Responded**
-- [ ] Verificar que aparece toast verde: "X marcas respondieron a tus pitches"
-- [ ] Verificar que tiene botón **"Ver respuestas"** que lleva a `/deals`
-- [ ] Verificar que el toast se puede **cerrar** con la X
-- [ ] Verificar que NO vuelve a aparecer en la misma sesión tras cerrarlo
+- [ ] Abrir un deal en Draft
+- [ ] Verificar sección "Email original de la marca" colapsable
+- [ ] Click para expandir -> verificar From, Subject, Snippet
 
 ---
 
@@ -370,8 +332,6 @@ Necesita arquitectura con:
 | Dashboard carga       | :white_check_mark: |
 | Pulse manual success  | :white_check_mark: |
 | Deals pipeline visual | :white_check_mark: |
-| Conversation threading | :white_check_mark: |
-| Send pitch as reply   | :white_check_mark: |
 | Contracts análisis    | :white_check_mark: |
 | Logs filtros/búsqueda | :white_check_mark: |
 | Toggles persisten     | :white_check_mark: |
@@ -388,22 +348,4 @@ Necesita arquitectura con:
 
 ### Bugs encontrados durante testing
 
-**BUG-5 (FIXED) — Conversation Threading Fallaba para Emails Antiguos**
-- **Síntoma**: Al hacer pulse con una respuesta de marca, se generaba un nuevo draft en vez de marcar como `responded`.
-- **Causa**: `threadId` no estaba guardado en pitches antiguos (pre-fix), y reply emails no se persistían en `processed_emails`.
-- **Fix**: Buscar `thread_id` en `processed_emails` como fallback. Siempre guardar reply emails. Solo actualizar si `status === 'sent'`.
-- **Archivos**: `src/domains/agent-core/reasoning/tool-executor.ts`
-
-**BUG-6 (FIXED) — Send Pitch Creaba Nuevo Thread**
-- **Síntoma**: La respuesta de la marca tenía un `threadId` diferente al guardado en el draft, rompiendo dedup.
-- **Causa**: `gmail.users.messages.send` no recibía `threadId`, creando un thread nuevo.
-- **Fix**: MCP `send_email` ahora acepta `threadId` y lo pasa en `requestBody.threadId`. El endpoint de envío pasa `pitch.threadId`.
-- **Archivos**: `src/domains/agent-core/mcp-connector/gmail-mcp-server.ts`, `src/app.ts`
-
-**BUG-7 (FIXED) — Sidebar Scroll Cortaba Botón Logout**
-- **Síntoma**: En viewport pequeño, el botón "Cerrar sesión" quedaba cortado.
-- **Fix**: `overflow-hidden` → `overflow-y-auto` en Sidebar.
-
-**BUG-8 (FIXED) — Tests en Español**
-- **Síntoma**: Tests fallaban por copy en español en componentes.
-- **Fix**: Textos actualizados en tests (`texto es visible` → `El texto es visible`).
+_(Agregar acá cualquier bug descubierto con su descripción y pasos para reproducir)_

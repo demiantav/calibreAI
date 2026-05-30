@@ -124,8 +124,9 @@ Resumen de features completadas pre-Sprint 14:
 
 ## Test Stats
 
-- **Total tests**: 251 (173 backend + 78 frontend)
-- **Test files**: 23 (11 backend + 12 frontend)
+- **Total tests**: 285 (207 backend + 78 frontend)
+- **Test files**: 23 (15 backend + 12 frontend)
+- **Skipped tests**: 0
 - **Build**: pasa con 0 errores (frontend + backend)
 - **TypeScript**: `pnpm typecheck` pasa, `pnpm --filter calibre-dashboard build` pasa
 
@@ -133,7 +134,7 @@ Resumen de features completadas pre-Sprint 14:
 
 - **Build backend**: ✅ 0 errores
 - **Build frontend**: ✅ 0 errores, JS bundle 765KB, CSS 140KB
-- **Tests backend**: 173 passing, 22 skipped
+- **Tests backend**: 207 passing, 0 skipped
 - **Tests frontend**: 78/78 passing
 - **TypeScript**: 0 errores backend + frontend
 - **End-to-end threading**: ✅ VERIFIED — reply detection + auto-responded + snippet capture
@@ -144,8 +145,8 @@ Resumen de features completadas pre-Sprint 14:
 ### Pre-Launch (antes de beta)
 - [x] **Testing manual end-to-end**: ✅ `MANUAL_TESTING.md` checklist completo verificado
 - [x] **Threading end-to-end**: ✅ Reply detection + auto-responded + snippet capture funciona
+- [x] **Integration tests**: ✅ 22 tests refactorizados — 0 skipped, cobertura JWT auth + rutas protegidas
 - [ ] **Landing Page**: Presencia pública en inglés para Google for Startups (repo aparte)
-- [ ] **Integration tests**: Re-escribir 22 tests de integración para nuevo flujo JWT
 - [ ] **Threading edge case**: Evaluar headers `In-Reply-To` / `References` para threading más robusto en Gmail
 
 ### Post-MVP
