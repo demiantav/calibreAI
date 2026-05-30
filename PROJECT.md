@@ -250,7 +250,7 @@ Hacer que Calibre soporte múltiples usuarios reales con sus propios canales de 
 | 4 | Gemini en free tier (429 frecuentes) | Mitigado con retry + degraded mode |
 | 5 | YouTube API quota limit | Mitigado (3u/ciclo + cache 1h) |
 | 6 | Gmail token expired (`invalid_grant`) | **Resuelto** — tokens ahora se guardan por usuario en tabla `users`. Re-autorización vía onboarding OAuth |
-| 7 | Integration tests legacy | **Pendiente** — 22 tests skipped, requieren refactor para flujo JWT + mock de `oauth_sessions` |
+| 7 | Integration tests legacy | **Resuelto** — 22 tests refactorizados: 15 re-activados, 6 obsoletos eliminados, 18 nuevos (auth + protected routes). 0 skipped |
 | 8 | Google OAuth production mode | **Pendiente** — para producción pública requiere pasar a "Production" mode (verificación de dominio) |
 | 9 | Supabase visibility gap | **Pendiente (workaroundado)** — `agent_logs` insertado con `error: null` no aparece en `SELECT` inmediato del mismo endpoint (mismo `user_id`, service role). Root cause desconocido. Workaround: onboarding ya no depende de polling en tiempo real |
 | 10 | Scalability (>5 usuarios) | **Pendiente** — arquitectura actual no escala: Gemini 500 RPD, sin job queue, auto-pulse en startup simultáneo para todos |
@@ -268,11 +268,16 @@ Hacer que Calibre soporte múltiples usuarios reales con sus propios canales de 
 | 🟢 | **Acción sugerida (SuggestedAction)** | ✅ Completado | Componente post-Daily Brief con acciones concretas (pitches pendientes, engagement bajo, recordatorio) |
 | 🟢 | **Audience Intelligence** | ✅ Completado | Análisis de comentarios YouTube: sentimiento, temas, preguntas frecuentes |
 | 🟢 | **Contract Auditor** | ✅ Completado | Upload de PDF + análisis Gemini con fallback regex + historial |
+| 🟢 | **Pipeline visual de deals** | ✅ Completado | Vista kanban de `draft_ready → sent → responded`. Core del valor para creadores serios |
+| 🟢 | **Integration tests refactor** | ✅ Completado | 22 tests legacy refactorizados, 0 skipped, cobertura auth + rutas protegidas |
 | 🔴 P1 | **Landing page** | ❌ No iniciado | Presencia pública en inglés para Google for Startups |
-| 🔴 P1 | **Pipeline visual de deals** | ❌ No iniciado | Vista kanban de `draft_ready → sent → responded`. Core del valor para creadores serios |
 | 🔴 P1 | **Multi-tenant (Agency)** | ❌ No iniciado | Una cuenta con múltiples creadores. Switcher, Gmail tokens por creator, RLS |
-| 🟡 P2 | **Integration tests JWT** | 🟡 Parcial | Re-escribir 22 tests legacy para nuevo flujo auth |
-| 🟡 P2 | **Benchmarks reales de sponsorship** | ❌ No iniciado | Datos por nicho/región para que el forecast sea referencia de mercado, no estimación |
+| 🟡 P2 | **Error Boundary + code splitting** | ❌ No iniciado | React ErrorBoundary + lazy loading de rutas (1-2 días) |
+| 🟡 P2 | **Quitar Temporal polyfill** | ❌ No iniciado | Reemplazar `@js-temporal/polyfill` (158KB) por 20 líneas nativas |
+| 🟡 P2 | **Extract routes de app.ts** | ❌ No iniciado | Mover routes inline a módulos separados (1 día) |
+| 🟡 P2 | **Tests DealBoard + Onboarding** | ❌ No iniciado | Tests para componentes core sin cobertura (2-3 días) |
+| 🟡 P2 | **Structured logging** | ❌ No iniciado | Reemplazar 165 console.* por winston/pino (1 día) |
+| 🟡 P2 | **Benchmarks reales de sponsorship** | ❌ No iniciado | Datos por nicho/región para que el forecast sea referencia de mercado |
 | 🟡 P2 | **Historial de conversaciones por deal** | ❌ No iniciado | Hilo completo de negociación (emails de ida y vuelta) |
 | 🟡 P2 | **Instagram / TikTok** | ❌ No iniciado | Métricas multi-plataforma para sponsorship |
 | 🟡 P2 | **Job queue / scalability** | ❌ No iniciado | BullMQ/pgboss + rate limiting per user + staggered startup + worker separado |

@@ -102,9 +102,72 @@ Resumen de features completadas pre-Sprint 14:
 ### Known Issues
 
 - **Gmail OAuth**: Google requiere que el usuario sea "test user" aprobado en Google Cloud Console mientras la app está en "Testing" mode. Para producción, hay que pasar a "Production" mode (requiere verificación de dominio)
-- **Integration tests**: 22 tests legacy skipped — requieren refactor para nuevo flujo JWT + mock de oauth_sessions
 - **Supabase visibility gap**: `agent_summary` insertado en `runDegradedMode`/`runPulseCheck` no aparece en el `SELECT` posterior de `/logs` (mismo `user_id`, mismo cliente service role). Workaround: el onboarding ya no depende de detección en tiempo real
-- **Threading edge case**: Si el usuario responde al email original antes de que Calibre envíe el pitch (raro), el threadId del reply del usuario puede crear un nuevo thread en Gmail. Solución: enviar pitch rápidamente o usar `In-Reply-To` / `References` headers para threading más robusto.
+- **Threading edge case**: Si el usuario responde al email original antes de que Calibre envíe el pitch (raro), el threadId del reply del usuario puede crear un nuevo thread en Gmail. Solución: enviar pitch rápidamente o usar `In-Reply-To` / `References` headers para threading más robusto
+
+## Beta Readiness Assessment
+
+### CRITICAL — Fix before beta launch
+
+| # | Bug | Archivo | Fix |
+|---|---|---|---|
+| B1 | **Pitch status no se revierte si falla envío** — `status: 'sent'` se guarda ANTES de llamar MCP. Si el email falla, el pitch queda como enviado sin haberse enviado | `app.ts:231-254` | Revertir status en catch block |
+| B2 | **JWT_SECRET con default hardcodeado** — si la env var no está seteada, la app arranca con `"calibre-jwt-secret-change-in-production"`. Atacante puede forjar tokens | `config.ts:14` | Obligar JWT_SECRET en .env, fallar al startup |
+| B3 | **oAuth2Client compartido globalmente** — race condition si dos usuarios hacen OAuth simultáneamente. Tokens se pisan en la instancia singleton | `gmail-client.ts` | Mitigado para beta (5 usuarios, secuencial). Bloqueante para multi-tenant |
+| B4 | **Timezone mismatch en digest** — cron programado para `Europe/Rome` pero log dice `America/Argentina`. Digest se envía a las 2am hora argentina | `index.ts:47` | Align timezone a la real del usuario |
+
+### HIGH — Tech debt to address post-beta
+
+#### Backend
+| Problema | Esfuerzo | Impacto |
+|---|---|---|
+| `app.ts` monolítico (552 líneas, 10+ routes inline) — extraer a route modules como `auth.routes.ts` | Medio | Mantenibilidad |
+| Service role key de Supabase bypassa RLS — un `.eq('user_id')` perdido = data leak cross-tenant | Alto | Seguridad |
+| `console.log` con PII (asuntos de email, dirección de usuario) en producción | Bajo | Privacidad |
+| 165 console.log/warn/error — no hay structured logging (`winston` instalado pero no usado) | Medio | Observabilidad |
+| Sin paginación en `/logs` (limit 200 hardcodeado) | Bajo | Performance |
+| Dead deps: `winston`, `pino-pretty`, `@google-cloud/secret-manager` | Bajo | Limpieza |
+| Dead code: `test-models.ts`, `shared/oauth-state.ts`, `shared/auth-middleware.ts` re-export | Bajo | Limpieza |
+| MCP server como child process con flags deprecated (`--experimental-modules`) | Alto | Estabilidad |
+
+#### Frontend
+| Problema | Esfuerzo | Impacto |
+|---|---|---|
+| Sin code splitting — bundle completo se carga en first load (765KB JS) | Medio | Performance |
+| `@js-temporal/polyfill` (158KB) para "hace 3h" — reemplazable con 20 líneas nativas | Bajo | Bundle size |
+| Sin Error Boundary — si un componente crashea, pantalla blanca | Bajo | Confiabilidad |
+| `recharts` instalado pero GrowthChart usa SVG custom — dead dep (~30KB) | Bajo | Bundle size |
+| Idioma mixto español/inglés ("Deals" + "Tarifas" + "Pending Pitches") | Bajo | UX |
+| `Pitches.tsx` dead code (195 líneas + tests) — ruta redirige a Deals | Bajo | Limpieza |
+| `Layout.tsx` y `Dashboard.tsx` fetchean `/logs` redundante en paralelo | Bajo | Performance |
+| Gmail reconnect logic duplicada en 3 archivos | Bajo | DRY |
+| `Dashboard.tsx` (583L) y `DealDetailSheet.tsx` (688L) — componentes gigantes | Medio | Mantenibilidad |
+
+### Test Coverage Gaps
+
+**Componentes core sin tests** (mayor riesgo para beta):
+- `DealBoard.tsx` + `DealDetailSheet.tsx` — 0 tests para el componente principal del producto
+- `useDeals` hook — 0 tests para transformación API → UI
+- Onboarding flow (3 steps) — 0 tests
+- `AuthContext` frontend — 0 tests para login/register/logout
+- Conversation threading dedup — 0 tests para la lógica más compleja de Sprint 14
+- Contract audit — solo test de import, 0 behavioral tests
+
+**Tests frágiles detectados:**
+- `tool-executor.test.ts` copia funciones en vez de importarlas — no catchea regressions
+- `digest-service.test.ts` y `audit-contract.test.ts` solo verifican que el módulo importa
+- `Pitches.test.tsx` testea la página legacy que ya no está en rutas activas
+
+### Veredicto para beta cerrada (5 usuarios)
+
+**Launch recomendado** con los 4 fixes inmediatos (B1-B4). El core value prop funciona, el degraded mode provee safety net, y el test suite (285 tests) cubre los flujos críticos de API.
+
+**Post-launch, en este orden:**
+1. Error Boundary + code splitting (1-2 días)
+2. Quitar Temporal polyfill por implementación nativa (30 min)
+3. Extraer routes de app.ts (1 día)
+4. Tests de DealBoard + useDeals + Onboarding (2-3 días)
+5. Structured logging reemplazando console.* (1 día)
 
 ## Key Decisions
 
@@ -146,11 +209,19 @@ Resumen de features completadas pre-Sprint 14:
 - [x] **Testing manual end-to-end**: ✅ `MANUAL_TESTING.md` checklist completo verificado
 - [x] **Threading end-to-end**: ✅ Reply detection + auto-responded + snippet capture funciona
 - [x] **Integration tests**: ✅ 22 tests refactorizados — 0 skipped, cobertura JWT auth + rutas protegidas
+- [ ] **Fix B1**: Revertir pitch status en send failure (`app.ts:231-254`)
+- [ ] **Fix B2**: Obligar JWT_SECRET en .env, fallar al startup (`config.ts:14`)
+- [ ] **Fix B4**: Align timezone digest (`index.ts:47`)
 - [ ] **Landing Page**: Presencia pública en inglés para Google for Startups (repo aparte)
 - [ ] **Threading edge case**: Evaluar headers `In-Reply-To` / `References` para threading más robusto en Gmail
 
 ### Post-MVP
-- [ ] **Brand Identity / Agent Persona**: Definir nombre, tono de voz, visual identity del agente de Calibre
+- [ ] **Error Boundary + code splitting**: React ErrorBoundary + lazy loading de rutas (1-2 días)
+- [ ] **Quitar Temporal polyfill**: Reemplazar `@js-temporal/polyfill` (158KB) por implementación nativa (30 min)
+- [ ] **Extract routes de app.ts**: Mover routes inline a módulos separados (1 día)
+- [ ] **Tests DealBoard + Onboarding**: Tests para componentes core sin cobertura (2-3 días)
+- [ ] **Structured logging**: Reemplazar 165 console.* por winston/pino (1 día)
+- [ ] **Brand Identity / Agent Persona**: Definir nombre, tono de voz, visual identity del agente
 - [ ] **Job Queue**: BullMQ o pgboss para escalabilidad
 - [ ] **Rate limiting por usuario**: 1 pulse cada 6h
 - [ ] **Multi-tenant Agency**: Una cuenta con múltiples creadores (tabla `creators` + `user_creators`)
