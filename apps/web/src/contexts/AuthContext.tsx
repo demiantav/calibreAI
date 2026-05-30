@@ -9,6 +9,7 @@ interface AuthUser {
   onboarding_step: number;
   auto_pitch_enabled: boolean;
   email_digest_enabled: boolean;
+  timezone: string;
 }
 
 interface AuthContextType {

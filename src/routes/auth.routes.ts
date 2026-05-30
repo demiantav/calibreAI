@@ -26,6 +26,7 @@ const updateMeSchema = z.object({
   onboarding_completed: z.boolean(),
   onboarding_step: z.number().int().min(1).max(4),
   email_digest_enabled: z.boolean(),
+  timezone: z.string().min(1),
 }).partial();
 
 // POST /auth/register
@@ -116,6 +117,8 @@ router.patch('/me', async (req: Request, res: Response) => {
       onboarding_completed: updated.onboarding_completed,
       onboarding_step: updated.onboarding_step,
       auto_pitch_enabled: updated.auto_pitch_enabled,
+      email_digest_enabled: updated.email_digest_enabled,
+      timezone: updated.timezone,
     });
   } catch (error: any) {
     if (error instanceof UnauthorizedError) {

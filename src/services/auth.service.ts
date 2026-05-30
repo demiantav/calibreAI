@@ -14,6 +14,8 @@ export interface AuthUser {
   onboarding_completed: boolean;
   onboarding_step: number;
   auto_pitch_enabled: boolean;
+  email_digest_enabled: boolean;
+  timezone: string;
 }
 
 function toAuthUser(entity: UserEntity): AuthUser {
@@ -25,6 +27,8 @@ function toAuthUser(entity: UserEntity): AuthUser {
     onboarding_completed: entity.onboarding_completed,
     onboarding_step: entity.onboarding_step,
     auto_pitch_enabled: entity.auto_pitch_enabled,
+    email_digest_enabled: entity.email_digest_enabled,
+    timezone: entity.timezone,
   };
 }
 

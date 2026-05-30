@@ -285,3 +285,76 @@ export async function runDailyDigest(): Promise<void> {
     console.error('[DigestService] Error en ciclo diario:', error);
   }
 }
+
+/**
+ * Hourly tick: checks each user's local time and sends digest if it's 8am
+ * in their timezone and they haven't received one today.
+ */
+export async function tickDigestScheduler(): Promise<void> {
+  console.log('[DigestService] Tick: checking users for digest time...');
+
+  try {
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('id, email, youtube_channel_id, youtube_channel_name, timezone, last_digest_sent_at')
+      .eq('email_digest_enabled', true)
+      .not('youtube_channel_id', 'is', null);
+
+    if (error) {
+      console.error('[DigestService] Error fetching users for tick:', error);
+      return;
+    }
+
+    if (!users || users.length === 0) return;
+
+    const now = new Date();
+    let sentCount = 0;
+
+    for (const user of users) {
+      const tz = user.timezone || 'UTC';
+
+      // Get current hour in user's timezone (0-23)
+      const localHourStr = now.toLocaleString('en-US', {
+        timeZone: tz,
+        hour: 'numeric',
+        hour12: false,
+      });
+      const localHour = parseInt(localHourStr, 10);
+
+      // Only send at 8am local time
+      if (localHour !== 8) continue;
+
+      // Check if already sent today (avoid double-send within the same hour)
+      if (user.last_digest_sent_at) {
+        const lastSent = new Date(user.last_digest_sent_at);
+        const lastSentDateStr = lastSent.toLocaleDateString('en-CA', { timeZone: tz }); // YYYY-MM-DD
+        const todayDateStr = now.toLocaleDateString('en-CA', { timeZone: tz }); // YYYY-MM-DD
+        if (lastSentDateStr === todayDateStr) continue;
+      }
+
+      console.log(`[DigestService] Tick: it's 8am in ${tz} for user ${user.id} (${user.email}), sending digest...`);
+
+      try {
+        await generateAndSendDigest(user as UserDigest);
+        sentCount++;
+
+        // Update last_digest_sent_at
+        await supabase
+          .from('users')
+          .update({ last_digest_sent_at: now.toISOString() })
+          .eq('id', user.id);
+      } catch (err) {
+        console.error(`[DigestService] Tick: error sending digest to ${user.id}:`, err);
+      }
+
+      // Stagger between users
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+
+    if (sentCount > 0) {
+      console.log(`[DigestService] Tick: sent ${sentCount} digest(s).`);
+    }
+  } catch (error) {
+    console.error('[DigestService] Error in tick:', error);
+  }
+}

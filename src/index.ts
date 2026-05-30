@@ -2,7 +2,7 @@ import { app } from './app.js';
 import { config } from './shared/config.js';
 import { runPulseCheck } from './domains/agent-core/heartbeat/pulse.js';
 import { mcpManager } from './infrastructure/mcp/mcp-manager.js';
-import { runDailyDigest } from './domains/digest/digest-service.js';
+import { tickDigestScheduler } from './domains/digest/digest-service.js';
 import cron from 'node-cron';
 
 const port = config.PORT;
@@ -43,16 +43,12 @@ const server = app.listen(port, () => {
   }, 5000);
 
   // ── Daily Digest Scheduler ─────────────────────────────────────────────────
-  // Runs every day at 8:00 AM (Europe/Rome)
-  cron.schedule('0 8 * * *', async () => {
-    console.log('[Calibre] Daily digest: iniciando envío de resúmenes...');
-    await runDailyDigest();
-    console.log('[Calibre] Daily digest: completado.');
-  }, {
-    timezone: 'Europe/Rome',
+  // Runs every hour, checks each user's local time, sends digest at 8am local
+  cron.schedule('0 * * * *', async () => {
+    await tickDigestScheduler();
   });
 
-  console.log('[Calibre] Daily digest scheduler activado (8:00 AM America/Argentina)');
+  console.log('[Calibre] Daily digest scheduler activado (cada hora, envía a las 8am hora local de cada usuario)');
 });
 
 // ── Graceful shutdown ──────────────────────────────────────────────────────

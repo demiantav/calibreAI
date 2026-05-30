@@ -14,7 +14,17 @@ const STEPS = [
 export default function OnboardingPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
+
+  // Capture browser timezone on first visit (if not already set)
+  useEffect(() => {
+    if (user && !user.timezone) {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (tz) {
+        updateUser({ timezone: tz });
+      }
+    }
+  }, [user, updateUser]);
 
   // Get current step from URL, but enforce sequence based on user progress
   // User can only access their current step or the next one

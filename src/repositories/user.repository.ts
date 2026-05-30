@@ -11,8 +11,11 @@ export interface UserEntity {
   gmail_refresh_token: string | null;
   gmail_expires_at: string | null;
   auto_pitch_enabled: boolean;
+  email_digest_enabled: boolean;
   onboarding_completed: boolean;
   onboarding_step: number;
+  timezone: string;
+  last_digest_sent_at: string | null;
   created_at: string;
   updated_at: string;
 }
