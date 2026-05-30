@@ -6,9 +6,6 @@ import request from 'supertest'
 const mockFrom = vi.hoisted(() => vi.fn())
 const mockHealthCheck = vi.hoisted(() => vi.fn())
 const mockCallTool = vi.hoisted(() => vi.fn())
-const mockGetAuthUrl = vi.hoisted(() => vi.fn())
-const mockGetToken = vi.hoisted(() => vi.fn())
-const mockVerifyOAuthState = vi.hoisted(() => vi.fn())
 
 const mockConfig = vi.hoisted(() => ({
   NODE_ENV: 'test',
@@ -34,37 +31,14 @@ vi.mock('../infrastructure/mcp/mcp-manager.js', () => ({
 }))
 
 vi.mock('../infrastructure/gmail/gmail-client.js', () => ({
-  getAuthUrl: mockGetAuthUrl,
-  oAuth2Client: { getToken: mockGetToken, setCredentials: vi.fn() },
+  getAuthUrl: vi.fn(),
+  oAuth2Client: { getToken: vi.fn(), setCredentials: vi.fn() },
 }))
 
 vi.mock('../shared/oauth-state.js', () => ({
   createOAuthState: () => 'test-state',
-  verifyOAuthState: mockVerifyOAuthState,
+  verifyOAuthState: vi.fn(),
 }))
-
-// ─── Helper — builds a fluent Supabase-like chain ─────────────────────────────
-
-interface ChainStep {
-  method: string
-  args: any[]
-  returnValue?: any
-}
-
-function buildChain(steps: ChainStep[], terminal: any) {
-  // Build from last to first: each step returns the next one
-  let current: any = terminal
-  for (let i = steps.length - 1; i >= 0; i--) {
-    const step = steps[i]
-    const next = current
-    current = vi.fn((...args: any[]) => {
-      expect(args).toEqual(step.args)
-      return step.returnValue !== undefined ? step.returnValue : next
-    })
-    Object.defineProperty(current, 'name', { value: step.method })
-  }
-  return current
-}
 
 // ─── Import app after mocks are hoisted ───────────────────────────────────────
 
@@ -93,7 +67,7 @@ describe('API /health', () => {
   })
 })
 
-describe.skip('API /logs (skipped — requires JWT in Sprint 10)', () => {
+describe('API /logs', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -102,7 +76,8 @@ describe.skip('API /logs (skipped — requires JWT in Sprint 10)', () => {
     const fakeData = [{ id: 1, type: 'agent_summary', content: 'hello' }]
     const mockLimit = vi.fn(() => Promise.resolve({ data: fakeData, error: null }))
     const mockOrder = vi.fn(() => ({ limit: mockLimit }))
-    mockFrom.mockReturnValue({ select: () => ({ order: mockOrder }) })
+    const mockEqUserId = vi.fn(() => ({ order: mockOrder }))
+    mockFrom.mockReturnValue({ select: () => ({ eq: mockEqUserId }) })
 
     const res = await request(app).get('/logs')
 
@@ -115,118 +90,44 @@ describe.skip('API /logs (skipped — requires JWT in Sprint 10)', () => {
     const fakeData = [{ id: 2, type: 'pitch_draft' }]
     const mockLimit = vi.fn(() => Promise.resolve({ data: fakeData, error: null }))
     const mockOrder = vi.fn(() => ({ limit: mockLimit }))
-    const mockEq = vi.fn(() => ({ order: mockOrder }))
-    mockFrom.mockReturnValue({ select: () => ({ eq: mockEq }) })
+    const mockEqType = vi.fn(() => ({ order: mockOrder }))
+    const mockEqUserId = vi.fn(() => ({ eq: mockEqType }))
+    mockFrom.mockReturnValue({ select: () => ({ eq: mockEqUserId }) })
 
     const res = await request(app).get('/logs?type=pitch_draft')
 
     expect(res.status).toBe(200)
     expect(res.body).toEqual(fakeData)
     expect(mockFrom).toHaveBeenCalledWith('agent_logs')
-    expect(mockEq).toHaveBeenCalledWith('type', 'pitch_draft')
+    expect(mockEqType).toHaveBeenCalledWith('type', 'pitch_draft')
   })
 
   it('should return 500 when Supabase errors', async () => {
     const mockLimit = vi.fn(() => Promise.resolve({ data: null, error: new Error('DB down') }))
     const mockOrder = vi.fn(() => ({ limit: mockLimit }))
-    mockFrom.mockReturnValue({ select: () => ({ order: mockOrder }) })
+    const mockEqUserId = vi.fn(() => ({ order: mockOrder }))
+    mockFrom.mockReturnValue({ select: () => ({ eq: mockEqUserId }) })
 
     const res = await request(app).get('/logs')
 
     expect(res.status).toBe(500)
-    // Should NOT leak stack trace in test mode (only in development)
     expect(res.body.stack).toBeUndefined()
   })
 })
 
-// TODO: Re-enable after updating for new JWT auth + oauth_sessions flow
-
-describe.skip('API /auth/login (legacy — skipped for Sprint 10 refactor)', () => {
-  it('should redirect to Google auth URL', async () => {
-    mockGetAuthUrl.mockReturnValue('https://accounts.google.com/o/oauth2/auth?client_id=xyz')
-
-    const res = await request(app).get('/auth/login')
-
-    expect(res.status).toBe(302)
-    expect(res.headers.location).toBe('https://accounts.google.com/o/oauth2/auth?client_id=xyz')
-  })
-})
-
-describe.skip('API /auth/callback (legacy — skipped for Sprint 10 refactor)', () => {
+describe('API /pulse', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockVerifyOAuthState.mockReturnValue(true)
   })
 
-  it('should return 400 when state is missing or code is missing', async () => {
-    const res1 = await request(app).get('/auth/callback')
-    expect(res1.status).toBe(400)
-    expect(res1.body.error).toContain('Estado de autenticación')
-
-    const res2 = await request(app).get('/auth/callback?state=test-state&code=')
-    expect(res2.status).toBe(400)
-    expect(res2.text).toContain('Código de autorización faltante')
-  })
-
-  it('should return 400 when state is invalid', async () => {
-    mockVerifyOAuthState.mockReturnValue(false)
-    const res = await request(app).get('/auth/callback?state=bad-state&code=valid-code')
-    expect(res.status).toBe(400)
-    expect(res.body.error).toContain('Estado de autenticación')
-  })
-
-  it('should return 500 when getToken throws', async () => {
-    mockGetToken.mockRejectedValueOnce(new Error('Invalid grant'))
-    const res = await request(app).get('/auth/callback?code=bad-code&state=test-state')
-
-    expect(res.status).toBe(500)
-    expect(res.body.error).toBe('Error al procesar tokens')
-  })
-
-  it('should return 500 when supabase upsert fails', async () => {
-    mockGetToken.mockResolvedValueOnce({
-      tokens: {
-        access_token: 'acc-token',
-        refresh_token: 'ref-token',
-        expiry_date: Date.now() + 3600000,
-      },
-    })
-
-    const mockUpsert = vi.fn(() => Promise.resolve({ error: new Error('DB error') }))
-    mockFrom.mockReturnValue({ upsert: mockUpsert })
-
-    const res = await request(app).get('/auth/callback?state=test-state&code=valid-code')
-    expect(res.status).toBe(500)
-  })
-
-  it('should succeed and return 200 when all validations pass', async () => {
-    mockGetToken.mockResolvedValueOnce({
-      tokens: {
-        access_token: 'acc-token',
-        refresh_token: 'ref-token',
-        expiry_date: Date.now() + 3600000,
-      },
-    })
-
-    const mockUpsert = vi.fn(() => Promise.resolve({ error: null }))
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'user_auth') return { upsert: mockUpsert }
-      return {}
-    })
-
-    const res = await request(app).get('/auth/callback?state=test-state&code=valid-code')
-    expect(res.status).toBe(200)
-    expect(res.body.message).toContain('Autenticación exitosa')
-
-    expect(mockUpsert).toHaveBeenCalled()
-    const upsertArg = mockUpsert.mock.calls[0][0]
-    expect(upsertArg.access_token).toBe('acc-token')
-    expect(upsertArg.refresh_token).toBe('ref-token')
-  })
-})
-
-describe.skip('API /pulse (skipped — requires JWT in Sprint 10)', () => {
   it('should return 200 with message', async () => {
+    const mockSingle = vi.fn(() => Promise.resolve({
+      data: { youtube_channel_id: 'test-channel', auto_pitch_enabled: true },
+      error: null,
+    }))
+    const mockEq = vi.fn(() => ({ single: mockSingle }))
+    mockFrom.mockReturnValue({ select: () => ({ eq: mockEq }) })
+
     const res = await request(app).get('/pulse')
 
     expect(res.status).toBe(200)
@@ -234,7 +135,7 @@ describe.skip('API /pulse (skipped — requires JWT in Sprint 10)', () => {
   })
 })
 
-describe.skip('API /api/pitches/:id/send (skipped — requires JWT in Sprint 10)', () => {
+describe('API /api/pitches/:id/send', () => {
   const pitchId = 'abc-123'
 
   beforeEach(() => {
@@ -261,8 +162,9 @@ describe.skip('API /api/pitches/:id/send (skipped — requires JWT in Sprint 10)
 
   it('should return 404 when pitch does not exist', async () => {
     const mockSingle = vi.fn(() => Promise.resolve({ data: null, error: new Error('Not found') }))
-    const mockEq = vi.fn(() => ({ single: mockSingle }))
-    mockFrom.mockReturnValue({ select: () => ({ eq: mockEq }) })
+    const mockEqUserId = vi.fn(() => ({ single: mockSingle }))
+    const mockEqId = vi.fn(() => ({ eq: mockEqUserId }))
+    mockFrom.mockReturnValue({ select: () => ({ eq: mockEqId }) })
 
     const res = await request(app)
       .post(`/api/pitches/${pitchId}/send`)
@@ -275,8 +177,9 @@ describe.skip('API /api/pitches/:id/send (skipped — requires JWT in Sprint 10)
   it('should return 400 when log type is not pitch_draft', async () => {
     const log = { type: 'agent_summary', content: {} }
     const mockSingle = vi.fn(() => Promise.resolve({ data: log, error: null }))
-    const mockEq = vi.fn(() => ({ single: mockSingle }))
-    mockFrom.mockReturnValue({ select: () => ({ eq: mockEq }) })
+    const mockEqUserId = vi.fn(() => ({ single: mockSingle }))
+    const mockEqId = vi.fn(() => ({ eq: mockEqUserId }))
+    mockFrom.mockReturnValue({ select: () => ({ eq: mockEqId }) })
 
     const res = await request(app)
       .post(`/api/pitches/${pitchId}/send`)
@@ -289,8 +192,9 @@ describe.skip('API /api/pitches/:id/send (skipped — requires JWT in Sprint 10)
   it('should return 400 when pitch was already sent', async () => {
     const log = { type: 'pitch_draft', content: { status: 'sent', brandEmail: 'b@b.com' } }
     const mockSingle = vi.fn(() => Promise.resolve({ data: log, error: null }))
-    const mockEq = vi.fn(() => ({ single: mockSingle }))
-    mockFrom.mockReturnValue({ select: () => ({ eq: mockEq }) })
+    const mockEqUserId = vi.fn(() => ({ single: mockSingle }))
+    const mockEqId = vi.fn(() => ({ eq: mockEqUserId }))
+    mockFrom.mockReturnValue({ select: () => ({ eq: mockEqId }) })
 
     const res = await request(app)
       .post(`/api/pitches/${pitchId}/send`)
@@ -303,8 +207,9 @@ describe.skip('API /api/pitches/:id/send (skipped — requires JWT in Sprint 10)
   it('should return 400 when pitch status is not draft_ready', async () => {
     const log = { type: 'pitch_draft', content: { status: 'archived', brandEmail: 'b@b.com' } }
     const mockSingle = vi.fn(() => Promise.resolve({ data: log, error: null }))
-    const mockEq = vi.fn(() => ({ single: mockSingle }))
-    mockFrom.mockReturnValue({ select: () => ({ eq: mockEq }) })
+    const mockEqUserId = vi.fn(() => ({ single: mockSingle }))
+    const mockEqId = vi.fn(() => ({ eq: mockEqUserId }))
+    mockFrom.mockReturnValue({ select: () => ({ eq: mockEqId }) })
 
     const res = await request(app)
       .post(`/api/pitches/${pitchId}/send`)
@@ -317,8 +222,9 @@ describe.skip('API /api/pitches/:id/send (skipped — requires JWT in Sprint 10)
   it('should return 400 when brandEmail is missing or invalid', async () => {
     const log = { type: 'pitch_draft', content: { status: 'draft_ready', brandEmail: '' } }
     const mockSingle = vi.fn(() => Promise.resolve({ data: log, error: null }))
-    const mockEq = vi.fn(() => ({ single: mockSingle }))
-    mockFrom.mockReturnValue({ select: () => ({ eq: mockEq }) })
+    const mockEqUserId = vi.fn(() => ({ single: mockSingle }))
+    const mockEqId = vi.fn(() => ({ eq: mockEqUserId }))
+    mockFrom.mockReturnValue({ select: () => ({ eq: mockEqId }) })
 
     const res = await request(app)
       .post(`/api/pitches/${pitchId}/send`)
@@ -336,8 +242,9 @@ describe.skip('API /api/pitches/:id/send (skipped — requires JWT in Sprint 10)
       content: { status: 'draft_ready', brandEmail: 'victim@test.com\r\nCC: attacker@evil.com' },
     }
     const mockSingle = vi.fn(() => Promise.resolve({ data: log, error: null }))
-    const mockEq = vi.fn(() => ({ single: mockSingle }))
-    mockFrom.mockReturnValue({ select: () => ({ eq: mockEq }) })
+    const mockEqUserId = vi.fn(() => ({ single: mockSingle }))
+    const mockEqId = vi.fn(() => ({ eq: mockEqUserId }))
+    mockFrom.mockReturnValue({ select: () => ({ eq: mockEqId }) })
 
     const res = await request(app)
       .post(`/api/pitches/${pitchId}/send`)
@@ -354,8 +261,9 @@ describe.skip('API /api/pitches/:id/send (skipped — requires JWT in Sprint 10)
       content: { status: 'draft_ready', brandEmail: `${longLocal}@test.com` },
     }
     const mockSingle = vi.fn(() => Promise.resolve({ data: log, error: null }))
-    const mockEq = vi.fn(() => ({ single: mockSingle }))
-    mockFrom.mockReturnValue({ select: () => ({ eq: mockEq }) })
+    const mockEqUserId = vi.fn(() => ({ single: mockSingle }))
+    const mockEqId = vi.fn(() => ({ eq: mockEqUserId }))
+    mockFrom.mockReturnValue({ select: () => ({ eq: mockEqId }) })
 
     const res = await request(app)
       .post(`/api/pitches/${pitchId}/send`)
@@ -371,8 +279,9 @@ describe.skip('API /api/pitches/:id/send (skipped — requires JWT in Sprint 10)
       content: { status: 'draft_ready', brandEmail: '"><script>alert("xss")</script>@test.com' },
     }
     const mockSingle = vi.fn(() => Promise.resolve({ data: log, error: null }))
-    const mockEq = vi.fn(() => ({ single: mockSingle }))
-    mockFrom.mockReturnValue({ select: () => ({ eq: mockEq }) })
+    const mockEqUserId = vi.fn(() => ({ single: mockSingle }))
+    const mockEqId = vi.fn(() => ({ eq: mockEqUserId }))
+    mockFrom.mockReturnValue({ select: () => ({ eq: mockEqId }) })
 
     const res = await request(app)
       .post(`/api/pitches/${pitchId}/send`)
@@ -385,8 +294,9 @@ describe.skip('API /api/pitches/:id/send (skipped — requires JWT in Sprint 10)
   it('should return 503 when MCP is unhealthy', async () => {
     const log = { type: 'pitch_draft', content: { status: 'draft_ready', brandEmail: 'brand@test.com' } }
     const mockSingle = vi.fn(() => Promise.resolve({ data: log, error: null }))
-    const mockEq = vi.fn(() => ({ single: mockSingle }))
-    mockFrom.mockReturnValue({ select: () => ({ eq: mockEq }) })
+    const mockEqUserId = vi.fn(() => ({ single: mockSingle }))
+    const mockEqId = vi.fn(() => ({ eq: mockEqUserId }))
+    mockFrom.mockReturnValue({ select: () => ({ eq: mockEqId }) })
     mockHealthCheck.mockResolvedValue(false)
 
     const res = await request(app)
@@ -398,7 +308,6 @@ describe.skip('API /api/pitches/:id/send (skipped — requires JWT in Sprint 10)
   })
 
   it('should succeed when all validations pass', async () => {
-    const now = new Date().toISOString()
     const pitch = {
       brandName: 'TestBrand',
       brandEmail: 'brand@test.com',
@@ -406,14 +315,16 @@ describe.skip('API /api/pitches/:id/send (skipped — requires JWT in Sprint 10)
     }
     const log = { type: 'pitch_draft', content: pitch }
     const mockSingle = vi.fn(() => Promise.resolve({ data: log, error: null }))
-    const mockEq = vi.fn(() => ({ single: mockSingle }))
-    const mockUpdateEq = vi.fn(() => Promise.resolve({ error: null }))
-    const mockUpdate = vi.fn(() => ({ eq: mockUpdateEq }))
+    const mockEqUserId = vi.fn(() => ({ single: mockSingle }))
+    const mockEqId = vi.fn(() => ({ eq: mockEqUserId }))
+    const mockUpdateEq2 = vi.fn(() => Promise.resolve({ error: null }))
+    const mockUpdateEq1 = vi.fn(() => ({ eq: mockUpdateEq2 }))
+    const mockUpdate = vi.fn(() => ({ eq: mockUpdateEq1 }))
 
     mockFrom.mockImplementation((table: string) => {
       if (table === 'agent_logs') {
         return {
-          select: () => ({ eq: mockEq }),
+          select: () => ({ eq: mockEqId }),
           update: mockUpdate,
         }
       }
@@ -433,7 +344,6 @@ describe.skip('API /api/pitches/:id/send (skipped — requires JWT in Sprint 10)
     expect(res.body.sent).toBe(true)
     expect(res.body.result).toEqual({ messageId: 'msg-1' })
 
-    // Verify update was called with sent status
     expect(mockUpdate).toHaveBeenCalled()
     const updateArgs = mockUpdate.mock.calls[0][0]
     expect(updateArgs.content.status).toBe('sent')
@@ -448,14 +358,16 @@ describe.skip('API /api/pitches/:id/send (skipped — requires JWT in Sprint 10)
     }
     const log = { type: 'pitch_draft', content: pitch }
     const mockSingle = vi.fn(() => Promise.resolve({ data: log, error: null }))
-    const mockEq = vi.fn(() => ({ single: mockSingle }))
-    const mockUpdateEq = vi.fn(() => Promise.resolve({ error: new Error('Update failed') }))
-    const mockUpdate = vi.fn(() => ({ eq: mockUpdateEq }))
+    const mockEqUserId = vi.fn(() => ({ single: mockSingle }))
+    const mockEqId = vi.fn(() => ({ eq: mockEqUserId }))
+    const mockUpdateEq2 = vi.fn(() => Promise.resolve({ error: new Error('Update failed') }))
+    const mockUpdateEq1 = vi.fn(() => ({ eq: mockUpdateEq2 }))
+    const mockUpdate = vi.fn(() => ({ eq: mockUpdateEq1 }))
 
     mockFrom.mockImplementation((table: string) => {
       if (table === 'agent_logs') {
         return {
-          select: () => ({ eq: mockEq }),
+          select: () => ({ eq: mockEqId }),
           update: mockUpdate,
         }
       }
