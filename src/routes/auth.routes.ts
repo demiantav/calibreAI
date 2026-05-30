@@ -1,9 +1,9 @@
 import { Router, type Request, type Response } from 'express';
+import { z } from 'zod';
 import { authService } from '../services/auth.service.js';
 import { userRepository } from '../repositories/user.repository.js';
 import { supabase } from '../infrastructure/supabase/supabase-client.js';
 import { ValidationError, UnauthorizedError } from '../shared/errors.js';
-import { z } from 'zod';
 
 const router = Router();
 
@@ -35,6 +35,10 @@ router.post('/register', async (req: Request, res: Response) => {
     const result = await authService.register(email, password);
     res.status(201).json(result);
   } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: 'Datos inválidos', details: error.issues });
+      return;
+    }
     if (error instanceof ValidationError || error.statusCode === 409) {
       res.status(error.statusCode || 400).json({ error: error.message });
       return;
@@ -50,7 +54,11 @@ router.post('/login', async (req: Request, res: Response) => {
     const result = await authService.login(email, password);
     res.json(result);
   } catch (error: any) {
-    if (error instanceof UnauthorizedError) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ error: 'Datos inválidos', details: error.issues });
+      return;
+    }
+    if (error instanceof UnauthorizedError || error.statusCode === 401) {
       res.status(401).json({ error: error.message });
       return;
     }

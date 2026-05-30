@@ -13,7 +13,10 @@ declare global {
 
 export function jwtAuthMiddleware(req: Request, res: Response, next: NextFunction) {
   // Bypass in test mode or when no JWT_SECRET is configured (backward compat)
-  if (config.NODE_ENV === 'test') return next();
+  if (config.NODE_ENV === 'test') {
+    req.user = { userId: 'test-user', email: 'test@example.com' };
+    return next();
+  }
 
   const authHeader = req.headers.authorization;
   if (!authHeader) {
