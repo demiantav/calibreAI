@@ -323,6 +323,46 @@ Necesita arquitectura con:
 
 ---
 
+## Flujo 13: Backend Fixes — Sprint 14f (5 min) :star: CRÍTICO
+
+> **Valida los 4 fixes críticos del backend antes de beta.**
+
+### 13.1 B1 — Pitch status revert en send failure
+
+- [ ] Ir a `/deals`, abrir un deal en **Draft**
+- [ ] Simular fallo de envío (ej: apagar MCP server temporalmente, o cortar conexión)
+- [ ] Click **"Enviar Pitch"**
+- [ ] Verificar que el deal **NO** se mueve a **Sent** — se queda en **Draft**
+- [ ] Verificar que aparece error visible en la UI
+- [ ] Re-verificar que el deal sigue editable después del fallo
+
+### 13.2 B2 — JWT_SECRET mandatory
+
+- [ ] Quitar `JWT_SECRET` del `.env`
+- [ ] Intentar arrancar el backend (`pnpm dev`)
+- [ ] Verificar que la app **NO arranca** — error message claro en consola
+- [ ] Restaurar `JWT_SECRET` en `.env`
+- [ ] Verificar que la app arranca normalmente
+
+### 13.3 B4 — PII removido de logs
+
+- [ ] Arrancar el backend en modo desarrollo
+- [ ] Ejecutar un pulse manual
+- [ ] Revisar la consola del backend
+- [ ] Verificar que **NO** aparecen asuntos de email ni direcciones de email en los logs
+- [ ] Verificar que los logs muestran solo "[email discovered]" en vez de contenido real
+
+### 13.4 Timezone-per-User Digest
+
+- [ ] Ir a `/onboarding?step=1` (o cualquier página con el onboarding)
+- [ ] Verificar que en la consola del backend no hay errores de timezone
+- [ ] Verificar que el usuario tiene `timezone` seteado en la DB (via Supabase SQL: `SELECT timezone FROM users`)
+- [ ] Verificar que `last_digest_sent_at` es `NULL` para usuarios nuevos
+- [ ] Verificar que el cron corre cada hora (logs: "Tick: checking users...")
+- [ ] **Opcional**: Mockear la hora local a 8am para verificar que el digest se envía
+
+---
+
 ## Resultado Esperado
 
 | Flujo                 | Estado             |
@@ -337,6 +377,10 @@ Necesita arquitectura con:
 | Toggles persisten     | :white_check_mark: |
 | Mobile responsive     | :white_check_mark: |
 | Errores manejados     | :white_check_mark: |
+| B1: Pitch revert      | :white_check_mark: |
+| B2: JWT_SECRET        | :white_check_mark: |
+| B4: PII logs          | :white_check_mark: |
+| Timezone digest       | :white_check_mark: |
 
 ---
 

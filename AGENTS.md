@@ -95,6 +95,22 @@ Resumen de features completadas pre-Sprint 14:
 - **Resultado**: El pitch se envía como reply dentro del mismo thread. La respuesta de la marca tiene el mismo `threadId` y el dedup funciona correctamente.
 - **Verified end-to-end**: Flujo completo probado manualmente — reply de marca detectado, pitch marcado como `responded`, snippet visible en UI.
 
+### Done (Sprint 14f — Backend Bug Fixes + Timezone Digest)
+
+#### Timezone-per-User Digest
+
+- **Migración `009_user_timezone.sql`**: agrega `timezone TEXT DEFAULT 'UTC'` y `last_digest_sent_at TIMESTAMPTZ` a tabla `users`
+- **`tickDigestScheduler()`**: nueva función en `digest-service.ts` — corre cada hora, calcula hora local de cada usuario con `toLocaleString('en-US', { timeZone })`, envía digest a las 8am local si no se envió hoy
+- **Cron refactoreado**: de `0 8 * * *` (una vez al día, fijo Europe/Rome) a `0 * * * *` (cada hora + filtro por timezone del usuario)
+- **Frontend captura timezone**: `OnboardingPage` envía `Intl.DateTimeFormat().resolvedOptions().timeZone` al primer mount
+- **AuthUser + updateMeSchema**: incluyen `timezone` y `email_digest_enabled`
+
+#### Backend Bug Fixes
+
+- **B1 Fix (Pitch status revert)**: Si el envío MCP falla después de marcar el pitch como `sent`, se revierte a `draft_ready` en el catch block (best-effort). Flag `updateCommitted` controla si el pre-update fue exitoso.
+- **B2 Fix (JWT_SECRET mandatory)**: `z.string().min(32)` sin default. La app hace `process.exit(1)` si falta la env var.
+- **B4 Fix (PII removal)**: Eliminados console.log con asuntos de email, direcciones de usuario y email del usuario de tool-executor.ts
+
 ### Blocked
 
 - **runPulseCheck**: bucle Gemini + function calling con 3+ dependencias externas vivas (Gemini chat, tool executor, Supabase)
@@ -111,10 +127,10 @@ Resumen de features completadas pre-Sprint 14:
 
 | # | Bug | Archivo | Fix |
 |---|---|---|---|
-| B1 | **Pitch status no se revierte si falla envío** — `status: 'sent'` se guarda ANTES de llamar MCP. Si el email falla, el pitch queda como enviado sin haberse enviado | `app.ts:231-254` | Revertir status en catch block |
-| B2 | **JWT_SECRET con default hardcodeado** — si la env var no está seteada, la app arranca con `"calibre-jwt-secret-change-in-production"`. Atacante puede forjar tokens | `config.ts:14` | Obligar JWT_SECRET en .env, fallar al startup |
-| B3 | **oAuth2Client compartido globalmente** — race condition si dos usuarios hacen OAuth simultáneamente. Tokens se pisan en la instancia singleton | `gmail-client.ts` | Mitigado para beta (5 usuarios, secuencial). Bloqueante para multi-tenant |
-| B4 | **Timezone mismatch en digest** — cron programado para `Europe/Rome` pero log dice `America/Argentina`. Digest se envía a las 2am hora argentina | `index.ts:47` | Align timezone a la real del usuario |
+| B1 | **Pitch status no se revierte si falla envío** | `app.ts:231-254` | ✅ Revert status a `draft_ready` en catch block (best-effort) |
+| B2 | **JWT_SECRET con default hardcodeado** | `config.ts:14` | ✅ Min 32 chars, sin default. App no arranca si falta |
+| B3 | **oAuth2Client compartido globalmente** | `gmail-client.ts` | Mitigado para beta (5 usuarios, secuencial). Bloqueante para multi-tenant |
+| B4 | **Timezone mismatch en digest** | `index.ts:47` | ✅ Refactorizado: cron cada hora + `tickDigestScheduler()` con timezone por usuario |
 
 ### HIGH — Tech debt to address post-beta
 
@@ -209,9 +225,10 @@ Resumen de features completadas pre-Sprint 14:
 - [x] **Testing manual end-to-end**: ✅ `MANUAL_TESTING.md` checklist completo verificado
 - [x] **Threading end-to-end**: ✅ Reply detection + auto-responded + snippet capture funciona
 - [x] **Integration tests**: ✅ 22 tests refactorizados — 0 skipped, cobertura JWT auth + rutas protegidas
-- [ ] **Fix B1**: Revertir pitch status en send failure (`app.ts:231-254`)
-- [ ] **Fix B2**: Obligar JWT_SECRET en .env, fallar al startup (`config.ts:14`)
-- [ ] **Fix B4**: Align timezone digest (`index.ts:47`)
+- [x] **Fix B1**: Revertir pitch status en send failure (`app.ts:231-254`)
+- [x] **Fix B2**: Obligar JWT_SECRET en .env, fallar al startup (`config.ts:14`)
+- [x] **Fix B4**: Align timezone digest (`index.ts:47`)
+- [ ] **Testing manual post-fixes**: Validar B1-B4, timezone digest, y todos los flujos end-to-end
 - [ ] **Landing Page**: Presencia pública en inglés para Google for Startups (repo aparte)
 - [ ] **Threading edge case**: Evaluar headers `In-Reply-To` / `References` para threading más robusto en Gmail
 
@@ -258,3 +275,5 @@ Resumen de features completadas pre-Sprint 14:
 - `MANUAL_TESTING.md`: checklist de 12 flujos end-to-end
 - `src/domains/agent-core/mcp-connector/gmail-mcp-server.ts`: MCP server con tools `list_emails` y `send_email` (con `threadId` para reply)
 - `apps/web/src/components/DealDetailSheet.tsx`: Sheet lateral con pitch editable, timeline, "¡La marca respondió!" celebration UI
+- `migrations/009_user_timezone.sql`: agrega `timezone` y `last_digest_sent_at` a `users`
+- `src/domains/digest/digest-service.ts`: `tickDigestScheduler()` con lógica de hora local por usuario
